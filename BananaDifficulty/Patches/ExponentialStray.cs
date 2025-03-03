@@ -23,7 +23,7 @@ namespace BananaDifficulty.Patches
         [HarmonyPostfix]
         public static void Awake_Prefix(ZombieProjectiles __instance)
         {
-            if (!BananaDifficultyPlugin.CanUseIt()) return;
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
             switch (__instance.eid.enemyType)
             {
                 case EnemyType.Stray:
@@ -40,7 +40,7 @@ namespace BananaDifficulty.Patches
         [HarmonyPostfix]
         public static void Shoot_Postfix(ZombieProjectiles __instance)
         {
-            if (!BananaDifficultyPlugin.CanUseIt()) return;
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
             switch (__instance.eid.enemyType)
             {
                 case EnemyType.Schism:

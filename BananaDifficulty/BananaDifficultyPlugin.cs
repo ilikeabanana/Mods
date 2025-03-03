@@ -62,9 +62,11 @@ namespace BananaDifficulty
             }
         }
 
-        public static bool CanUseIt()
+        public static bool CanUseIt(int difficulty)
         {
-            return MonoSingleton<PrefsManager>.Instance.GetInt("difficulty") == 5;
+            if (difficulty < 0)
+                difficulty = MonoSingleton<PrefsManager>.Instance.GetInt("difficulty");
+            return difficulty == 5;
         }
         
         void OnDestroy()

@@ -18,7 +18,7 @@ namespace BananaDifficulty.Patches
         [HarmonyPrefix]
         public static bool Parried_Prefix(Minotaur __instance)
         {
-            if (!BananaDifficultyPlugin.CanUseIt()) return true;
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return true;
 
             __instance.mach.GetHurt(__instance.GetComponentInChildren<EnemyIdentifierIdentifier>().gameObject, Vector3.zero, 20f, 0f, null, false);
 
@@ -29,7 +29,7 @@ namespace BananaDifficulty.Patches
         [HarmonyPostfix]
         public static void MeatLow_Prefix(Minotaur __instance)
         {
-            if (!BananaDifficultyPlugin.CanUseIt()) return;
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
             GameObject gameObject = Object.Instantiate<GameObject>((__instance.difficulty >= 4) ? __instance.toxicCloudLong : __instance.toxicCloud, __instance.meatInHand.transform.position, Quaternion.identity);
             gameObject.transform.SetParent(__instance.gz.transform, true);
         }
@@ -37,7 +37,7 @@ namespace BananaDifficulty.Patches
         [HarmonyPostfix]
         public static void MeatHigh_Prefix(Minotaur __instance)
         {
-            if (!BananaDifficultyPlugin.CanUseIt()) return;
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
             GameObject gameObject = Object.Instantiate<GameObject>((__instance.difficulty >= 4) ? __instance.goopLong : __instance.goop, new Vector3(__instance.meatInHand.transform.position.x, __instance.transform.position.y, __instance.meatInHand.transform.position.z), Quaternion.identity);
             gameObject.transform.SetParent(__instance.gz.transform, true);
         }

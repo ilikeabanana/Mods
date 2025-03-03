@@ -17,7 +17,7 @@ namespace BananaDifficulty.Patches
         [HarmonyPostfix]
         public static void SwordAngry(SwordsMachine __instance)
         {
-            if (!BananaDifficultyPlugin.CanUseIt()) return;
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
             __instance.eternalRage = true;
             __instance.Enrage();
         }
@@ -25,14 +25,14 @@ namespace BananaDifficulty.Patches
         [HarmonyPostfix]
         public static void SpiderAngry(SpiderBody __instance)
         {
-            if (!BananaDifficultyPlugin.CanUseIt()) return;
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
             __instance.Enrage();
         }
         [HarmonyPatch(typeof(Gutterman))]
         [HarmonyPostfix]
         public static void GuttermanAngry(Gutterman __instance)
         {
-            if (!BananaDifficultyPlugin.CanUseIt()) return;
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
             __instance.eternalRage = true;
             __instance.Enrage();
         }
@@ -40,28 +40,28 @@ namespace BananaDifficulty.Patches
         [HarmonyPostfix]
         public static void MindAngry(Mindflayer __instance)
         {
-            if (!BananaDifficultyPlugin.CanUseIt()) return;
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
             __instance.Enrage();
         }
         [HarmonyPatch(typeof(V2))]
         [HarmonyPostfix]
         public static void V2Angry(V2 __instance)
         {
-            if (!BananaDifficultyPlugin.CanUseIt()) return;
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
             __instance.Enrage();
         }
         [HarmonyPatch(typeof(StatueBoss))]
         [HarmonyPostfix]
         public static void StatueAngry(StatueBoss __instance)
         {
-            if (!BananaDifficultyPlugin.CanUseIt()) return;
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
             __instance.Enrage();
         }
         [HarmonyPatch(typeof(Drone))]
         [HarmonyPostfix]
         public static void VirtueAngry(Drone __instance)
         {
-            if (!BananaDifficultyPlugin.CanUseIt()) return;
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
             if (__instance.eid.enemyType != EnemyType.Virtue)
             {
                 __instance.projectile = new UnityEngine.AddressableAssets.AssetReference("6be53089211b2eb4ab93a26541e4e65b");

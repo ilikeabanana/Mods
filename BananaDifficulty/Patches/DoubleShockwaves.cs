@@ -18,7 +18,7 @@ namespace BananaDifficulty.Patches
         [HarmonyPostfix]
         public static void Awake_Prefix(PhysicalShockwave __instance)
         {
-            if (!BananaDifficultyPlugin.CanUseIt()) return;
+            if (!BananaDifficultyPlugin.CanUseIt(-1)) return;
             if (__instance.gameObject.name == "DoubleShock") return;
             PhysicalShockwave shock = Object.Instantiate(__instance);
             shock.gameObject.name = "DoubleShock";

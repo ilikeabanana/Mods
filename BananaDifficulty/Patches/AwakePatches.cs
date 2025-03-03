@@ -17,11 +17,12 @@ namespace BananaDifficulty.Patches
     [HarmonyPatch(typeof(EnemyIdentifier))]
     internal class AwakePatches
     {
-        [HarmonyPatch(nameof(EnemyIdentifier.Awake))]
+        [HarmonyPatch(nameof(EnemyIdentifier.Start))]
         [HarmonyPostfix]
         public static void Awake_Prefix(EnemyIdentifier __instance)
         {
-            if (!BananaDifficultyPlugin.CanUseIt()) return;
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
+            Debug.Log("Is correct diff");
             /*
             int seed = 12345 + SceneManager.GetActiveScene().buildIndex + (int)__instance.transform.position.magnitude; // Set your seed
             UnityEngine.Random.InitState(seed); // Initialize Unity's random state
@@ -34,7 +35,7 @@ namespace BananaDifficulty.Patches
                 __instance.healthBuff = true;
             }
 
-            if(__instance.enemyType == EnemyType.Mindflayer && !__instance.idol)
+            if(__instance.enemyType == EnemyType.Mindflayer && !__instance.blessed)
             {
                 Object.Instantiate(BananaDifficultyPlugin.idol, ModUtils.GetRandomNavMeshPoint(__instance.transform.position, 10), Quaternion.identity);
             }

@@ -17,7 +17,7 @@ namespace BananaDifficulty.Patches
         [HarmonyPostfix]
         public static void Awake_Postfix(Countdown __instance, float __result)
         {
-            if (!BananaDifficultyPlugin.CanUseIt()) return;
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
             __result = __result - (__result * 0.15f);
         }
 
@@ -25,7 +25,7 @@ namespace BananaDifficulty.Patches
         [HarmonyPostfix]
         public static void Start_Postfix(Countdown __instance)
         {
-            if (!BananaDifficultyPlugin.CanUseIt()) return;
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
             if (__instance.time != 0f && __instance.done)
             {
                 __instance.time = __instance.time - (__instance.time * 0.15f);

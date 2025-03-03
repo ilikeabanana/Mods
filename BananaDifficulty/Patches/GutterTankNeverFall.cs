@@ -19,7 +19,7 @@ namespace BananaDifficulty.Patches
         [HarmonyPrefix]
         public static bool Awake_Postfix(Guttertank __instance)
         {
-            if (!BananaDifficultyPlugin.CanUseIt()) return true;
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return true;
             __instance.sc.DamageStop();
             __instance.moveForward = false;
             if (!__instance.punchHit || __instance.difficulty < 3)

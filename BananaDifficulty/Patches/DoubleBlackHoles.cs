@@ -18,7 +18,7 @@ namespace BananaDifficulty.Patches
         [HarmonyPostfix]
         public static void Awake_Postfix(FleshPrison __instance)
         {
-            if (!BananaDifficultyPlugin.CanUseIt()) return;
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
             GameObject gameObject = Object.Instantiate<GameObject>(__instance.blackHole, __instance.transform);
             gameObject.transform.position = __instance.rotationBone.position + new Vector3(3,3,3);
             BlackHoleProjectile currentBlackHole = gameObject.GetComponent<BlackHoleProjectile>();

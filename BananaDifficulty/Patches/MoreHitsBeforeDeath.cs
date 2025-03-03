@@ -12,7 +12,7 @@ namespace BananaDifficulty.Patches
         [HarmonyPrefix]
         public static bool Death_Prefix(Idol __instance)
         {
-            if (!BananaDifficultyPlugin.CanUseIt()) return true;
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return true;
             int idolID = __instance.GetInstanceID();
             // Initialize or increment the throw count for this zombie
             if (!idolHitCount.ContainsKey(idolID))
@@ -46,7 +46,7 @@ namespace BananaDifficulty.Patches
         [HarmonyPrefix]
         public static bool DeathEnemy_Prefix(EnemyIdentifier __instance)
         {
-            if (!BananaDifficultyPlugin.CanUseIt()) return true;
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return true;
             Idol idol = __instance.idol;
             if (idol == null)
             {
@@ -60,7 +60,7 @@ namespace BananaDifficulty.Patches
         [HarmonyPrefix]
         public static void InstaDeathEnemy_Prefix(EnemyIdentifier __instance)
         {
-            if (!BananaDifficultyPlugin.CanUseIt()) return;
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
             Idol idol = __instance.idol;
             if (idol == null)
             {

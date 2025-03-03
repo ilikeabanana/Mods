@@ -21,7 +21,7 @@ namespace BananaDifficulty.Patches
         [HarmonyPostfix]
         public static void Awake_Postfix(Projectile __instance)
         {
-            if (!BananaDifficultyPlugin.CanUseIt()) return;
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
             if (__instance.decorative) return;
             if (__instance.friendly) return;
 

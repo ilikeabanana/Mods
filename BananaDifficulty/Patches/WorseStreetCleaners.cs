@@ -21,7 +21,7 @@ namespace BananaDifficulty.Patches
         [HarmonyPostfix]
         public static void Awake_Postfix(Streetcleaner __instance)
         {
-            if (!BananaDifficultyPlugin.CanUseIt()) return;
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
             if (__instance.eid.dead) return;
 
             if (!__instance.target.isValid) return;
@@ -67,7 +67,7 @@ namespace BananaDifficulty.Patches
         [HarmonyPrefix]
         public static bool Awake_Prefix(BulletCheck __instance, Collider other)
         {
-            if (!BananaDifficultyPlugin.CanUseIt()) return true;
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return true;
             Streetcleaner streetcleaner24 = __instance.sc;
             if (streetcleaner24 == null)
             {

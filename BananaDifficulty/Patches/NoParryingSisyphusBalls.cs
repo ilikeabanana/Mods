@@ -18,7 +18,8 @@ namespace BananaDifficulty.Patches
         [HarmonyPrefix]
         public static void Launch_Prefix(Cannonball __instance)
         {
-            if (!BananaDifficultyPlugin.CanUseIt()) return;
+            int dif = __instance.sisy != null ? __instance.sisy.difficulty : 0;
+            if (!BananaDifficultyPlugin.CanUseIt(dif)) return;
             if (__instance.sisy)
             {
                 __instance.launchable = false;
@@ -29,7 +30,7 @@ namespace BananaDifficulty.Patches
         [HarmonyPrefix]
         public static bool Knockdown_Prefix(Sisyphus __instance)
         {
-            return !BananaDifficultyPlugin.CanUseIt();
+            return !BananaDifficultyPlugin.CanUseIt(__instance.difficulty);
 
 
         }

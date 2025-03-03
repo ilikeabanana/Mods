@@ -19,7 +19,7 @@ namespace BananaDifficulty.Patches
         [HarmonyPostfix]
         public static void Awake_Postfix(Mass __instance)
         {
-            if (!BananaDifficultyPlugin.CanUseIt()) return;
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
             if (__instance.eid.target == null || __instance.dead || __instance.difficulty == 0) return;
 
             __instance.StartCoroutine(ShootSpearsWithDelay(__instance));

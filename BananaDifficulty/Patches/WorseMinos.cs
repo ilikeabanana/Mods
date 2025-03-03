@@ -17,7 +17,7 @@ namespace BananaDifficulty.Patches
         public static void YOUCANTESCAPE(MinosPrime __instance)
         {
             if (__instance.inAction) return;
-            if (BananaDifficultyPlugin.CanUseIt())
+            if (BananaDifficultyPlugin.CanUseIt(__instance.difficulty))
             {
                 if (Vector3.Distance(__instance.transform.position, __instance.target.position) > 30)
                 {
@@ -32,7 +32,7 @@ namespace BananaDifficulty.Patches
             RaycastHit raycastHit;
             Physics.Raycast(__instance.aimingBone.position, __instance.transform.forward, out raycastHit, 250f, LayerMaskDefaults.Get(LMD.Environment));
             GameObject gameObject;
-            if (BananaDifficultyPlugin.CanUseIt())
+            if (BananaDifficultyPlugin.CanUseIt(__instance.difficulty))
             {
                 gameObject = Object.Instantiate<GameObject>(__instance.groundWave, raycastHit.point, Quaternion.identity);
                 gameObject.transform.up = raycastHit.normal;
@@ -50,7 +50,7 @@ namespace BananaDifficulty.Patches
         [HarmonyPostfix]
         public static void IGotTwoSnakes(MinosPrime __instance)
         {
-            if (BananaDifficultyPlugin.CanUseIt())
+            if (BananaDifficultyPlugin.CanUseIt(__instance.difficulty))
             {
                 if (__instance.target == null)
                 {

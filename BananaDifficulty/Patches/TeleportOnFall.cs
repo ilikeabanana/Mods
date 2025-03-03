@@ -23,7 +23,7 @@ namespace BananaDifficulty.Patches
         [HarmonyPostfix]
         public static void Awake_Prefix(ZombieMelee __instance)
         {
-            if (!BananaDifficultyPlugin.CanUseIt()) return;
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
             // Check if the zombie is falling
             if (__instance.zmb.falling)
             {

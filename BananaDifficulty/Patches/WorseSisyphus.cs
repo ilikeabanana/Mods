@@ -10,7 +10,7 @@ namespace BananaDifficulty.Patches
         [HarmonyPostfix]
         public static void Shocker(SisyphusPrime __instance)
         {
-            if (BananaDifficultyPlugin.CanUseIt())
+            if (BananaDifficultyPlugin.CanUseIt(__instance.difficulty))
             {
                 if (__instance.difficulty >= 2)
                 {
@@ -26,7 +26,7 @@ namespace BananaDifficulty.Patches
         [HarmonyPostfix]
         public static void ClapShocker(SisyphusPrime __instance)
         {
-            if (BananaDifficultyPlugin.CanUseIt())
+            if (BananaDifficultyPlugin.CanUseIt(__instance.difficulty))
             {
                 if (__instance.difficulty >= 2)
                 {
@@ -38,7 +38,7 @@ namespace BananaDifficulty.Patches
         [HarmonyPostfix]
         public static void VirtueProj(SisyphusPrime __instance)
         {
-            if (BananaDifficultyPlugin.CanUseIt())
+            if (BananaDifficultyPlugin.CanUseIt(__instance.difficulty))
             {
                 GameObject gameObject = Object.Instantiate<GameObject>(BananaDifficultyPlugin.insignificant, __instance.target.position, Quaternion.identity);
                 VirtueInsignia component = gameObject.GetComponent<VirtueInsignia>();
@@ -75,7 +75,7 @@ namespace BananaDifficulty.Patches
         {
             
             if (__instance.inAction) return;
-            if (BananaDifficultyPlugin.CanUseIt())
+            if (BananaDifficultyPlugin.CanUseIt(__instance.difficulty))
             {
                 __instance.cooldown = 0;
                 if (Vector3.Distance(__instance.transform.position, __instance.heightAdjustedTargetPos) > 30)

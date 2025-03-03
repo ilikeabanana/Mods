@@ -19,7 +19,7 @@ namespace BananaDifficulty.Patches
         [HarmonyPrefix]
         public static bool Awake_Prefix(Wicked __instance)
         {
-            if (!BananaDifficultyPlugin.CanUseIt()) return true;
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.eid.difficulty)) return true;
             if (!__instance.gameObject.activeInHierarchy)
             {
                 return false;

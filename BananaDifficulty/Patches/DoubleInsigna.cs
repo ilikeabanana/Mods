@@ -11,7 +11,8 @@ namespace BananaDifficulty.Patches
         [HarmonyPostfix]
         public static void StartInsignia(VirtueInsignia __instance)
         {
-            if (!BananaDifficultyPlugin.CanUseIt()) return;
+            int dif = __instance.parentDrone != null ? __instance.parentDrone.difficulty : -1;
+            if (!BananaDifficultyPlugin.CanUseIt(dif)) return;
             if (__instance.gameObject.name.StartsWith("DoubleInsig")) return;
 
             __instance.StartCoroutine(SpawnInsignias(__instance));

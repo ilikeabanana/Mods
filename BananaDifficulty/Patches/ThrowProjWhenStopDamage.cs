@@ -18,7 +18,7 @@ namespace BananaDifficulty.Patches
         [HarmonyPostfix]
         public static void Awake_Postfix(Ferryman __instance)
         {
-            if (!BananaDifficultyPlugin.CanUseIt()) return;
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
             if (!__instance.useKick && !__instance.useOar) return;
             GameObject MeWhenWhenMySnakeIsSolid = Object.Instantiate(BananaDifficultyPlugin.snakeProj, __instance.mach.chest.transform.position, Quaternion.identity);
 
