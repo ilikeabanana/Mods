@@ -1,0 +1,55 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.11.35303.130
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThePStandsForPeppino", "ThePStandsForPeppino\ThePStandsForPeppino.csproj", "{5A12D5C3-51D2-464A-B224-929B743374DD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BladesOfChaos", "BladesOfChaos\BladesOfChaos.csproj", "{4E4D067A-B54F-479B-9E26-57690BCF2D36}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ULTRACHALLENGE", "ULTRACHALLENGE\ULTRACHALLENGE.csproj", "{27261B9B-5345-4613-B8E3-B1F0DDDD49B5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VITRUV1", "VITRUV1\VITRUV1.csproj", "{DC8F52FA-0119-4632-B631-8DC19B322480}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LoggingEveryAddressable", "LoggingEveryAddressable\LoggingEveryAddressable.csproj", "{78CD671C-2D9E-4650-9AED-2C3E756D0D1B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BananaDifficulty", "BananaDifficulty\BananaDifficulty.csproj", "{B7996125-3626-439E-A969-9DD238D5335F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5A12D5C3-51D2-464A-B224-929B743374DD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5A12D5C3-51D2-464A-B224-929B743374DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5A12D5C3-51D2-464A-B224-929B743374DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5A12D5C3-51D2-464A-B224-929B743374DD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4E4D067A-B54F-479B-9E26-57690BCF2D36}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4E4D067A-B54F-479B-9E26-57690BCF2D36}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4E4D067A-B54F-479B-9E26-57690BCF2D36}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4E4D067A-B54F-479B-9E26-57690BCF2D36}.Release|Any CPU.Build.0 = Release|Any CPU
+		{27261B9B-5345-4613-B8E3-B1F0DDDD49B5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{27261B9B-5345-4613-B8E3-B1F0DDDD49B5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{27261B9B-5345-4613-B8E3-B1F0DDDD49B5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{27261B9B-5345-4613-B8E3-B1F0DDDD49B5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DC8F52FA-0119-4632-B631-8DC19B322480}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DC8F52FA-0119-4632-B631-8DC19B322480}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DC8F52FA-0119-4632-B631-8DC19B322480}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DC8F52FA-0119-4632-B631-8DC19B322480}.Release|Any CPU.Build.0 = Release|Any CPU
+		{78CD671C-2D9E-4650-9AED-2C3E756D0D1B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{78CD671C-2D9E-4650-9AED-2C3E756D0D1B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{78CD671C-2D9E-4650-9AED-2C3E756D0D1B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{78CD671C-2D9E-4650-9AED-2C3E756D0D1B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B7996125-3626-439E-A969-9DD238D5335F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B7996125-3626-439E-A969-9DD238D5335F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B7996125-3626-439E-A969-9DD238D5335F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B7996125-3626-439E-A969-9DD238D5335F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {E5AF4D49-5685-4E5F-A030-E95C5C4E326D}
+	EndGlobalSection
+EndGlobal
