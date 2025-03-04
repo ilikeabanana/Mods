@@ -37,6 +37,7 @@ namespace BananaDifficulty
         public static GameObject RocketEnemy;
         public static GameObject snakeProj;
         public static GameObject insignificant;
+        public static GameObject bigExplosion;
         private void Awake()
         {
             // Apply all of our patches
@@ -44,6 +45,8 @@ namespace BananaDifficulty
             Harmony.PatchAll();
             Logger.LogInfo($"PluginName: {PluginName}, VersionString: {VersionString} is loaded.");
             SceneManager.activeSceneChanged += SceneManager_activeSceneChanged;
+
+            gameObject.hideFlags = HideFlags.DontSaveInEditor;
 
             Log = Logger;
 
@@ -100,6 +103,10 @@ namespace BananaDifficulty
             {
                 insignificant = x;
             }, "Virtue Insignia"));
+            StartCoroutine(LoadAddressable<GameObject>((x) =>
+            {
+                bigExplosion = x;
+            }, "Assets/Prefabs/Attacks and Projectiles/Explosions/Explosion Big.prefab"));
         }
 
         public IEnumerator LoadAddressable<T>(Action<T> onLoad, string path)

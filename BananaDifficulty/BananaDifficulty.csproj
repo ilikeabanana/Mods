@@ -123,9 +123,11 @@
     <Compile Include="Patches\GutterTankNeverFall.cs" />
     <Compile Include="Patches\ImmediatelyEnrage.cs" />
     <Compile Include="Patches\LowerCountdown.cs" />
+    <Compile Include="Patches\MauriceMyBeloved.cs" />
     <Compile Include="Patches\MoreGlitchy.cs" />
     <Compile Include="Patches\MoreHitsBeforeDeath.cs" />
     <Compile Include="Patches\AwakePatches.cs" />
+    <Compile Include="Patches\NoMoreBreakingShields.cs" />
     <Compile Include="Patches\NoParryingSisyphusBalls.cs" />
     <Compile Include="Patches\Stalker_SandExplode_Patch.cs" />
     <Compile Include="Patches\TeleportOnFall.cs" />

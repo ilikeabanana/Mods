@@ -33,7 +33,7 @@ namespace BananaDifficulty.Patches
                 // Check if this zombie has teleported before
                 if (!lastTeleportTimes.ContainsKey(__instance))
                 {
-                    lastTeleportTimes[__instance] = -TELEPORT_COOLDOWN; // Allow first teleport immediately
+                    lastTeleportTimes[__instance] = currentTime; // Allow first teleport immediately
                 }
 
                 // Check if cooldown has elapsed
@@ -46,6 +46,21 @@ namespace BananaDifficulty.Patches
                     // Update the last teleport time
                     lastTeleportTimes[__instance] = currentTime;
                 }
+            }
+        }
+        [HarmonyPatch(nameof(ZombieMelee.DamageEnd))]
+        [HarmonyPostfix]
+        public static void Explode(ZombieMelee __instance)
+        {
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
+
+            GameObject kaboom = Object.Instantiate(BananaDifficultyPlugin.bigExplosion, __instance.transform.position, Quaternion.identity);
+
+            Explosion controller = kaboom.GetComponentInChildren<Explosion>();
+            if(controller != null)
+            {
+                controller.originEnemy = __instance.eid;
+                controller.toIgnore.Add(__instance.eid.enemyType);
             }
         }
     }
