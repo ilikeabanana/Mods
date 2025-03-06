@@ -48,19 +48,24 @@ namespace BananaDifficulty.Patches
                 }
             }
         }
-        [HarmonyPatch(nameof(ZombieMelee.DamageEnd))]
+    }
+
+    [HarmonyPatch]
+    public class AttachToPlayerOnDamage
+    {
+        [HarmonyPatch(typeof(SwingCheck2), nameof(SwingCheck2.CheckCollision))]
         [HarmonyPostfix]
-        public static void Explode(ZombieMelee __instance)
+        public static void AttachToHit(SwingCheck2 __instance, Collider other)
         {
-            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
 
-            GameObject kaboom = Object.Instantiate(BananaDifficultyPlugin.bigExplosion, __instance.transform.position, Quaternion.identity);
-
-            Explosion controller = kaboom.GetComponentInChildren<Explosion>();
-            if(controller != null)
+            if(__instance.eid == null) return;
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.eid.difficulty)) return;
+            if (other.gameObject.CompareTag("Player"))
             {
-                controller.originEnemy = __instance.eid;
-                controller.toIgnore.Add(__instance.eid.enemyType);
+                if (__instance.eid.enemyType != EnemyType.Filth) return;
+                if(__instance.eid.gameObject.GetComponent<FixedJoint>() != null) return;
+                FixedJoint joined = __instance.eid.gameObject.AddComponent<FixedJoint>();
+                joined.connectedBody = other.attachedRigidbody;
             }
         }
     }

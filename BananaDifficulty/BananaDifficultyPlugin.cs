@@ -38,6 +38,8 @@ namespace BananaDifficulty
         public static GameObject snakeProj;
         public static GameObject insignificant;
         public static GameObject bigExplosion;
+        public static GameObject blackHole;
+        public static GameObject spear;
         private void Awake()
         {
             // Apply all of our patches
@@ -107,6 +109,10 @@ namespace BananaDifficulty
             {
                 bigExplosion = x;
             }, "Assets/Prefabs/Attacks and Projectiles/Explosions/Explosion Big.prefab"));
+            StartCoroutine(LoadAddressable<GameObject>((x) =>
+            {
+                blackHole = x;
+            }, "Assets/Prefabs/Attacks and Projectiles/Black Hole Projectile.prefab"));
         }
 
         public IEnumerator LoadAddressable<T>(Action<T> onLoad, string path)
