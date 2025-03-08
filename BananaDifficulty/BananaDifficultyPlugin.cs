@@ -16,6 +16,7 @@ using Object = UnityEngine.Object;
 using UnityEngine.SceneManagement;
 using Discord;
 using System.Text.RegularExpressions;
+using System.Reflection;
 
 namespace BananaDifficulty
 {
@@ -40,6 +41,10 @@ namespace BananaDifficulty
         public static GameObject bigExplosion;
         public static GameObject blackHole;
         public static GameObject spear;
+        public static GameObject v2FlashUnpariable;
+        public static GameObject summonedSwords;
+        public static GameObject homingHH;
+        public static GameObject homingBlue;
         private void Awake()
         {
             // Apply all of our patches
@@ -53,7 +58,7 @@ namespace BananaDifficulty
             Log = Logger;
 
             GetAssets();
-
+            GetBundleAssets();
         }
 
         private void SceneManager_activeSceneChanged(Scene arg0, Scene arg1)
@@ -79,6 +84,12 @@ namespace BananaDifficulty
             Harmony.UnpatchAll();
         }
 
+        public void GetBundleAssets()
+        {
+            var a = Assembly.GetExecutingAssembly();
+
+            spear = AssetBundle.LoadFromStream(a.GetManifestResourceStream("BananaDifficulty.Bundles.v2spear")).LoadAsset<GameObject>("V2Spear");
+        }
         public void GetAssets()
         {
             StartCoroutine(LoadAddressable<GameObject>((x) =>
@@ -113,6 +124,22 @@ namespace BananaDifficulty
             {
                 blackHole = x;
             }, "Assets/Prefabs/Attacks and Projectiles/Black Hole Projectile.prefab"));
+            StartCoroutine(LoadAddressable<GameObject>((x) =>
+            {
+                v2FlashUnpariable = x;
+            }, "Assets/Particles/Flashes/V2FlashUnparriable.prefab"));
+            StartCoroutine(LoadAddressable<GameObject>((x) =>
+            {
+                summonedSwords = x;
+            }, "Assets/Prefabs/Attacks and Projectiles/Gabriel/GabrielSummonedSwords.prefab"));
+            StartCoroutine(LoadAddressable<GameObject>((x) =>
+            {
+                homingBlue = x;
+            }, "Assets/Prefabs/Attacks and Projectiles/Projectile Homing.prefab"));
+            StartCoroutine(LoadAddressable<GameObject>((x) =>
+            {
+                homingHH = x;
+            }, "Assets/Prefabs/Attacks and Projectiles/Projectile Explosive HH.prefab"));
         }
 
         public IEnumerator LoadAddressable<T>(Action<T> onLoad, string path)

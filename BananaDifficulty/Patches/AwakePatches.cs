@@ -28,7 +28,7 @@ namespace BananaDifficulty.Patches
             UnityEngine.Random.InitState(seed); // Initialize Unity's random state
             float chance = 0.5f; // 30% chance
             bool outcome = UnityEngine.Random.value < chance; // UnityEngine.Random.value gives a number between 0.0 and 1.0*/
-            if (__instance.enemyType == EnemyType.Idol)
+            if (__instance.enemyType == EnemyType.Idol && !__instance.gameObject.name.EndsWith("DontRadiant"))
             {
                 __instance.speedBuff = true;
                 __instance.damageBuff = true;
@@ -37,7 +37,13 @@ namespace BananaDifficulty.Patches
 
             if(__instance.enemyType == EnemyType.Mindflayer && !__instance.blessed)
             {
-                Object.Instantiate(BananaDifficultyPlugin.idol, ModUtils.GetRandomNavMeshPoint(__instance.transform.position, 10), Quaternion.identity);
+                GameObject spawnedIdol = Object.Instantiate(BananaDifficultyPlugin.idol, ModUtils.GetRandomNavMeshPoint(__instance.transform.position, 10), Quaternion.identity);
+
+                Idol idol;
+                if (spawnedIdol.TryGetComponent<Idol>(out idol))
+                {
+                    idol.target = __instance;
+                }
             }
         }
 

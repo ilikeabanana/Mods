@@ -138,17 +138,21 @@
     <Compile Include="Patches\ThrowProjWhenStopDamage.cs" />
     <Compile Include="Patches\WickedShot.cs" />
     <Compile Include="Patches\WorseCerberi.cs" />
+    <Compile Include="Patches\WorseFleshPrison.cs" />
+    <Compile Include="Patches\WorseGabriel.cs" />
     <Compile Include="Patches\WorseLeviathan.cs" />
     <Compile Include="Patches\WorseMass.cs" />
     <Compile Include="Patches\WorseMinos.cs" />
     <Compile Include="Patches\WorseMinotaur.cs" />
     <Compile Include="Patches\WorseSisyphus.cs" />
     <Compile Include="Patches\WorseStreetCleaners.cs" />
+    <Compile Include="Patches\WorseSwordsMachine.cs" />
     <Compile Include="Patches\WorseV2.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utils\ModUtils.cs" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Bundles\v2spear" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup />

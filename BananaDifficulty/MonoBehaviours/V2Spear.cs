@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using BananaDifficulty.Patches;
+using UnityEngine;
 
 namespace BananaDifficulty.MonoBehaviours
 {
@@ -6,11 +7,12 @@ namespace BananaDifficulty.MonoBehaviours
     {
         private void Start()
         {
+            BananaDifficultyPlugin.Log.LogInfo("V2Spear Start");
             this.difficulty = MonoSingleton<PrefsManager>.Instance.GetInt("difficulty", 0);
             this.lr = base.GetComponentInChildren<LineRenderer>();
             this.rb = base.GetComponent<Rigidbody>();
             this.aud = base.GetComponent<AudioSource>();
-            this.v2 = this.originPoint.GetComponentInParent<V2>();
+            //this.v2 = this.originPoint.parent.parent.parent.parent.parent.GetComponent<V2>();
             base.Invoke("CheckForDistance", 3f / this.speedMultiplier);
             if (this.difficulty == 1)
             {
@@ -107,7 +109,7 @@ namespace BananaDifficulty.MonoBehaviours
                 }
                 return;
             }
-            Object.Destroy(base.gameObject);
+            //Object.Destroy(base.gameObject);
         }
 
         // Token: 0x06000E38 RID: 3640 RVA: 0x00075694 File Offset: 0x00073894
@@ -130,6 +132,10 @@ namespace BananaDifficulty.MonoBehaviours
                 target = eid.gameObject;
             }
             if (!eid)
+            {
+                return;
+            }
+            if(eid.enemyType == EnemyType.V2Second)
             {
                 return;
             }
@@ -242,6 +248,7 @@ namespace BananaDifficulty.MonoBehaviours
             }
             this.returning = true;
             this.beenStopped = true;
+            WorseV2.threwSpear[this.v2] = false;
         }
 
         // Token: 0x06000E3E RID: 3646 RVA: 0x00075B24 File Offset: 0x00073D24
@@ -304,7 +311,7 @@ namespace BananaDifficulty.MonoBehaviours
         public AudioClip stop;
 
         // Token: 0x04001400 RID: 5120
-        private V2 v2;
+        public V2 v2;
 
         // Token: 0x04001401 RID: 5121
         public float speedMultiplier = 1f;
