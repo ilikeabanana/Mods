@@ -6,6 +6,8 @@ using System.Linq;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using UnityEngine.Animations;
+using UnityEngine.Playables;
 
 [BepInPlugin("doomahreal.ultrakill.VITRUV1", "VITRUV1", "1.0.0")]
 public class Plugin : BaseUnityPlugin
@@ -130,15 +132,29 @@ public class Plugin : BaseUnityPlugin
                 animator = modelInstance.transform.GetChild(0).GetComponent<Animator>();
             }
 
-            // Get the first AnimationClip from the bundle
-            AnimationClip defaultClip = loadedBundle.LoadAllAssets<AnimationClip>().FirstOrDefault();
-            if (defaultClip != null)
+            AnimationClip[] animationClips = loadedBundle.LoadAllAssets<AnimationClip>();
+            if (animationClips.Length > 0)
             {
-                AnimationLoader.LoadAnimations(animator, defaultClip);
+                AnimationClip firstClip = animationClips[0];
+                PlayAnimationClip(firstClip);
             }
 
             LogicButtocksHaHa controller = uiObject.AddComponent<LogicButtocksHaHa>();
-            controller.Initialize(modelParent, animator, AnimationLoader.GetAnimationClips(), uiObject.GetComponent<RectTransform>());
+            controller.Initialize(modelParent, animator, uiObject.GetComponent<RectTransform>());
         }
+    }
+
+    private void PlayAnimationClip(AnimationClip clip)
+    {
+        if (animator == null || clip == null) return;
+
+        var playableGraph = PlayableGraph.Create();
+        playableGraph.SetTimeUpdateMode(DirectorUpdateMode.GameTime);
+
+        var playableOutput = AnimationPlayableOutput.Create(playableGraph, "AnimationOutput", animator);
+        var clipPlayable = AnimationClipPlayable.Create(playableGraph, clip);
+        playableOutput.SetSourcePlayable(clipPlayable);
+
+        playableGraph.Play();
     }
 }

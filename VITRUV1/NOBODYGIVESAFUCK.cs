@@ -1,14 +1,10 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
-using System.Collections.Generic;
-using UnityEngine.Playables;
-using UnityEngine.Animations;
 
 public class LogicButtocksHaHa : MonoBehaviour
 {
     private Transform modelParent;
     private Animator animator;
-    private List<AnimationClip> animationClips;
     private RectTransform uiRect;
     private Vector2 lastMousePos;
     private Vector3 lastRotationDirection = Vector3.up;
@@ -17,8 +13,6 @@ public class LogicButtocksHaHa : MonoBehaviour
     private bool isClick = false;
     private const float clickThreshold = 5f;
     private bool isSpinning = true;
-    private float lastPoseChangeTime = 0f;
-    private const float poseChangeCooldown = 0.2f;
 
     private Vector3 originalScale = new Vector3(0.7f, 0.7f, 1f);
     private Vector3 targetScale;
@@ -26,24 +20,13 @@ public class LogicButtocksHaHa : MonoBehaviour
     private float scaleHoldTime = 0f;
     private float scaleStartTime = 0f;
 
-    private AnimationClip lastPlayedClip;
-    private int retryCount = 0;
-
-    private PlayableGraph playableGraph;
-    private AnimationPlayableOutput playableOutput;
-    private AnimationMixerPlayable mixerPlayable;
-    private AnimationClipPlayable posePlayable;
-
-    public void Initialize(Transform modelParent, Animator animator, List<AnimationClip> animationClips, RectTransform uiRect)
+    public void Initialize(Transform modelParent, Animator animator, RectTransform uiRect)
     {
         this.modelParent = modelParent;
         this.animator = animator;
-        this.animationClips = animationClips;
         this.uiRect = uiRect;
         lastInteractionTime = Time.time;
         targetScale = originalScale;
-
-        SetupPlayables();
     }
 
     private void Awake()
@@ -51,18 +34,6 @@ public class LogicButtocksHaHa : MonoBehaviour
         lastInteractionTime = Time.time;
         isSpinning = true;
         targetScale = originalScale;
-    }
-
-    private void SetupPlayables()
-    {
-        playableGraph = PlayableGraph.Create("PoseGraph");
-        playableGraph.SetTimeUpdateMode(DirectorUpdateMode.GameTime);
-
-        playableOutput = AnimationPlayableOutput.Create(playableGraph, "AnimationOutput", animator);
-        mixerPlayable = AnimationMixerPlayable.Create(playableGraph, 1);
-        playableOutput.SetSourcePlayable(mixerPlayable);
-
-        playableGraph.Play();
     }
 
     private bool IsMouseOverUI()
@@ -109,19 +80,6 @@ public class LogicButtocksHaHa : MonoBehaviour
             {
                 targetScale = originalScale * 1.25f;
                 scaleStartTime = Time.time;
-
-                if (animationClips.Count > 0 && Time.time - lastPoseChangeTime > poseChangeCooldown)
-                {
-                    AnimationClip chosenClip = ChooseAnimationClip();
-                    if (chosenClip != null)
-                    {
-                        SwapAnimationClip(chosenClip);
-                        lastInteractionTime = Time.time;
-                        isSpinning = false;
-                        lastPoseChangeTime = Time.time;
-                        lastPlayedClip = chosenClip;
-                    }
-                }
             }
         }
 
@@ -133,45 +91,5 @@ public class LogicButtocksHaHa : MonoBehaviour
 
         if (isSpinning)
             modelParent.Rotate(lastRotationDirection, Time.deltaTime * 10f);
-    }
-
-    private AnimationClip ChooseAnimationClip()
-    {
-        if (animationClips.Count == 1)
-            return animationClips[0];
-
-        retryCount = 0;
-        while (retryCount < 3)
-        {
-            AnimationClip chosenClip = animationClips[Random.Range(0, animationClips.Count)];
-            if (chosenClip != lastPlayedClip)
-                return chosenClip;
-            retryCount++;
-        }
-        return null;
-    }
-
-    private void SwapAnimationClip(AnimationClip newClip)
-    {
-        if (newClip == null) return;
-
-        if (posePlayable.IsValid())
-        {
-            posePlayable.Destroy();
-        }
-
-        posePlayable = AnimationClipPlayable.Create(playableGraph, newClip);
-        playableGraph.Connect(posePlayable, 0, mixerPlayable, 0);
-        mixerPlayable.SetInputWeight(0, 1f);
-
-        posePlayable.Play();
-    }
-
-    private void OnDestroy()
-    {
-        if (playableGraph.IsValid())
-        {
-            playableGraph.Destroy();
-        }
     }
 }
