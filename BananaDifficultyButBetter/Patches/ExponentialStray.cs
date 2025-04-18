@@ -41,7 +41,6 @@ namespace BananaDifficulty.Patches
         public static void Shoot_Postfix(ZombieProjectiles __instance)
         {
             if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
-            if (!BananaDifficultyPlugin.HardMode.Value) return;
             switch (__instance.eid.enemyType)
             {
                 case EnemyType.Schism:
@@ -50,7 +49,6 @@ namespace BananaDifficulty.Patches
             }
 
         }
-
 
 
         private static void FireProjectileAtAngle(GameObject projectile, float angleOffset, ZombieProjectiles __instance)
@@ -90,7 +88,7 @@ namespace BananaDifficulty.Patches
 
             // Fire two projectiles at an angle
             FireProjectileAtAngle(__instance.currentProjectile, -10f, __instance);
-            //FireProjectileAtAngle(__instance.currentProjectile, 10f, __instance);
+            FireProjectileAtAngle(__instance.currentProjectile, 10f, __instance);
         }
 
         static void FireSoldier(ZombieProjectiles __instance)
@@ -216,7 +214,7 @@ namespace BananaDifficulty.Patches
                 {
                     return MonoSingleton<PlayerTracker>.Instance.PredictPlayerPosition(
                         Vector3.Distance(__instance.transform.position, __instance.camObj.transform.position) /
-                        (float)((__instance.difficulty == 5) ? 90 : Random.Range(110, 180)),
+                        (float)((__instance.difficulty == 5) ? 90 : UnityEngine.Random.Range(110, 180)),
                         true, false);
                 }
                 else

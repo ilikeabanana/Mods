@@ -13,7 +13,6 @@ namespace BananaDifficulty.Patches
         {
             int dif = __instance.parentDrone != null ? __instance.parentDrone.difficulty : -1;
             if (!BananaDifficultyPlugin.CanUseIt(dif)) return;
-            if (!BananaDifficultyPlugin.HardMode.Value) return;
             if (__instance.gameObject.name.StartsWith("DoubleInsig")) return;
 
             __instance.StartCoroutine(SpawnInsignias(__instance));

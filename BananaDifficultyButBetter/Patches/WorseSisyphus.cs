@@ -77,7 +77,7 @@ namespace BananaDifficulty.Patches
             if (__instance.inAction) return;
             if (BananaDifficultyPlugin.CanUseIt(__instance.difficulty))
             {
-                __instance.cooldown = Mathf.MoveTowards(__instance.cooldown, 0f, Time.deltaTime * __instance.eid.totalSpeedModifier);
+                __instance.cooldown = 0;
                 if (Vector3.Distance(__instance.transform.position, __instance.heightAdjustedTargetPos) > 30)
                 {
                     __instance.TeleportAnywhere(true);

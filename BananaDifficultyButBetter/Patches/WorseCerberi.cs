@@ -51,50 +51,5 @@ namespace BananaDifficulty.Patches
             FireProjectileAtAngle(25f, __instance);
             FireProjectileAtAngle(-25f, __instance);
         }
-        [HarmonyPatch(nameof(StatueBoss.Tackle))]
-        [HarmonyPostfix]
-        public static void ThreeTackles(StatueBoss __instance)
-        {
-            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
-            __instance.extraTackles += 1;
-        }
-        /*
-
-        [HarmonyPatch(nameof(StatueBoss.StompHit))]
-        [HarmonyPostfix]
-        public static void Stomp_Postfix(StatueBoss __instance)
-        {
-            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
-            __instance.currentStompWave = Object.Instantiate<GameObject>(__instance.stompWave.ToAsset(), new Vector3(__instance.stompPos.position.x, __instance.transform.position.y, __instance.stompPos.position.z), Quaternion.identity);
-            PhysicalShockwave component = __instance.currentStompWave.GetComponent<PhysicalShockwave>();
-
-            __instance.currentStompWave.transform.Rotate(new Vector3(0, 0, 90));
-
-            component.damage = 25;
-            if (__instance.difficulty >= 4)
-            {
-                component.speed = 75f;
-            }
-            else if (__instance.difficulty == 3)
-            {
-                component.speed = 50f;
-            }
-            else if (__instance.difficulty == 2)
-            {
-                component.speed = 35f;
-            }
-            else if (__instance.difficulty == 1)
-            {
-                component.speed = 25f;
-            }
-            else if (__instance.difficulty == 0)
-            {
-                component.speed = 15f;
-            }
-            component.damage = Mathf.RoundToInt((float)component.damage * __instance.eid.totalDamageModifier);
-            component.maxSize = 100f;
-            component.enemy = true;
-            component.enemyType = EnemyType.Cerberus;
-        }*/
     }
 }

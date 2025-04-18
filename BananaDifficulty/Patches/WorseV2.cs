@@ -41,7 +41,7 @@ namespace BananaDifficulty.Patches
 
             if (distanceToPlayer > 20)
             {
-                if(__instance.weapons.First((x) => x.gameObject.name.Contains("Nailgun")) == null) return true;
+                if (!__instance.weapons.Any((x) => x.gameObject.name.Contains("Nailgun"))) return true;
                 if (threwSpear.ContainsKey(__instance) && threwSpear[__instance])
                 {
                     return true;
@@ -53,11 +53,12 @@ namespace BananaDifficulty.Patches
                 __instance.rb.velocity = Vector3.zero;
                 threwSpear[__instance] = true;
                 spearCooldowns[__instance] = currentTime + 5.0f; // 5 seconds cooldown
-                Object.Instantiate<GameObject>(BananaDifficultyPlugin.v2FlashUnpariable, __instance.aimAtTarget[1].transform.position, Quaternion.LookRotation(__instance.target.position - __instance.aimAtTarget[1].transform.position)).transform.localScale *= 20f;
+                Object.Instantiate<GameObject>(__instance.altFlash, __instance.aimAtTarget[1].transform.position, Quaternion.LookRotation(__instance.target.position - __instance.aimAtTarget[1].transform.position)).transform.localScale *= 20f;
                 __instance.StartCoroutine(ThrowSpearWithDelay(__instance));
             }
             else if (distanceToPlayer < 10)
             {
+                if (__instance.weapons.Any((x) => x.gameObject.name.Contains("Nailgun"))) return true;
                 if (knockbackCooldowns.ContainsKey(__instance) && currentTime < knockbackCooldowns[__instance])
                 {
                     return true;
@@ -73,16 +74,26 @@ namespace BananaDifficulty.Patches
         {
             yield return new WaitForSeconds(1.0f); // 1 second delay  
 
+            Object.Instantiate(BananaDifficultyPlugin.WhiplashThrow, __instance.transform.position, Quaternion.identity);
+
             LineRenderer lineRenderer = new GameObject("SpearRay").AddComponent<LineRenderer>();
             lineRenderer.startWidth = 0.5f;
             lineRenderer.endWidth = 0.5f;
             lineRenderer.positionCount = 2;
             lineRenderer.SetPosition(0, __instance.eid.weakPoint.transform.position);
-
-            float spearSpeed = 250f; // Speed of the spear
+            lineRenderer.material = BananaDifficultyPlugin.WhiplashMat;
+            lineRenderer.startColor = new Color(26, 26, 26);
+            lineRenderer.endColor = new Color(26, 26, 26);
+            float spearSpeed = 150; // Speed of the spear
             Vector3 targetPosition = __instance.target.PredictTargetPosition(Vector3.Distance(__instance.eid.weakPoint.transform.position, __instance.target.position) / spearSpeed);
             Vector3 direction = (targetPosition - __instance.eid.weakPoint.transform.position).normalized;
             float distance = 0f;
+
+            AudioSource source = lineRenderer.gameObject.AddComponent<AudioSource>();
+            source.clip = BananaDifficultyPlugin.WhiplashLoop;
+            source.loop = true;
+            source.playOnAwake = true;
+            source.Play();
 
             int layerMask = (1 << 24) | (1 << 25) | (1 << 12) | (1 << 8) | (1 << 2) | (1 << 18);
 
@@ -93,8 +104,24 @@ namespace BananaDifficulty.Patches
                 lineRenderer.SetPosition(1, currentPosition);
                 lineRenderer.SetPosition(0, __instance.eid.weakPoint.transform.position);
 
+                if (MonoSingleton<FistControl>.Instance.currentPunch.activeFrames > 0)
+                {
+                    Punch punch = MonoSingleton<FistControl>.Instance.currentPunch;
+                    BananaDifficultyPlugin.Log.LogInfo("Punch type: " + punch.type);
+                    if (punch.type == FistType.Standard && Vector3.Distance(currentPosition, punch.transform.position) <= 25)
+                    {
+                        BananaDifficultyPlugin.Log.LogInfo("Parried whiplash!");
+                        punch.parriedSomething = true;
+                        punch.hitSomething = true;
+                        MonoSingleton<NewMovement>.Instance.Parry();
+                        punch.anim.Play("Hook", 0, 0.065f);
+                        __instance.eid.DeliverDamage(__instance.gameObject, Vector3.zero, __instance.transform.position, 30, false);
+                        break;
+                    }
+                }
                 if (Physics.SphereCast(__instance.eid.weakPoint.transform.position + direction * 2, 0.5f, direction, out RaycastHit hit, distance, layerMask))
                 {
+
                     if (hit.collider.gameObject == MonoSingleton<NewMovement>.Instance.gameObject)
                     {
                         // Do something if it hits the player  
@@ -136,7 +163,7 @@ namespace BananaDifficulty.Patches
             {
                 // Apply knockback and damage to the player
                 MonoSingleton<NewMovement>.Instance.LaunchFromPoint(__instance.transform.position, -75); // Example knockback force
-                MonoSingleton<NewMovement>.Instance.GetHurt(75, false); // Example damage value
+                MonoSingleton<NewMovement>.Instance.GetHurt(50, false); // Example damage value
             }
         }
     }

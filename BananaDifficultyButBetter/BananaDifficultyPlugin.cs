@@ -12,11 +12,10 @@ using System;
 using System.Linq;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.AddressableAssets;
-using Object = UnityEngine.Object;
 using UnityEngine.SceneManagement;
 using Discord;
 using System.Text.RegularExpressions;
-using System.Reflection;
+
 
 namespace BananaDifficulty
 {
@@ -32,8 +31,6 @@ namespace BananaDifficulty
         private static readonly Harmony Harmony = new Harmony(MyGUID);
         public static ManualLogSource Log = new ManualLogSource(PluginName);
 
-        public static ConfigEntry<bool> HardMode;
-
         public static GameObject projBeam;
         public static GameObject projHoming;
         public static GameObject idol;
@@ -43,13 +40,6 @@ namespace BananaDifficulty
         public static GameObject bigExplosion;
         public static GameObject blackHole;
         public static GameObject spear;
-        public static GameObject v2FlashUnpariable;
-        public static GameObject summonedSwords;
-        public static GameObject homingHH;
-        public static GameObject homingBlue;
-        public static Material WhiplashMat;
-        public static GameObject WhiplashThrow;
-        public static AudioClip WhiplashLoop;
         private void Awake()
         {
             // Apply all of our patches
@@ -62,10 +52,8 @@ namespace BananaDifficulty
 
             Log = Logger;
 
-            HardMode = Config.Bind<bool>("Difficulty Settings", "Hard Mode", false, "Makes virtue beams appear on every side, have double shockwaves, and also makes schisms fire thrice as many projectiles.");
-
             GetAssets();
-            GetBundleAssets();
+
         }
 
         private void SceneManager_activeSceneChanged(Scene arg0, Scene arg1)
@@ -85,13 +73,12 @@ namespace BananaDifficulty
                 difficulty = MonoSingleton<PrefsManager>.Instance.GetInt("difficulty");
             return difficulty == 5;
         }
-
-        public void GetBundleAssets()
+        
+        void OnDestroy()
         {
-            var a = Assembly.GetExecutingAssembly();
-
-            spear = AssetBundle.LoadFromStream(a.GetManifestResourceStream("BananaDifficulty.Bundles.v2spear")).LoadAsset<GameObject>("V2Spear");
+            Harmony.UnpatchAll();
         }
+
         public void GetAssets()
         {
             StartCoroutine(LoadAddressable<GameObject>((x) =>
@@ -126,34 +113,6 @@ namespace BananaDifficulty
             {
                 blackHole = x;
             }, "Assets/Prefabs/Attacks and Projectiles/Black Hole Projectile.prefab"));
-            StartCoroutine(LoadAddressable<GameObject>((x) =>
-            {
-                v2FlashUnpariable = x;
-            }, "Assets/Particles/Flashes/V2FlashUnparriable.prefab"));
-            StartCoroutine(LoadAddressable<GameObject>((x) =>
-            {
-                summonedSwords = x;
-            }, "Assets/Prefabs/Attacks and Projectiles/Gabriel/GabrielSummonedSwords.prefab"));
-            StartCoroutine(LoadAddressable<GameObject>((x) =>
-            {
-                homingBlue = x;
-            }, "Assets/Prefabs/Attacks and Projectiles/Projectile Homing.prefab"));
-            StartCoroutine(LoadAddressable<GameObject>((x) =>
-            {
-                homingHH = x;
-            }, "Assets/Prefabs/Attacks and Projectiles/Projectile Explosive HH.prefab"));
-            StartCoroutine(LoadAddressable<GameObject>((x) =>
-            {
-                WhiplashThrow = x;
-            }, "Assets/Particles/SoundBubbles/HookArmThrow.prefab"));
-            StartCoroutine(LoadAddressable<Material>((x) =>
-            {
-                WhiplashMat = x;
-            }, "Assets/Materials/SnaketrailOpaque.mat"));
-            StartCoroutine(LoadAddressable<AudioClip>((x) =>
-            {
-                WhiplashLoop = x;
-            }, "Assets/Sounds/Weapons/Whiplash Throw Loop.wav"));
         }
 
         public IEnumerator LoadAddressable<T>(Action<T> onLoad, string path)

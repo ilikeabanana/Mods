@@ -16,30 +16,19 @@ namespace BananaDifficulty.Patches
     [HarmonyPatch(typeof(LeviathanHead))]
     internal class WorseLeviathan
     {
-        [HarmonyPatch(nameof(LeviathanHead.BiteDamageStop))]
+        [HarmonyPatch(nameof(LeviathanHead.BeamStart))]
         [HarmonyPostfix]
-        public static void Awake_Postfix(LeviathanHead __instance)
+        public static void ExtendedBeamTime(LeviathanHead __instance)
         {
-            GameObject black = Object.Instantiate(BananaDifficultyPlugin.blackHole, __instance.shootPoint.position, Quaternion.identity);
-
-            black.transform.localScale *= 3;
-
-            BlackHoleProjectile blackhple = black.GetComponent<BlackHoleProjectile>();
-            if(blackhple != null)
-            {
-                blackhple.safeType = EnemyType.Leviathan;
-                blackhple.target = __instance.lcon.eid.target;
-                blackhple.speed = 15;
-                blackhple.Activate();
-            }
-
-            __instance.StartCoroutine(explode(25, blackhple));
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.lcon.difficulty)) return;
+            __instance.beamTime *= 1.5f;
         }
-
-        public static IEnumerator explode(float seconds, BlackHoleProjectile blackHoleProjectile)
+        [HarmonyPatch(nameof(LeviathanHead.BeamAttack))]
+        [HarmonyPostfix]
+        public static void UseTailWhileBeam(LeviathanHead __instance)
         {
-            yield return new WaitForSeconds(seconds);
-            blackHoleProjectile.Explode();
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.lcon.difficulty)) return;
+            __instance.lcon.stopTail = false;
         }
     }
 }

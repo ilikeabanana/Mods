@@ -1,0 +1,46 @@
+﻿using BananaDifficulty.Utils;
+using HarmonyLib;
+using UnityEngine;
+using UnityEngine.AI;
+using UnityEngine.SceneManagement;
+
+namespace BananaDifficulty.Patches
+{
+    // TODO Review this file and update to your own requirements, or remove it altogether if not required
+
+    /// <summary>
+    /// Sample Harmony Patch class. Suggestion is to use one file per patched class
+    /// though you can include multiple patch classes in one file.
+    /// Below is included as an example, and should be replaced by classes and methods
+    /// for your mod.
+    /// </summary>
+    [HarmonyPatch(typeof(EnemyIdentifier))]
+    internal class AwakePatches
+    {
+        [HarmonyPatch(nameof(EnemyIdentifier.Start))]
+        [HarmonyPostfix]
+        public static void Awake_Prefix(EnemyIdentifier __instance)
+        {
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
+            Debug.Log("Is correct diff");
+            /*
+            int seed = 12345 + SceneManager.GetActiveScene().buildIndex + (int)__instance.transform.position.magnitude; // Set your seed
+            UnityEngine.Random.InitState(seed); // Initialize Unity's random state
+            float chance = 0.5f; // 30% chance
+            bool outcome = UnityEngine.Random.value < chance; // UnityEngine.Random.value gives a number between 0.0 and 1.0*/
+            if (__instance.enemyType == EnemyType.Idol)
+            {
+                __instance.speedBuff = true;
+                __instance.damageBuff = true;
+                __instance.healthBuff = true;
+            }
+
+            if(__instance.enemyType == EnemyType.Mindflayer && !__instance.blessed)
+            {
+                Object.Instantiate(BananaDifficultyPlugin.idol, ModUtils.GetRandomNavMeshPoint(__instance.transform.position, 10), Quaternion.identity);
+            }
+        }
+
+        
+    }
+}

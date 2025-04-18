@@ -10,13 +10,7 @@ namespace BananaDifficulty.Patches
         [HarmonyPostfix]
         public static void Postfix(MinosPrime __instance)
         {
-            if (__instance.activated)
-            {
-                if (!__instance.inAction)
-                {
-                    __instance.cooldown = Mathf.MoveTowards(__instance.cooldown, 0f, Time.deltaTime * __instance.eid.totalSpeedModifier * 3);
-                }
-            }
+            __instance.cooldown = 0;
         }
         [HarmonyPatch(nameof(MinosPrime.FixedUpdate))]
         [HarmonyPostfix]

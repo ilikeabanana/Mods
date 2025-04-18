@@ -17,6 +17,7 @@ using System.Linq;
 using System.Collections;
 using System.IO;
 using System.Reflection;
+using UnityEngine.Events;
 
 namespace ULTRACHALLENGE
 {
@@ -40,7 +41,7 @@ namespace ULTRACHALLENGE
         public static List<string> explosionNames = new List<string>();
         public static Dictionary<string, GameObject> theExplosions = new Dictionary<string, GameObject>();
 
-        public static List<(string fullPath, string shortPath)> addressables;
+        public static List<(string fullPath, string shortPath)> addressables = new List<(string fullPath, string shortPath)>();
         public static List<string> addressableShorts = new List<string>();
 
         float timer;
@@ -49,72 +50,41 @@ namespace ULTRACHALLENGE
 
         public static string workingPath;
         public static string workingDir;
-        private async void Awake()
+        private void Awake()
         {
-            // Apply all of our patches
-            Logger.LogInfo($"PluginName: {PluginName}, VersionString: {VersionString} is loading...");
-            Harmony.PatchAll();
-            workingPath = Assembly.GetExecutingAssembly().Location;
-            workingDir = Path.GetDirectoryName(workingPath);
-            Log = Logger;
-            SetupChallengeThings();
+            base.Logger.LogInfo("PluginName: ULTRACHALLENGE, VersionString: 1.0.0 is loading...");
+            ULTRACHALLENGEPlugin.Harmony.PatchAll();
+            base.Logger.LogInfo("PluginName: ULTRACHALLENGE, VersionString: 1.0.0 is loaded.");
+            ULTRACHALLENGEPlugin.workingPath = Assembly.GetExecutingAssembly().Location;
+            ULTRACHALLENGEPlugin.workingDir = Path.GetDirectoryName(ULTRACHALLENGEPlugin.workingPath);
+            ULTRACHALLENGEPlugin.Log = base.Logger;
+            this.SetupChallengeThings();
+            ULTRACHALLENGEPlugin.explosions = ResourceLoader.GetExplosionPKeys();
+            ULTRACHALLENGEPlugin.explosions = ULTRACHALLENGEPlugin.explosions.Distinct<string>().ToList<string>();
+            ULTRACHALLENGEPlugin.theExplosions = ResourceLoader.getExplosions(ULTRACHALLENGEPlugin.explosions);
+            ULTRACHALLENGEPlugin.addressables = ResourceLoader.GetAllPKeys();
 
-            // Initialize lists if not already initialized
-            if (explosions == null)
-                explosions = new List<string>();
-            if (addressables == null)
-                addressables = new List<(string fullPath, string shortPath)>();
-
-            // Start coroutines to get keys and load explosions
-            StartCoroutine(GetAllKeys());
-
-            SceneManager.sceneLoaded += SceneManager_sceneLoaded;
+            base.StartCoroutine(this.LoadExplosions());
+            SceneManager.sceneLoaded += new UnityAction<Scene, LoadSceneMode>(this.SceneManager_sceneLoaded);
         }
 
-        private IEnumerator GetAllKeys()
-        {
-            // First get all explosion keys
-            yield return StartCoroutine(ResourceLoader.GetExplosionPKeys((keys) => {
-                explosions = keys.Distinct().ToList();
-                Logger.LogInfo($"Found {explosions.Count} explosion keys");
-            }));
-
-            // Then get all addressable keys
-            yield return StartCoroutine(ResourceLoader.GetAllPKeys((keys) => {
-                // Transform the keys into tuples with full path and short path
-                addressables = keys.Select(path => {
-                    string shortPath = path.Contains("/") ?
-                        path.Substring(path.LastIndexOf("/") + 1) : path;
-                    return (fullPath: path, shortPath: shortPath);
-                }).Distinct().ToList();
-
-                // Extract only the short paths and add them to addressableShorts
-                addressableShorts = addressables.Select(a => a.shortPath).Distinct().ToList();
-                Logger.LogInfo($"Found {addressables.Count} addressable keys");
-            }));
-
-            // Finally load the explosions
-            yield return StartCoroutine(ResourceLoader.GetExplosions(explosions));
-
-            // Now load explosions when done
-            StartCoroutine(LoadExplosions());
-        }
-
+        // Token: 0x06000010 RID: 16 RVA: 0x0000294F File Offset: 0x00000B4F
         private IEnumerator LoadExplosions()
         {
-            yield return new WaitUntil(() => ResourceLoader.IsDone);
-
-            // Get the loaded explosions dictionary
-            theExplosions = ResourceLoader.GetLoadedExplosions();
-
-            foreach (var item in theExplosions)
+            yield return new WaitUntil(() => ResourceLoader.isDone);
+            foreach (KeyValuePair<string, GameObject> item in ULTRACHALLENGEPlugin.theExplosions)
             {
                 Debug.Log(item.Key);
-                explosionNames.Add(item.Key);
+                ULTRACHALLENGEPlugin.explosionNames.Add(item.Key);
+            }
+            Dictionary<string, GameObject>.Enumerator enumerator = default(Dictionary<string, GameObject>.Enumerator);
+            Debug.Log(string.Format("Final explosionNames count: {0}", ULTRACHALLENGEPlugin.explosionNames.Count));
+            foreach (var item in addressables)
+            {
+                addressableShorts.Add(item.shortPath);
             }
 
-            Logger.LogInfo($"PluginName: {PluginName}, VersionString: {VersionString} is loaded.");
-            Debug.Log($"Final explosionNames count: {explosionNames.Count}");
+            yield break;
         }
         void Update()
         {

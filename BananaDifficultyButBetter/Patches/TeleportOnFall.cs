@@ -47,17 +47,12 @@ namespace BananaDifficulty.Patches
                     lastTeleportTimes[__instance] = currentTime;
                 }
             }
-           
         }
-
     }
 
     [HarmonyPatch]
     public class AttachToPlayerOnDamage
     {
-        public static Dictionary<EnemyIdentifier, FixedJoint> joints = new Dictionary<EnemyIdentifier, FixedJoint>();
-
-
         [HarmonyPatch(typeof(SwingCheck2), nameof(SwingCheck2.CheckCollision))]
         [HarmonyPostfix]
         public static void AttachToHit(SwingCheck2 __instance, Collider other)
@@ -65,34 +60,13 @@ namespace BananaDifficulty.Patches
 
             if(__instance.eid == null) return;
             if (!BananaDifficultyPlugin.CanUseIt(__instance.eid.difficulty)) return;
-            if (other.gameObject.CompareTag("Player") && !joints.ContainsKey(__instance.eid))
+            if (other.gameObject.CompareTag("Player"))
             {
                 if (__instance.eid.enemyType != EnemyType.Filth) return;
                 if(__instance.eid.gameObject.GetComponent<FixedJoint>() != null) return;
                 FixedJoint joined = __instance.eid.gameObject.AddComponent<FixedJoint>();
                 joined.connectedBody = other.attachedRigidbody;
-                joints.Add(__instance.eid, joined);
             }
         }
-    }
-
-    [HarmonyPatch]
-    public class MakeSomeZombiesFaster
-    {
-        [HarmonyPatch(typeof(Zombie), nameof(Zombie.SetSpeed))]
-        [HarmonyPrefix]
-        public static void BiegSpeeed(Zombie __instance)
-        {
-            if (!BananaDifficultyPlugin.CanUseIt(__instance.eid.difficulty)) return;
-
-            switch (__instance.eid.enemyType)
-            {
-                case EnemyType.Filth:
-                    __instance.eid.totalSpeedModifier *= 10;
-                    break;
-            }
-        }
-
-
     }
 }

@@ -20,7 +20,9 @@ namespace BananaDifficulty.Patches
                 if (spawnedIdol.TryGetComponent<Idol>(out idol))
                 {
                     idol.target = __instance.eid;
+                    idol.eid.dontCountAsKills = true;
                 }
+
                 spawnedIdol.name += "DontRadiant";
             }
             
@@ -42,6 +44,7 @@ namespace BananaDifficulty.Patches
 
         static void HandleShooting(FleshPrison __instance)
         {
+            if (!BananaDifficultyPlugin.HardMode.Value) return;
             if (__instance.currentProjectile < __instance.projectileAmount)
             {
                 __instance.homingProjectileCooldown = Mathf.MoveTowards(__instance.homingProjectileCooldown, 0f, Time.deltaTime * (Mathf.Abs(__instance.rotationSpeed) / 10f) * __instance.eid.totalSpeedModifier);

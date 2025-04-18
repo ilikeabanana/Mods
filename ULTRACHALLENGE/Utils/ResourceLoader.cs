@@ -1,103 +1,118 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
+using System.IO;
+using System.Reflection;
+using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
-using UnityEngine.AddressableAssets.ResourceLocators;
-using UnityEngine.ResourceManagement.AsyncOperations;
-using UnityEngine.ResourceManagement.ResourceLocations;
 
-public class ResourceLoader : MonoBehaviour
+public class ResourceLoader
 {
-    private const string ExplosionPath = "Assets/Prefabs/Attacks and Projectiles/Explosions/";
-    public static bool IsDone = false;
-    private static Dictionary<string, GameObject> loadedExplosions = new Dictionary<string, GameObject>();
+    private const string ResourcePath = "ULTRACHALLENGE.TXTFiles.Resource_Locations.txt";
+    private const string PKeyPattern = @"PKEY:\s+(.*)";
 
-    public static IEnumerator GetExplosions(List<string> explosionKeys)
+    public static bool isDone = false;
+
+    public static Dictionary<string, GameObject> getExplosions(List<string> explosionKeys)
     {
-        yield return LoadExplosions(explosionKeys);
+        return LoadExplosions(explosionKeys);
     }
 
-    public static IEnumerator GetExplosionPKeys(Action<List<string>> callback)
+    public static List<string> GetExplosionPKeys()
     {
-        yield return GetAllPKeys(keys =>
-        {
-            var filteredKeys = keys.Where(k => k.StartsWith(ExplosionPath)).ToList();
-            callback?.Invoke(filteredKeys);
-        });
-    }
+        List<string> pKeys = new List<string>();
 
-    public static IEnumerator GetAllPKeys(Action<List<string>> callback)
-    {
-        AsyncOperationHandle<IResourceLocator> handle = Addressables.InitializeAsync();
-        yield return handle;
-
-        List<string> keys = new List<string>();
-        if (handle.Status == AsyncOperationStatus.Succeeded)
+        string textAsset = LoadEmbeddedResource(ResourcePath);
+        if (textAsset == null)
         {
-            IResourceLocator result = handle.Result;
-            foreach (object obj in ((ResourceLocationMap)result).Keys)
+            Debug.LogError("Failed to load embedded resource: " + ResourcePath);
+            return pKeys;
+        }
+
+        // Read line by line, extracting only PKEY values
+        string[] lines = textAsset.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+        foreach (string line in lines)
+        {
+            Match match = Regex.Match(line, PKeyPattern);
+            if (match.Success)
             {
-                keys.Add(obj as string);
+                pKeys.Add(match.Groups[1].Value.Trim());
             }
         }
-        else
-        {
-            Debug.LogError("Addressables initialization failed: " + handle.OperationException);
-        }
-
-        callback?.Invoke(keys);
+        return pKeys;
     }
 
-    private static IEnumerator LoadExplosions(List<string> explosionKeys)
+    public static List<(string fullPath, string shortPath)> GetAllPKeys()
     {
-        AsyncOperationHandle<IResourceLocator> handle = Addressables.InitializeAsync();
-        yield return handle;
+        List<(string fullPath, string shortPath)> pKeys = new List<(string, string)>();
 
-        if (handle.Status == AsyncOperationStatus.Succeeded)
+        string textAsset = LoadEmbeddedResource(ResourcePath);
+        if (textAsset == null)
         {
-            IResourceLocator result = handle.Result;
-            foreach (object obj in ((ResourceLocationMap)result).Keys)
+            Debug.LogError("Failed to load embedded resource: " + ResourcePath);
+            return pKeys;
+        }
+
+        // Read line by line, extracting PKEY values
+        string[] lines = textAsset.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+        foreach (string line in lines)
+        {
+            Match match = Regex.Match(line, PKeyPattern);
+            if (match.Success)
             {
-                string key = obj as string;
-                if (string.IsNullOrEmpty(key) || !explosionKeys.Contains(key))
-                    continue;
+                string fullPath = match.Groups[1].Value.Trim();
+                string shortPath = Path.GetFileNameWithoutExtension(fullPath);
+                pKeys.Add((fullPath, shortPath));
+            }
+        }
+        return pKeys;
+    }
 
-                AsyncOperationHandle<IList<IResourceLocation>> locationHandle = Addressables.LoadResourceLocationsAsync(key, typeof(GameObject));
-                yield return locationHandle;
-
-                if (locationHandle.Status == AsyncOperationStatus.Succeeded && locationHandle.Result.Count > 0)
+    private static Dictionary<string, GameObject> LoadExplosions(List<string> explosionKeys)
+    {
+        Dictionary<string, GameObject> toReturn = new Dictionary<string, GameObject>();
+        foreach (string key in explosionKeys)
+        {
+            Addressables.LoadAssetAsync<GameObject>(key).Completed += handle =>
+            {
+                if (handle.Status == UnityEngine.ResourceManagement.AsyncOperations.AsyncOperationStatus.Succeeded)
                 {
-                    AsyncOperationHandle<GameObject> assetHandle = Addressables.LoadAssetAsync<GameObject>(key);
-                    yield return assetHandle;
+                    Debug.Log("Loaded: " + key);
+                    toReturn.Add(key.Replace("Assets/Prefabs/Attacks and Projectiles/Explosions/", ""), handle.Result);
+                }
+                else
+                {
+                    Debug.LogError("Failed to load: " + key);
+                }
+            };
+        }
+        isDone = true;
+        return toReturn;
+    }
 
-                    if (assetHandle.Status == AsyncOperationStatus.Succeeded)
-                    {
-                        GameObject explosion = assetHandle.Result;
-                        if (explosion != null)
-                        {
-                            loadedExplosions[key.Replace(ExplosionPath, "")] = explosion;
-                            Debug.Log("Loaded: " + key);
-                        }
-                    }
-                    else
-                    {
-                        Debug.LogError("Failed to load explosion: " + key);
-                    }
+    private static string LoadEmbeddedResource(string resourceName)
+    {
+        try
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            using (Stream stream = assembly.GetManifestResourceStream(resourceName))
+            {
+                if (stream == null)
+                {
+                    Debug.LogError("Resource not found: " + resourceName);
+                    return null;
+                }
+
+                using (StreamReader reader = new StreamReader(stream))
+                {
+                    return reader.ReadToEnd();
                 }
             }
         }
-        else
+        catch (Exception ex)
         {
-            Debug.LogError("Addressables initialization failed: " + handle.OperationException);
+            Debug.LogError("Error loading embedded resource: " + ex.Message);
+            return null;
         }
-
-        IsDone = true;
-    }
-
-    public static Dictionary<string, GameObject> GetLoadedExplosions()
-    {
-        return loadedExplosions;
     }
 }

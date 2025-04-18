@@ -1,5 +1,6 @@
 ﻿using BananaDifficulty.Utils;
 using HarmonyLib;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.SceneManagement;
@@ -43,10 +44,46 @@ namespace BananaDifficulty.Patches
                 if (spawnedIdol.TryGetComponent<Idol>(out idol))
                 {
                     idol.target = __instance;
+                    idol.eid.dontCountAsKills = true;
                 }
+
+                spawnedIdol.name += "DontRadiant";
+
+
+                spawnedIdol.AddComponent<DestroyOnCheckpointRestart>();
             }
         }
 
+
         
+        [HarmonyPatch(nameof(EnemyIdentifier.Death), new System.Type[] {typeof(bool)})]
+        [HarmonyPrefix]
+        public static void OnDeath_Postfix(EnemyIdentifier __instance)
+        {
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
+
+
+            if (AttachToPlayerOnDamage.joints.ContainsKey(__instance))
+            {
+                FixedJoint joint = AttachToPlayerOnDamage.joints[__instance];
+                AttachToPlayerOnDamage.joints.Remove(__instance);
+                Object.Destroy(joint);
+            }
+        }
+        [HarmonyPatch(nameof(EnemyIdentifier.DeliverDamage))]
+        [HarmonyPrefix]
+        public static bool Damage_Postfix(EnemyIdentifier __instance)
+        {
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return true;
+
+            List<string> hittersToReturn = new List<string>()
+            {
+                "projectile",
+                "ffexplosion",
+            };
+
+            return !hittersToReturn.Contains(__instance.hitter);
+        }
+
     }
 }

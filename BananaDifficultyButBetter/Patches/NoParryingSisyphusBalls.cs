@@ -1,5 +1,4 @@
 ﻿using HarmonyLib;
-using UnityEngine;
 
 namespace BananaDifficulty.Patches
 {
@@ -34,19 +33,6 @@ namespace BananaDifficulty.Patches
             return !BananaDifficultyPlugin.CanUseIt(__instance.difficulty);
 
 
-        }
-
-        [HarmonyPatch(typeof(Sisyphus))]
-        [HarmonyPatch(nameof(Sisyphus.Start))]
-        [HarmonyPostfix]
-        public static void NoMoreFlammables(Sisyphus __instance)
-        {
-            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
-
-            foreach (var flammable in __instance.gameObject.GetComponentsInChildren<Flammable>())
-            {
-                Object.Destroy(flammable);
-            }
         }
     }
 }

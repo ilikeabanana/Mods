@@ -1,6 +1,4 @@
 ﻿using HarmonyLib;
-using System.Collections.Generic;
-using UnityEngine;
 
 namespace BananaDifficulty.Patches
 {
@@ -15,31 +13,13 @@ namespace BananaDifficulty.Patches
     [HarmonyPatch(typeof(Gutterman))]
     internal class NoMoreBreakingShields
     {
-
-        private static readonly Dictionary<Gutterman, int> gutterHitCount = new Dictionary<Gutterman, int>();
-
         [HarmonyPatch(nameof(Gutterman.ShieldBreak))]
         [HarmonyPrefix]
-        public static bool Awake_Prefix(Gutterman __instance, bool flash = true)
+        public static bool Awake_Prefix(Gutterman __instance)
         {
-            if(!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return true;
-
-
-            if (gutterHitCount.ContainsKey(__instance))
-            {
-                if (gutterHitCount[__instance] >= 2)
-                    return true;
-                gutterHitCount[__instance]++;
-            }
-            else
-            {
-                Object.Instantiate(__instance.shieldBreakEffect, __instance.shield[0].transform.position, Quaternion.identity);
-                gutterHitCount.Add(__instance, 1);
-                return false;
-            }
-            return false;
+            return !BananaDifficultyPlugin.CanUseIt(__instance.difficulty);
         }
-        /*
+
         [HarmonyPatch(nameof(Gutterman.Update))]
         [HarmonyPrefix]
         public static void NahDontWindUp(Gutterman __instance)
@@ -49,6 +29,6 @@ namespace BananaDifficulty.Patches
 
             __instance.windup = 1;
             __instance.trackingSpeedMultiplier = 100;
-        }*/
+        }
     }
 }

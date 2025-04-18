@@ -22,24 +22,19 @@ namespace BananaDifficulty.Patches
         public static void Awake_Postfix(Projectile __instance)
         {
             if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
-            
             if (__instance.decorative) return;
             if (__instance.friendly) return;
 
-            alreadyExistingProjs.RemoveAll((x) => x == null || !x.gameObject.activeInHierarchy);
+            alreadyExistingProjs.RemoveAll((x) => x == null);
 
-            List<Projectile> projsOfItsType = alreadyExistingProjs.FindAll((x) => x.safeEnemyType == __instance.safeEnemyType);
-
-            projsOfItsType.RemoveAll((x) => Vector3.Distance(x.transform.position,__instance.transform.position) > 1000);
-
-            if (BananaDifficultyPlugin.projBeam != null && projsOfItsType.Count > 0)
+            if (BananaDifficultyPlugin.projBeam != null && alreadyExistingProjs.Count > 0)
             {
                 ContinuousBeam continuousBeam = Object.Instantiate<ContinuousBeam>(BananaDifficultyPlugin.projBeam.GetComponent<ContinuousBeam>(), __instance.transform.position, __instance.transform.rotation, __instance.transform);
                 continuousBeam.safeEnemyType = __instance.safeEnemyType;
                 continuousBeam.target = __instance.target;
-                continuousBeam.endPoint = projsOfItsType[projsOfItsType.Count - 1].transform;
+                continuousBeam.endPoint = alreadyExistingProjs[alreadyExistingProjs.Count - 1].transform;
                 __instance.connectedBeams.Add(continuousBeam);
-                if (projsOfItsType[projsOfItsType.Count - 1].transform.TryGetComponent<Projectile>(out Projectile component))
+                if (alreadyExistingProjs[alreadyExistingProjs.Count - 1].transform.TryGetComponent<Projectile>(out Projectile component))
                 {
                     component.connectedBeams.Add(continuousBeam);
                 }
