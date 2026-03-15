@@ -25,7 +25,7 @@ namespace BananaDifficulty.Patches
         {
             if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
             // Check if the zombie is falling
-            if (__instance.zmb.falling)
+            if (__instance.mach.falling)
             {
                 // Get the current time
                 float currentTime = Time.time;
@@ -41,7 +41,7 @@ namespace BananaDifficulty.Patches
                 {
                     // Teleport the zombie
                     __instance.transform.position = __instance.eid.target.position;
-                    __instance.zmb.falling = false;
+                    __instance.mach.falling = false;
 
                     // Update the last teleport time
                     lastTeleportTimes[__instance] = currentTime;
@@ -79,9 +79,9 @@ namespace BananaDifficulty.Patches
     [HarmonyPatch]
     public class MakeSomeZombiesFaster
     {
-        [HarmonyPatch(typeof(Zombie), nameof(Zombie.SetSpeed))]
+        [HarmonyPatch(typeof(Enemy), nameof(Enemy.SetSpeed))]
         [HarmonyPrefix]
-        public static void BiegSpeeed(Zombie __instance)
+        public static void BiegSpeeed(Enemy __instance)
         {
             if (!BananaDifficultyPlugin.CanUseIt(__instance.eid.difficulty)) return;
 
@@ -89,6 +89,7 @@ namespace BananaDifficulty.Patches
             {
                 case EnemyType.Filth:
                     __instance.eid.totalSpeedModifier *= 10;
+                    //__instance.eid.speedBuff = true;
                     break;
             }
         }

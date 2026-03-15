@@ -13,6 +13,7 @@ namespace BananaDifficulty.Patches
         public static void Awake_Postfix(FleshPrison __instance)
         {
             if(!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
+
             if (__instance.currentDrones.Count <= 0)
             {
                 GameObject spawnedIdol = Object.Instantiate<GameObject>(BananaDifficultyPlugin.idol, ModUtils.GetRandomNavMeshPoint(__instance.transform.position, 20), Quaternion.identity);
@@ -27,11 +28,22 @@ namespace BananaDifficulty.Patches
             }
             
         }
+
+        [HarmonyPatch(nameof(FleshPrison.SpawnInsignia))]
+        [HarmonyPrefix]
+        public static void MaybeWaitABitLonger_Postfix(FleshPrison __instance)
+        {
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
+
+            __instance.attackCooldown *= 2;
+
+        }
         [HarmonyPatch(nameof(FleshPrison.Update))]
         [HarmonyPostfix]
         public static void Update_Postfix(FleshPrison __instance)
         {
             if(!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
+
             if (__instance.inAction)
             {
                 HandleShooting(__instance);

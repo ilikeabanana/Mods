@@ -52,7 +52,6 @@ namespace BananaDifficulty.Patches
                 gregspawned.transform.position += ( __instance.transform.forward * 7.5f) + new Vector3(0, 2);
 
                 greg.ignoreEnemyType = new List<EnemyType>() { EnemyType.Streetcleaner };
-
                 __instance.anim.SetTrigger("Deflect");
 
                 customCooldowns[__instance] = 3f; // Set custom cooldown time

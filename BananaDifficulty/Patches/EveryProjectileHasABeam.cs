@@ -17,6 +17,21 @@ namespace BananaDifficulty.Patches
     {
         public static List<ContinuousBeam> alreadyExistingBeams = new List<ContinuousBeam>();
         public static List<Projectile> alreadyExistingProjs = new List<Projectile>();
+        public static Dictionary<Projectile, ContinuousBeam> connectedBeams = new Dictionary<Projectile, ContinuousBeam>();
+        public static int MaxBeams = 50;
+        static Dictionary<EnemyType, List<Projectile>> projectilesByEnemy = new Dictionary<EnemyType, List<Projectile>>();
+        public static HashSet<EnemyType> AllowedEnemies = new HashSet<EnemyType>()
+        {
+            EnemyType.Stray,
+            EnemyType.Schism,
+            EnemyType.Providence,
+            EnemyType.FleshPrison,
+            EnemyType.FleshPanopticon,
+            EnemyType.Soldier,
+            EnemyType.Centaur,
+            EnemyType.Swordsmachine
+        };
+
         [HarmonyPatch(nameof(Projectile.Start))]
         [HarmonyPostfix]
         public static void Awake_Postfix(Projectile __instance)
@@ -25,28 +40,71 @@ namespace BananaDifficulty.Patches
             
             if (__instance.decorative) return;
             if (__instance.friendly) return;
+            if (alreadyExistingBeams.Count >= MaxBeams)
+                return;
+
+            if (!AllowedEnemies.Contains(__instance.safeEnemyType))
+                return;
+
+
+            if (!projectilesByEnemy.TryGetValue(__instance.safeEnemyType, out var list))
+            {
+                list = new List<Projectile>();
+                projectilesByEnemy.Add(__instance.safeEnemyType, list);
+            }
+
+            Projectile previous = list.Count > 0 ? list[list.Count - 1] : null;
+
+            list.Add(__instance);
+
+
 
             alreadyExistingProjs.RemoveAll((x) => x == null || !x.gameObject.activeInHierarchy);
 
-            List<Projectile> projsOfItsType = alreadyExistingProjs.FindAll((x) => x.safeEnemyType == __instance.safeEnemyType);
+            List<Projectile> projsOfItsType = projectilesByEnemy[__instance.safeEnemyType];
 
-            projsOfItsType.RemoveAll((x) => Vector3.Distance(x.transform.position,__instance.transform.position) > 1000);
 
-            if (BananaDifficultyPlugin.projBeam != null && projsOfItsType.Count > 0)
+            if (previous != null && BananaDifficultyPlugin.projBeam != null)
             {
-                ContinuousBeam continuousBeam = Object.Instantiate<ContinuousBeam>(BananaDifficultyPlugin.projBeam.GetComponent<ContinuousBeam>(), __instance.transform.position, __instance.transform.rotation, __instance.transform);
+                ContinuousBeam continuousBeam = Object.Instantiate(
+                    BananaDifficultyPlugin.projBeam.GetComponent<ContinuousBeam>(),
+                    __instance.transform.position,
+                    __instance.transform.rotation,
+                    __instance.transform);
+
                 continuousBeam.safeEnemyType = __instance.safeEnemyType;
                 continuousBeam.target = __instance.target;
-                continuousBeam.endPoint = projsOfItsType[projsOfItsType.Count - 1].transform;
+                continuousBeam.endPoint = previous.transform;
+
                 __instance.connectedBeams.Add(continuousBeam);
-                if (projsOfItsType[projsOfItsType.Count - 1].transform.TryGetComponent<Projectile>(out Projectile component))
-                {
-                    component.connectedBeams.Add(continuousBeam);
-                }
-                
+                previous.connectedBeams.Add(continuousBeam);
+
+                connectedBeams[previous] = continuousBeam;
+
                 alreadyExistingBeams.Add(continuousBeam);
             }
+
             alreadyExistingProjs.Add(__instance);
+        }
+
+    }
+
+    
+    [HarmonyPatch(typeof(Punch), nameof(Punch.ParryProjectile))]
+    public static class ProjectileParried
+    {
+        public static void Postfix(Projectile proj)
+        {
+            if (!BananaDifficultyPlugin.CanUseIt(proj.difficulty)) return;
+
+            if (proj.decorative) return;
+            if (proj.friendly) return;
+
+            if(EveryProjectileHasABeam.connectedBeams.ContainsKey(proj))
+            {
+                proj.connectedBeams.Remove(EveryProjectileHasABeam.connectedBeams[proj]);
+                EveryProjectileHasABeam.connectedBeams.Remove(proj);
+            }
         }
     }
 }

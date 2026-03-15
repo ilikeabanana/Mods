@@ -1,6 +1,9 @@
 ﻿using HarmonyLib;
+using System.Collections;
 using System.Collections.Generic;
+using System.Security.Policy;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace BananaDifficulty.Patches
 {
@@ -15,31 +18,117 @@ namespace BananaDifficulty.Patches
     [HarmonyPatch(typeof(CancerousRodent))]
     internal class WorseRodent
     {
+
         private static Dictionary<CancerousRodent, float> lastDamageTimes = new Dictionary<CancerousRodent, float>();
-        private static float damageInterval = 0.35f; // Interval in seconds
+        private static float damageInterval = 0.35f;
 
         [HarmonyPatch(nameof(CancerousRodent.Update))]
-        [HarmonyPostfix]
-        public static void Awake_Postfix(CancerousRodent __instance)
+        [HarmonyPrefix]
+        public static bool UpdatePrefix(CancerousRodent __instance)
         {
-            if (!BananaDifficultyPlugin.CanUseIt(__instance.eid.difficulty)) return;
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.eid.difficulty)) return true;
+            if (__instance.eid.dead) return true;
 
-            if (!lastDamageTimes.ContainsKey(__instance))
+
+            if (!__instance.harmless)
             {
-                lastDamageTimes[__instance] = Time.time;
+                if (!lastDamageTimes.ContainsKey(__instance))
+                    lastDamageTimes[__instance] = Time.time;
+
+                if (Time.time - lastDamageTimes[__instance] >= damageInterval)
+                {
+                    DamagePlayer(__instance);
+                    lastDamageTimes[__instance] = Time.time;
+                }
+            }
+            else
+            {
+                if (__instance.TryGetComponent<RodentBoss>(out RodentBoss boss))
+                {
+                    boss.BossUpdate();
+                }
             }
 
-            if (Time.time - lastDamageTimes[__instance] >= damageInterval)
-            {
-                DamagePlayer(__instance);
-                lastDamageTimes[__instance] = Time.time;
-            }
+            return true;
         }
 
         private static void DamagePlayer(CancerousRodent rodent)
         {
-            // Assuming there's a method to damage the player
-            MonoSingleton<NewMovement>.instance.GetHurt(10, false); // Example damage value
+            MonoSingleton<NewMovement>.Instance.GetHurt(10, false);
+        }
+
+
+
+        [HarmonyPatch(nameof(CancerousRodent.Awake))]
+        [HarmonyPrefix]
+        public static void Start_Postfix(CancerousRodent __instance)
+        {
+            EnemyIdentifier eid = __instance.GetComponent<EnemyIdentifier>();
+            if (!BananaDifficultyPlugin.CanUseIt(eid.difficulty)) return;
+
+            Enemy e = __instance.GetComponent<Enemy>();
+
+            if (!__instance.harmless) return;
+            eid.health = 700;
+            e.health = 700;
+            e.originalHealth = 700;
+            __instance.transform.localScale = Vector3.one * 1.5f;
+
+            if(__instance.TryGetComponent<Rigidbody>(out Rigidbody rb))
+            {
+                rb.isKinematic = true;
+            }
+        }
+
+        static Dictionary<CancerousRodent, float> attackCooldown = new Dictionary<CancerousRodent, float>();
+        static Dictionary<CancerousRodent, int> previousPhases = new Dictionary<CancerousRodent, int>();
+    }
+
+    public class MoveForward : MonoBehaviour
+    {
+        void Update()
+        {
+            transform.position += transform.forward * Time.deltaTime * 2.5f;
+        }
+    }
+
+    public class ShakyRock : MonoBehaviour
+    {
+        Vector3 originalPos;
+        float time;
+
+        float intensity = 2.8f;
+        float duration = 5f;
+
+        void Awake()
+        {
+            originalPos = transform.position;
+        }
+
+        void Update()
+        {
+            time += Time.deltaTime;
+
+            float progress = time / duration;
+            float currentIntensity = intensity * progress * progress;
+
+            float shakeX = Random.Range(-1f, 1f) * currentIntensity;
+            float shakeZ = Random.Range(-1f, 1f) * currentIntensity;
+
+            transform.position = originalPos + new Vector3(shakeX, 0f, shakeZ);
+
+            if (time >= duration)
+            {
+                
+                foreach (Explosion explosion in Instantiate(BananaDifficultyPlugin.superExplosion, transform.position, Quaternion.identity).GetComponentsInChildren<Explosion>())
+                {
+                    explosion.toIgnore.Add(EnemyType.Minotaur);
+                    explosion.maxSize *= 1.75f;
+                    explosion.speed *= 1.75f;
+                }
+                Destroy(gameObject);
+            }
+                
         }
     }
 }

@@ -33,12 +33,12 @@ namespace BananaDifficulty.Patches
                 if (__instance.beamsAmount > 1)
                 {
                     __instance.beamsAmount--;
-                    __instance.ceAud.pitch = 4f;
-                    __instance.ceAud.volume = 1f;
+                    __instance.chargeEffectAudio.pitch = 4f;
+                    __instance.chargeEffectAudio.volume = 1f;
                     __instance.Invoke("BeamChargeEnd", 0.05f / __instance.eid.totalSpeedModifier);
                     return false;
                 }
-                Object.Destroy(__instance.currentCE);
+                Object.Destroy(__instance.currentBeam);
                 __instance.Invoke("StopWaiting", 1f / __instance.eid.totalSpeedModifier);
             }
             return false;

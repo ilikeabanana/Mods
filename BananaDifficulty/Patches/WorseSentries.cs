@@ -11,7 +11,7 @@ namespace BananaDifficulty.Patches
         {
             if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
 
-            __instance.maxAimTime = 0;
+            __instance.maxAimTime /= 2;
         }
     }
 }

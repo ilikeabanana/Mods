@@ -29,7 +29,7 @@ namespace BananaDifficulty.Patches
                 DestroyCurrentSwords(__instance);
             }
 
-            if (!__instance.firstPhase && (!lastSpawnTimes.ContainsKey(__instance) || Time.time - lastSpawnTimes[__instance] >= 2.5f) && (!currentSwordsDict.ContainsKey(__instance) || currentSwordsDict[__instance] == null))
+            if (!__instance.firstPhase && (!lastSpawnTimes.ContainsKey(__instance) || Time.time - lastSpawnTimes[__instance] >= 5.6f) && (!currentSwordsDict.ContainsKey(__instance) || currentSwordsDict[__instance] == null))
             {
                 SpawnSwords(__instance);
                 lastSpawnTimes[__instance] = Time.time;

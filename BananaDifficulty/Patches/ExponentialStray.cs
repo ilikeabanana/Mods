@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace BananaDifficulty.Patches
 {
@@ -69,28 +70,55 @@ namespace BananaDifficulty.Patches
             }
         }
 
+        // Track last homingHH fire time per schism
+        private static readonly Dictionary<int, float> schismLastHomingTime = new Dictionary<int, float>();
+
+
         static void FireSchism(ZombieProjectiles __instance)
         {
+            int id = __instance.GetInstanceID();
+
             // Instantiate the projectile
             __instance.currentProjectile = Object.Instantiate<GameObject>(__instance.projectile, __instance.shootPos.position, Quaternion.identity);
             Projectile componentInChildren = __instance.currentProjectile.GetComponentInChildren<Projectile>();
 
-            // Set projectile properties
             if (componentInChildren != null)
             {
-                componentInChildren.target = __instance.eid.target;
+                componentInChildren.targetHandle = __instance.targetHandle;
                 componentInChildren.safeEnemyType = EnemyType.Schism;
                 componentInChildren.speed *= GetSpeedMultiplier(__instance.difficulty);
                 componentInChildren.damage *= __instance.eid.totalDamageModifier;
             }
 
-            // Aim the projectiles
             Vector3 worldPosition = GetTargetPosition(__instance);
             __instance.currentProjectile.transform.LookAt(worldPosition);
 
-            // Fire two projectiles at an angle
             FireProjectileAtAngle(__instance.currentProjectile, -10f, __instance);
-            //FireProjectileAtAngle(__instance.currentProjectile, 10f, __instance);
+            FireProjectileAtAngle(__instance.currentProjectile, 10f, __instance);
+
+            // --- HOMING PROJECTILE COOLDOWN ---
+            if (!schismLastHomingTime.TryGetValue(id, out float lastTime) || Time.time - lastTime >= 1.25f)
+            {
+                schismLastHomingTime[id] = Time.time;
+
+                GameObject extraHoming = Object.Instantiate(BananaDifficultyPlugin.homingHH, __instance.shootPos.position, Quaternion.identity);
+                Projectile projHHChildren = extraHoming.GetComponentInChildren<Projectile>();
+
+                if (projHHChildren != null)
+                {
+                    projHHChildren.targetHandle = __instance.targetHandle;
+                    projHHChildren.safeEnemyType = EnemyType.Schism;
+                    projHHChildren.speed *= GetSpeedMultiplier(__instance.difficulty);
+                    projHHChildren.damage *= __instance.eid.totalDamageModifier;
+                }
+
+                if (extraHoming.TryGetComponent<Rigidbody>(out Rigidbody rigidbody))
+                {
+                    rigidbody.AddForce(Vector3.up * 50f, ForceMode.VelocityChange);
+                }
+
+                extraHoming.transform.LookAt(worldPosition);
+            }
         }
 
         static void FireSoldier(ZombieProjectiles __instance)

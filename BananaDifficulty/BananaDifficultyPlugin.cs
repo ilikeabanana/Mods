@@ -1,22 +1,24 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
+using Discord;
 using HarmonyLib;
-using UnityEngine;
-using UnityEngine.UI;
+using NewBananaWeapons;
+using System;
+using System.Collections;
+using System.Linq;
+using System.Reflection;
+using System.Text.RegularExpressions;
 using TMPro;
+using Unity.AI.Navigation;
+using UnityEngine;
+using UnityEngine.AddressableAssets;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
-using System.Collections;
-using System;
-using System.Linq;
 using UnityEngine.ResourceManagement.AsyncOperations;
-using UnityEngine.AddressableAssets;
-using Object = UnityEngine.Object;
 using UnityEngine.SceneManagement;
-using Discord;
-using System.Text.RegularExpressions;
-using System.Reflection;
+using UnityEngine.UI;
+using Object = UnityEngine.Object;
 
 namespace BananaDifficulty
 {
@@ -35,6 +37,7 @@ namespace BananaDifficulty
         public static ConfigEntry<bool> HardMode;
 
         public static GameObject projBeam;
+        public static GameObject projBeamTurret;
         public static GameObject projHoming;
         public static GameObject idol;
         public static GameObject RocketEnemy;
@@ -42,14 +45,39 @@ namespace BananaDifficulty
         public static GameObject insignificant;
         public static GameObject bigExplosion;
         public static GameObject blackHole;
+        public static GameObject blackHoleExplosion;
         public static GameObject spear;
         public static GameObject v2FlashUnpariable;
+        public static GameObject mindBeam;
         public static GameObject summonedSwords;
         public static GameObject homingHH;
         public static GameObject homingBlue;
+        public static GameObject upArrow;
+        public static GameObject superExplosion;
+        public static GameObject forwardArrow;
+        public static GameObject spinyProvi;
         public static Material WhiplashMat;
+        public static Material MindflayerBeamMat;
         public static GameObject WhiplashThrow;
+        public static GameObject rubbleBig;
         public static AudioClip WhiplashLoop;
+        public static GameObject lightningWindup;
+        public static GameObject lightningExplosion;
+        public static GameObject shockwave;
+        public static GameObject cannonball;
+        public static GameObject gabrielThrownSpear;
+        public static GameObject mirrorReaperWave;
+        public static GameObject thrownSwordH;
+        public static GameObject providenceOrb;
+
+
+        public static GameObject pizzaAttack;
+        public static GameObject ratAttack;
+
+        public static GameObject newCancerHallway;
+        public static GameObject fallAttack;
+
+        public static AssetBundle bundle;
         private void Awake()
         {
             // Apply all of our patches
@@ -65,7 +93,7 @@ namespace BananaDifficulty
             HardMode = Config.Bind<bool>("Difficulty Settings", "Hard Mode", false, "Makes virtue beams appear on every side, have double shockwaves, and also makes schisms fire thrice as many projectiles.");
 
             GetAssets();
-            GetBundleAssets();
+            //GetBundleAssets();
         }
 
         private void SceneManager_activeSceneChanged(Scene arg0, Scene arg1)
@@ -77,6 +105,67 @@ namespace BananaDifficulty
             {
                 MakeTheNewDifficulty();
             }
+
+            if (ShaderManager.shaderDictionary.Count == 0)
+            {
+                StartCoroutine(ShaderManager.LoadShadersAsync());
+            }
+            else
+            {
+                GetBundleAssets();
+            }
+
+            if (SceneHelper.CurrentScene == "Level 1-2")
+            {
+                Log.LogInfo("Replacing hallway");
+
+                GameObject normalHallway = GameObject
+                    .FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+                    .FirstOrDefault(t => t.name == "CV11 - Hallway")?.gameObject;
+
+                Log.LogInfo("Found Hallway!!!");
+                GameObject replacement = Instantiate(newCancerHallway);
+
+                foreach (var door in GameObject.FindObjectsByType<Door>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                {
+                    for (int i = 0; i < door.activatedRooms.Length; i++)
+                    {
+                        if (door.activatedRooms[i] == normalHallway)
+                            door.activatedRooms[i] = replacement;
+                    }
+                    for (int i = 0; i < door.deactivatedRooms.Length; i++)
+                    {
+                        if (door.deactivatedRooms[i] == normalHallway)
+                            door.deactivatedRooms[i] = replacement;
+                    }
+                }
+
+                foreach (var breaka in GameObject.FindObjectsByType<Breakable>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                {
+                    for (int i = 0; i < breaka.activateOnBreak.Length; i++)
+                    {
+                        if (breaka.activateOnBreak[i] == normalHallway)
+                            breaka.activateOnBreak[i] = replacement;
+                    }
+                }
+
+                foreach (var check in GameObject.FindObjectsByType<CheckPoint>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                {
+                    if (check.toActivate == normalHallway)
+                        check.toActivate = replacement;
+
+                    for (int i = 0; i < check.rooms.Length; i++)
+                    {
+                        if (check.rooms[i] == normalHallway)
+                            check.rooms[i] = replacement;
+                    }
+                }
+
+                replacement.SetActive(false);
+                Object.Destroy(normalHallway);
+
+            }
+
         }
 
         public static bool CanUseIt(int difficulty)
@@ -90,10 +179,105 @@ namespace BananaDifficulty
         {
             var a = Assembly.GetExecutingAssembly();
 
-            spear = AssetBundle.LoadFromStream(a.GetManifestResourceStream("BananaDifficulty.Bundles.v2spear")).LoadAsset<GameObject>("V2Spear");
+            if(spear == null)
+                spear = AssetBundle.LoadFromStream(a.GetManifestResourceStream("BananaDifficulty.Bundles.v2spear")).LoadAsset<GameObject>("V2Spear");
+
+            if (bundle == null)
+                bundle = AssetBundle.LoadFromStream(a.GetManifestResourceStream("BananaDifficulty.Bundles.bananadifficulty"));
+
+            if (newCancerHallway == null)
+            {
+                newCancerHallway = bundle.LoadAsset<GameObject>("CV11 - Hallway");
+                StartCoroutine(ShaderManager.ApplyShaderToGameObject(newCancerHallway));
+                foreach (var item in newCancerHallway.GetComponentsInChildren<Breakable>())
+                {
+                    if(item.breakParticle != null)
+                        StartCoroutine(ShaderManager.ApplyShaderToGameObject(item.breakParticle));
+                }
+                
+            }
+
+            if(fallAttack == null)
+            {
+                fallAttack = bundle.LoadAsset<GameObject>("FallAttack");
+                StartCoroutine(ShaderManager.ApplyShaderToGameObject(fallAttack));
+            }
+
+            if(pizzaAttack == null)
+            {
+                pizzaAttack = bundle.LoadAsset<GameObject>("PizzaAttakc");
+                StartCoroutine(ShaderManager.ApplyShaderToGameObject(pizzaAttack));
+            }
+            if(ratAttack == null)
+            {
+                ratAttack = bundle.LoadAsset<GameObject>("CancerousRodentProj");
+                StartCoroutine(ShaderManager.ApplyShaderToGameObject(ratAttack));
+                StartCoroutine(ShaderManager.ApplyShaderToGameObject(ratAttack.GetComponent<Projectile>().explosionEffect));
+            }
+            
         }
         public void GetAssets()
         {
+            StartCoroutine(LoadAddressable<GameObject>((x) =>
+            {
+                lightningWindup = x;
+            }, "Assets/Particles/Environment/LightningBoltWindup.prefab"));
+            StartCoroutine(LoadAddressable<GameObject>((x) =>
+            {
+                lightningExplosion = x;
+            }, "Assets/Prefabs/Attacks and Projectiles/Explosions/Lightning Strike Explosive.prefab"));
+            StartCoroutine(LoadAddressable<GameObject>((x) =>
+            {
+                shockwave = x;
+            }, "Assets/Prefabs/Attacks and Projectiles/PhysicalShockwave.prefab"));
+            StartCoroutine(LoadAddressable<GameObject>((x) =>
+            {
+                cannonball = x;
+            }, "Assets/Prefabs/Attacks and Projectiles/Cannonball.prefab"));
+            StartCoroutine(LoadAddressable<GameObject>((x) =>
+            {
+                providenceOrb = x;
+            }, "Assets/Prefabs/Levels/Interactive/GrapplePointSlingshotProvidence.prefab"));
+            StartCoroutine(LoadAddressable<GameObject>((x) =>
+            {
+                gabrielThrownSpear = x;
+            }, "Assets/Prefabs/Attacks and Projectiles/Gabriel/GabrielThrownSpear.prefab"));
+            StartCoroutine(LoadAddressable<GameObject>((x) =>
+            {
+                mirrorReaperWave = x;
+            }, "Assets/Prefabs/Attacks and Projectiles/MirrorReaperGroundWave.prefab"));
+            StartCoroutine(LoadAddressable<GameObject>((x) =>
+            {
+                thrownSwordH = x;
+            }, "Assets/Prefabs/Attacks and Projectiles/Swordsmachine/Thrown Sword Horizontal.prefab"));
+            StartCoroutine(LoadAddressable<GameObject>((x) =>
+            {
+                projBeamTurret = x;
+            }, "Assets/Prefabs/Attacks and Projectiles/Hitscan Beams/Turret Beam.prefab"));
+            StartCoroutine(LoadAddressable<GameObject>((x) =>
+            {
+                rubbleBig = x;
+            }, "Assets/Particles/RubbleBigDistant.prefab"));
+            StartCoroutine(LoadAddressable<GameObject>((x) =>
+            {
+                superExplosion = x;
+            }, "Assets/Prefabs/Attacks and Projectiles/Explosions/Explosion Super.prefab"));
+            StartCoroutine(LoadAddressable<GameObject>((x) =>
+            {
+                forwardArrow = x;
+            }, "Assets/Prefabs/Attacks and Projectiles/GeryonForwardArrowBeam.prefab"));
+            StartCoroutine(LoadAddressable<GameObject>((x) =>
+            {
+                upArrow = x;
+            }, "Assets/Prefabs/Attacks and Projectiles/GeryonUpArrowBeam.prefab"));
+            StartCoroutine(LoadAddressable<GameObject>((x) =>
+            {
+                blackHoleExplosion = x;
+            }, "Assets/Particles/BlackHoleExplosion.prefab"));
+            StartCoroutine(LoadAddressable<GameObject>((x) =>
+            {
+                mindBeam = x;
+            }, "Assets/Prefabs/Attacks and Projectiles/Hitscan Beams/Mindflayer Beam.prefab"));
             StartCoroutine(LoadAddressable<GameObject>((x) =>
             {
                 projBeam = x;
@@ -150,10 +334,18 @@ namespace BananaDifficulty
             {
                 WhiplashMat = x;
             }, "Assets/Materials/SnaketrailOpaque.mat"));
+            StartCoroutine(LoadAddressable<Material>((x) =>
+            {
+                MindflayerBeamMat = x;
+            }, "Assets/Materials/Sprites/MindflayerBeam.mat"));
             StartCoroutine(LoadAddressable<AudioClip>((x) =>
             {
                 WhiplashLoop = x;
             }, "Assets/Sounds/Weapons/Whiplash Throw Loop.wav"));
+            StartCoroutine(LoadAddressable<GameObject>((x) =>
+            {
+                spinyProvi = x;
+            }, "Assets/Prefabs/Attacks and Projectiles/Projectile Providence Geryon.prefab"));
         }
 
         public IEnumerator LoadAddressable<T>(Action<T> onLoad, string path)
@@ -207,7 +399,7 @@ namespace BananaDifficulty
                 return;
             }
 
-                ((Component)info.transform.Find("Text")).GetComponent<TMP_Text>().text = "<color=white>Mod made by banana to make it very VERY difficult\nFast enemies. Changed behaviour. Alot of projectiles. Alot of beams. And much much more.";
+                ((Component)info.transform.Find("Text")).GetComponent<TMP_Text>().text = "<color=white>Mod made by banana to make it very VERY difficult\r\nFast enemies. A LOT of projectiles. A ridiculous amount of projectiles.\r\nChanged behaviour. A few brand new attacks. More beams.\r\nAnd much, much more. \n\n\n\r meant to be very unfair";
 
             TMP_Text component = ((Component)info.transform.Find("Title (1)")).GetComponent<TMP_Text>();
             component.fontSize = 29f;

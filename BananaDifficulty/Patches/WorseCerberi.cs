@@ -9,7 +9,7 @@ namespace BananaDifficulty.Patches
         private static void FireProjectileAtAngle(float angleOffset, StatueBoss __instance)
         {
             GameObject gameObject = Object.Instantiate<GameObject>(__instance.orbProjectile.ToAsset(), new Vector3(__instance.orbLight.transform.position.x, __instance.transform.position.y + 3.5f, __instance.orbLight.transform.position.z), Quaternion.identity);
-            gameObject.transform.LookAt(__instance.projectedPlayerPos);
+            gameObject.transform.LookAt(__instance.eid.target.PredictTargetPosition(0.4f));
 
             // Rotate the new projectile by the specified angle offset
             gameObject.transform.Rotate(Vector3.up, angleOffset);

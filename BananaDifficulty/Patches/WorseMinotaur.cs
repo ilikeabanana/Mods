@@ -20,7 +20,7 @@ namespace BananaDifficulty.Patches
         {
             if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return true;
 
-            __instance.mach.GetHurt(__instance.GetComponentInChildren<EnemyIdentifierIdentifier>().gameObject, Vector3.zero, 20f, 0f, null, false);
+            __instance.mach.GetHurt(__instance.GetComponentInChildren<EnemyIdentifierIdentifier>().gameObject, Vector3.zero, 20f, 0f, Vector3.zero, null, false);
 
             return false;
         }
