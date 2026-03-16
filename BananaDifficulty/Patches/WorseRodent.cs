@@ -65,7 +65,7 @@ namespace BananaDifficulty.Patches
         {
             EnemyIdentifier eid = __instance.GetComponent<EnemyIdentifier>();
             if (!BananaDifficultyPlugin.CanUseIt(eid.difficulty)) return;
-
+            if (__instance.GetComponent<RodentBoss>() == null) return;
             Enemy e = __instance.GetComponent<Enemy>();
 
             if (!__instance.harmless) return;

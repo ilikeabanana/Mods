@@ -1,0 +1,33 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  
+  <Target Name="DeployToPlugins" AfterTargets="Build" 
+          Condition="'$(CopyToBepInExPluginsDir)' == 'true'">
+    
+    <PropertyGroup>
+      <BepInExPluginsDir>C:\Users\michi\AppData\Roaming\r2modmanPlus-local\ULTRAKILL\profiles\ultrarogue\BepInEx/plugins/</BepInExPluginsDir>
+      <SourceDir>$(MSBuildProjectDirectory)\$(OutputPath)</SourceDir>
+      <DestinationDir>$(BepInExPluginsDir)$(AssemblyName)/</DestinationDir>
+    </PropertyGroup>
+    <Message Importance="high" Text="MSBuildProjectDirectory = $(MSBuildProjectDirectory)" />
+    <Message Importance="high" Text="OutputPath = $(OutputPath)" />
+    <Message Importance="high" Text="Source = $(SourceDir)" />
+    <Message Importance="high" Text="Destination = $(DestinationDir)" />
+    
+    <Error Condition="!Exists('$(BepInExPluginsDir)')"
+        Text="BepInEx plugins directory does not exist: $(BepInExPluginsDir)"/>
+    
+    <MakeDir Condition="!Exists('$(DestinationDir)')"
+      Directories="$(DestinationDir)"/>
+    
+    <ItemGroup>
+      <FilesToCopy Include="$(SourceDir)\**\*" />
+    </ItemGroup>
+    <Copy
+        SourceFiles="@(FilesToCopy)"
+        DestinationFolder="$(DestinationDir)\%(RecursiveDir)"
+        SkipUnchangedFiles="true"
+    />
+    <Message Importance="high" Text="Files copied to $(DestinationDir)" />
+  </Target>
+  
+</Project>
