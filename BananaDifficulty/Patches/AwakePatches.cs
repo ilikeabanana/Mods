@@ -72,17 +72,19 @@ namespace BananaDifficulty.Patches
         }
         [HarmonyPatch(nameof(EnemyIdentifier.DeliverDamage))]
         [HarmonyPrefix]
-        public static bool Damage_Postfix(EnemyIdentifier __instance)
+        public static void Damage_Postfix(ref float multiplier, EnemyIdentifier __instance)
         {
-            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return true;
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
 
             List<string> hittersToReturn = new List<string>()
             {
                 "projectile",
                 "ffexplosion",
             };
-
-            return !hittersToReturn.Contains(__instance.hitter);
+            if (hittersToReturn.Contains(__instance.hitter))
+            {
+                multiplier /= 3;
+            }
         }
 
     }

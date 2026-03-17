@@ -42,7 +42,6 @@ namespace BananaDifficulty.Patches
         public static void Shoot_Postfix(ZombieProjectiles __instance)
         {
             if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
-            if (!BananaDifficultyPlugin.HardMode.Value) return;
             switch (__instance.eid.enemyType)
             {
                 case EnemyType.Schism:
@@ -94,10 +93,14 @@ namespace BananaDifficulty.Patches
             __instance.currentProjectile.transform.LookAt(worldPosition);
 
             FireProjectileAtAngle(__instance.currentProjectile, -10f, __instance);
-            FireProjectileAtAngle(__instance.currentProjectile, 10f, __instance);
+            if (BananaDifficultyPlugin.HardMode.Value)
+            {
+                FireProjectileAtAngle(__instance.currentProjectile, 10f, __instance);
+            }
+            
 
             // --- HOMING PROJECTILE COOLDOWN ---
-            if (!schismLastHomingTime.TryGetValue(id, out float lastTime) || Time.time - lastTime >= 1.25f)
+            if ((!schismLastHomingTime.TryGetValue(id, out float lastTime) || Time.time - lastTime >= 1.25f) || BananaDifficultyPlugin.HardMode.Value)
             {
                 schismLastHomingTime[id] = Time.time;
 

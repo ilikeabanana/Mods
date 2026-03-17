@@ -56,25 +56,6 @@ namespace BananaDifficulty.Patches
             }
         }
 
-        static IEnumerator fireBeam(MirrorReaper __instance)
-        {
-            Object.Instantiate(BananaDifficultyPlugin.v2FlashUnpariable, __instance.transform.position, Quaternion.identity);
-
-            float time = Random.Range(0.25f, 1.25f);
-
-            Vector3 dir = (__instance.target.PredictTargetPosition(time) - __instance.projectileSpawnPoints[0].position).normalized;
-
-            yield return new WaitForSeconds(time);
-
-            GameObject proj = Object.Instantiate(
-                BananaDifficultyPlugin.projBeamTurret,
-                __instance.projectileSpawnPoints[0].position,
-                Quaternion.LookRotation(dir)
-            );
-
-            proj.transform.forward = dir;
-        }
-
 
         [HarmonyPatch(typeof(MirrorReaper), nameof(MirrorReaper.SpawnProjectiles))]
         [HarmonyPostfix]
@@ -103,11 +84,6 @@ namespace BananaDifficulty.Patches
                     if (__instance.inMirrorPhase && __instance.difficulty >= 4)
                     {
                         EnemyIdentifier.SendToPortalLayer(projectile.gameObject);
-                    }
-
-                    if (fires % 2 == 0)
-                    {
-                        __instance.StartCoroutine(fireBeam(__instance));
                     }
                 }
             }

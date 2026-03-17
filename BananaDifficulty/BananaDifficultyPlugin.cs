@@ -39,16 +39,18 @@ namespace BananaDifficulty
         public static GameObject projBeam;
         public static GameObject projBeamTurret;
         public static GameObject projHoming;
+        public static GameObject projNormal;
         public static GameObject idol;
         public static GameObject RocketEnemy;
         public static GameObject snakeProj;
         public static GameObject insignificant;
-        public static GameObject bigExplosion;
+        public static GameObject bigExplosion; 
         public static GameObject blackHole;
         public static GameObject blackHoleExplosion;
         public static GameObject spear;
         public static GameObject v2FlashUnpariable;
         public static GameObject mindBeam;
+        public static GameObject chargedExplosion;
         public static GameObject summonedSwords;
         public static GameObject homingHH;
         public static GameObject homingBlue;
@@ -117,6 +119,7 @@ namespace BananaDifficulty
 
             if (SceneHelper.CurrentScene == "Level 1-2")
             {
+                if (!BananaDifficultyPlugin.CanUseIt(-999)) return;
                 Log.LogInfo("Replacing hallway");
 
                 GameObject normalHallway = GameObject
@@ -222,6 +225,14 @@ namespace BananaDifficulty
             {
                 lightningWindup = x;
             }, "Assets/Particles/Environment/LightningBoltWindup.prefab"));
+            StartCoroutine(LoadAddressable<GameObject>((x) =>
+            {
+                projNormal = x;
+            }, "Assets/Prefabs/Attacks and Projectiles/Projectile.prefab"));
+            StartCoroutine(LoadAddressable<GameObject>((x) =>
+            {
+                chargedExplosion = x;
+            }, "Assets/Prefabs/Attacks and Projectiles/Explosions/Explosion Sisyphus Prime Charged.prefab"));
             StartCoroutine(LoadAddressable<GameObject>((x) =>
             {
                 lightningExplosion = x;

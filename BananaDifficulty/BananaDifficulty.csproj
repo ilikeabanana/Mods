@@ -137,6 +137,7 @@
     <Compile Include="Patches\WorseGeryon.cs" />
     <Compile Include="Patches\WorseGiantMinos.cs" />
     <Compile Include="Patches\WorseLeviathan.cs" />
+    <Compile Include="Patches\WorseMannequin.cs" />
     <Compile Include="Patches\WorseMass.cs" />
     <Compile Include="Patches\WorseMindlfayer.cs" />
     <Compile Include="Patches\WorseMinos.cs" />
@@ -162,8 +163,9 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>mkdir "C:\Users\michi\AppData\Roaming\r2modmanPlus-local\ULTRAKILL\profiles\BananaDifficulty\BepInEx\plugins\$(TargetName)"
-xcopy /q/y/i "$(TargetPath)" "C:\Users\michi\AppData\Roaming\r2modmanPlus-local\ULTRAKILL\profiles\BananaDifficulty\BepInEx\plugins\$(TargetName)" /E /H /C</PostBuildEvent>
+    <PostBuildEvent>
+		mkdir "..\..\..\..\..\AppData\Roaming\r2modmanPlus-local\ULTRAKILL\profiles\BananaDifficulty\BepInEx\plugins\$(TargetName)"
+		xcopy /q/y/i "$(TargetPath)" "..\..\..\..\..\AppData\Roaming\r2modmanPlus-local\ULTRAKILL\profiles\BananaDifficulty\BepInEx\plugins\$(TargetName)" /E /H /C</PostBuildEvent>
   </PropertyGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>

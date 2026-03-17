@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using UltraEditor.Classes;
 using ULTRAKILL.Enemy;
 using Ultrarogue.Items;
 using UnityEngine;
@@ -31,9 +30,50 @@ namespace Ultrarogue
 
         public static List<PlayerChange> playerChanges = new List<PlayerChange>();
 
+        public static List<AWeapon> weapons = new List<AWeapon>();
+
+        public enum Weapon
+        {
+            Revolver,
+            Shotgun,
+            Nailgun,
+            Railcannon,
+            RocketLauncher,
+        }
+
+        public enum Variant
+        {
+            Blue,
+            Green,
+            Red
+        }
+
+        public static string getWeaponString(Weapon weapon, Variant variant)
+        {
+            return "weapon." + getWeaponString(weapon) + (int)variant;
+        }
+        public static string getWeaponString(Weapon weapon)
+        {
+            switch (weapon)
+            {
+                case Weapon.Revolver:
+                    return "rev";
+                case Weapon.Shotgun:
+                    return "sho";
+                case Weapon.Nailgun:
+                    return "nai";
+                case Weapon.Railcannon:
+                    return "rai";
+                case Weapon.RocketLauncher:
+                    return "rock";
+            }
+
+            return "i dont fucking know????";
+        }
+
         public static bool isInRogueMode()
         {
-            return true; // Temporary
+            return SceneHelper.CurrentScene == SceneLoader.SceneName; // Temporary
         }
 
         public static BaseItem getItem(string name)
@@ -75,18 +115,15 @@ namespace Ultrarogue
             //LoadBundle();
             SceneManager.sceneLoaded += SceneManager_sceneLoaded;
         }
-        string scenePath;
-        public void LoadBundle()
-        {
-            EmptySceneLoader.Load();
-
-        }
 
         private void SceneManager_sceneLoaded(Scene arg0, LoadSceneMode arg1)
         {
+            if (ShaderManager.shaderDictionary.Count <= 0) StartCoroutine(ShaderManager.LoadShadersAsync());
             if (NewMovement.Instance == null) return;
             normalMoveSpeed = NewMovement.Instance.walkSpeed;
             normalJumpHeight = NewMovement.Instance.jumpPower;
+            weapons.Clear();
+            weapons.Add(new AWeapon(Weapon.Revolver, Variant.Blue));
         }
 
         void Update()
@@ -101,7 +138,7 @@ namespace Ultrarogue
 
             if (Input.GetKeyDown(KeyCode.Y))
             {
-                EmptySceneLoader.LoadLevel(); // should be good?
+                StartCoroutine(SceneLoader.LoadLevelAsync(false)); 
             }
 
             foreach (var item in items)
@@ -257,8 +294,42 @@ namespace Ultrarogue
     {
         public Team teamId = Team.Player;
     }
+    public class AWeapon
+    {
+        public Plugin.Weapon weapon;
+        public Plugin.Variant variant;
+        public AWeapon(Plugin.Weapon weapon, Plugin.Variant variant)
+        {
+            this.weapon = weapon;
+            this.variant = variant;
+        }
+        public override string ToString()
+        {
+            return Plugin.getWeaponString(weapon, variant);
+        }
+    }
 
     #region Patches
+
+    [HarmonyPatch]
+    public class WeaponPatches
+    {
+        [HarmonyPatch(typeof(PrefsManager), nameof(PrefsManager.GetInt))]
+        [HarmonyPostfix]
+        public static void ModifyGuns(ref int __result, string key, int fallback = 0)
+        {
+            if(!Plugin.isInRogueMode()) return;
+            if (key.StartsWith("weapon."))
+            {
+                if (Plugin.weapons.Any((x) => key.StartsWith(x.ToString())))
+                {
+                    __result = 1;
+                }
+                else __result = 0;
+            }
+        }
+    }
+
 
     [HarmonyPatch]
     public class EnemyPatches

@@ -41,5 +41,13 @@ namespace BananaDifficulty.Patches
             GameObject gameObject = Object.Instantiate<GameObject>((__instance.difficulty >= 4) ? __instance.goopLong : __instance.goop, new Vector3(__instance.meatInHand.transform.position.x, __instance.transform.position.y, __instance.meatInHand.transform.position.z), Quaternion.identity);
             gameObject.transform.SetParent(__instance.gz.transform, true);
         }
+
+        [HarmonyPatch(nameof(Minotaur.SetSpeed))]
+        [HarmonyPostfix]
+        public static void Speedy(Minotaur __instance)
+        {
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
+            __instance.anim.speed *= 1.6f;
+        }
     }
 }

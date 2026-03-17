@@ -34,5 +34,53 @@ namespace BananaDifficulty.Patches
             __instance.punchCooldown = 0;
             return false;
         }
+
+        [HarmonyPatch(nameof(Guttertank.PlaceMine))]
+        [HarmonyPrefix]
+        public static void PlaceMine_Prefix(Guttertank __instance)
+        {
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
+            // spawn kabiem
+            FireProjectile(__instance, 0);
+            FireProjectile(__instance, -10);
+            FireProjectile(__instance, 10);
+        }
+
+        [HarmonyPatch(typeof(Guttertank), nameof(Guttertank.FireRocket))]
+        [HarmonyPrefix]
+        public static void FireRocket_Prefix(Guttertank __instance)
+        {
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
+            GameObject shck = Object.Instantiate(BananaDifficultyPlugin.shockwave, __instance.transform.position, Quaternion.identity);
+            if(shck.TryGetComponent<PhysicalShockwave>(out PhysicalShockwave shockwave))
+            {
+                shockwave.enemy = true;
+                shockwave.enemyType = __instance.eid.enemyType;
+                shockwave.noDamageToEnemy = true;
+            }
+        }
+
+        static void FireProjectile(Guttertank __instance, float angle)
+        {
+            GameObject extraHoming = Object.Instantiate(BananaDifficultyPlugin.homingHH, __instance.shootPoint.position, Quaternion.identity);
+            Projectile projHHChildren = extraHoming.GetComponentInChildren<Projectile>();
+
+            if (projHHChildren != null)
+            {
+                projHHChildren.targetHandle = __instance.targetHandle;
+                projHHChildren.safeEnemyType = EnemyType.Guttertank;
+                projHHChildren.speed *= 1f;
+                projHHChildren.damage *= __instance.eid.totalDamageModifier;
+            }
+
+            if (extraHoming.TryGetComponent<Rigidbody>(out Rigidbody rigidbody))
+            {
+                rigidbody.AddForce(Vector3.up * 50f, ForceMode.VelocityChange);
+            }
+
+            extraHoming.transform.LookAt(__instance.targetPosition);
+
+            extraHoming.transform.Rotate(Vector3.up, angle);
+        }
     }
 }
