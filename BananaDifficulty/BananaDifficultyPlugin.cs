@@ -57,6 +57,7 @@ namespace BananaDifficulty
         public static GameObject upArrow;
         public static GameObject superExplosion;
         public static GameObject forwardArrow;
+        public static GameObject proximityExplosion;
         public static GameObject spinyProvi;
         public static Material WhiplashMat;
         public static Material MindflayerBeamMat;
@@ -93,7 +94,9 @@ namespace BananaDifficulty
             Log = Logger;
 
             HardMode = Config.Bind<bool>("Difficulty Settings", "Hard Mode", false, "Makes virtue beams appear on every side, have double shockwaves, and also makes schisms fire thrice as many projectiles.");
-
+            var patchedMethods = Harmony.GetPatchedMethods();
+            foreach (var m in patchedMethods)
+                Log.LogInfo($"Patched: {m.DeclaringType?.Name}.{m.Name}");
             GetAssets();
             //GetBundleAssets();
         }
@@ -229,6 +232,10 @@ namespace BananaDifficulty
             {
                 projNormal = x;
             }, "Assets/Prefabs/Attacks and Projectiles/Projectile.prefab"));
+            StartCoroutine(LoadAddressable<GameObject>((x) =>
+            {
+                proximityExplosion = x;
+            }, "Assets/Prefabs/Attacks and Projectiles/Explosions/GeryonProximityExplosion.prefab"));
             StartCoroutine(LoadAddressable<GameObject>((x) =>
             {
                 chargedExplosion = x;

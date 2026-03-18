@@ -50,6 +50,14 @@ namespace BananaDifficulty.Patches
                 projectile2.speed *= 2;
                 projectile2.ignoreExplosions = true;
             }
+
+            if (gameObject.TryGetComponent<MeshRenderer>(out MeshRenderer rend))
+            {
+                Material mat = new Material(rend.sharedMaterial);
+
+                mat.color = Color.black;
+                rend.sharedMaterial = mat;
+            }
         }
 
         private static IEnumerator ShootSpearsWithDelay(Mass instance)

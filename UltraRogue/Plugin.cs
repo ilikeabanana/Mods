@@ -11,6 +11,8 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using Random = UnityEngine.Random;
 
+// gffg
+
 namespace Ultrarogue
 {
     [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
@@ -131,7 +133,7 @@ namespace Ultrarogue
             if (Input.GetKeyDown(KeyCode.X))
             {
                 BaseItem item = GiveRandomItem();
-                HudMessageReceiver.Instance.SendHudMessage(item.ToString());
+                HudMessageReceiver.Instance?.SendHudMessage(item.ToString());
 
                 GiveItem(item);
             }
@@ -175,6 +177,11 @@ namespace Ultrarogue
             {Rarity.Uncommon, 0.15f },
             {Rarity.Legendary, 0.05f }
         });
+
+        public static void AddWeapon(AWeapon weapon)
+        {
+            weapons.Add(weapon);
+        }
 
         #region item helpers
 
