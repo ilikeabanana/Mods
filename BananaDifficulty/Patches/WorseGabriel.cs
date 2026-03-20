@@ -98,6 +98,20 @@ namespace BananaDifficulty.Patches
                     __instance.combinedSwordsCooldown = 0;
             }
         }
+        [HarmonyPatch(nameof(GabrielBase.UpdateSpeed))]
+        [HarmonyPostfix]
+        public static void Speed_Postfix(GabrielBase __instance)
+        {
+            if (BananaDifficultyPlugin.CanUseIt(__instance.eid.difficulty))
+            {
+                if (__instance.eid.enemyType == EnemyType.GabrielSecond)
+                {
+                    __instance.anim.speed *= 1.2f;
+                    __instance.defaultAnimSpeed = __instance.anim.speed;
+                }
+                    
+            }
+        }
 
     }
 
@@ -164,6 +178,5 @@ namespace BananaDifficulty.Patches
                 FireProjectileAtAngle(-20, __instance);
             }
         }
-
     }
 }

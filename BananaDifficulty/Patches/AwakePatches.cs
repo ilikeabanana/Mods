@@ -85,6 +85,11 @@ namespace BananaDifficulty.Patches
             {
                 multiplier /= 3;
             }
+
+            if(__instance.hitter == "hook" && __instance.enemyType == EnemyType.Virtue)
+            {
+                __instance.drone.Enrage();
+            }
         }
 
     }

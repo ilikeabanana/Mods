@@ -3,6 +3,21 @@ using UnityEngine;
 
 namespace BananaDifficulty.Patches
 {
+
+    [HarmonyPatch(typeof(RevolverBeam))]
+    public class GoThroughWalls
+    {
+        [HarmonyPatch("Shoot")]
+        public static void Prefix(RevolverBeam __instance)
+        {
+            if (__instance.beamType == BeamType.Enemy)
+            {
+                __instance.pierceLayerMask = LayerMaskDefaults.Get(LMD.Player);
+                __instance.ignoreEnemyTrigger = LayerMaskDefaults.Get(LMD.Player);
+            }
+        }
+    }
+
     [HarmonyPatch(typeof(Turret))]
     internal class WorseSentries
     {
@@ -13,6 +28,45 @@ namespace BananaDifficulty.Patches
             if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
 
             __instance.maxAimTime /= 2;
+        }
+
+        [HarmonyPatch(nameof(Turret.Aiming))]
+        [HarmonyPostfix]
+        public static void FasterFlash(Turret __instance)
+        {
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
+            if (!__instance.isAimFlashing) return;
+
+            __instance.flashTime = Mathf.MoveTowards(__instance.flashTime, 1f,
+                Time.deltaTime * 4f * __instance.eid.totalSpeedModifier);
+        }
+
+        [HarmonyPatch(nameof(Turret.Awake))]
+        [HarmonyPrefix]
+        public static void Dont_Cancerl(Turret __instance)
+        {
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
+            __instance.outOfSightTimer = 0;
+        }
+
+        [HarmonyPatch(nameof(Turret.IsTargetObstructed))]
+        [HarmonyPostfix]
+        public static void AlwaysVis(ref bool __result, Turret __instance)
+        {
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
+            __result = false;
+        }
+        [HarmonyPatch(nameof(Turret.VisionUpdate))]
+        [HarmonyPostfix]
+        public static void ForceVision(Turret __instance)
+        {
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
+
+            // If the sight query lost the target (wall blocking), restore from last known handle
+            if (__instance.targetHandle == null && __instance.lastTargetHandle != null)
+            {
+                __instance.targetHandle = __instance.lastTargetHandle;
+            }
         }
 
         [HarmonyPatch(nameof(Turret.ChangeLineColor))]
