@@ -61,7 +61,7 @@ public static class SceneLoader
         if (!noSplash)
         {
             SceneHelper.Instance.loadingBlocker.SetActive(true);
-            SceneHelper.SetLoadingSubtext("Loading level... :3");
+            SceneHelper.SetLoadingSubtext("I am loading the amazing level fuck you");
         }
 
         // if the bundle isnt loaded yet then like load it :P oh yea and wait for it to load
@@ -87,6 +87,8 @@ public static class SceneLoader
 
         yield return ShaderManager.ApplyShadersAsync(SceneManager.GetActiveScene().GetRootGameObjects());
         yield return ShaderManager.LoadShadersFromDictionaryAsync();
+
+        new GameObject("generator").AddComponent<RoomGenerator>();
     }
 
     /// <summary> Patches <see cref="SceneHelper.LoadSceneCoroutine(string, bool)"/> to make it use our loader if it's trying to load our scene :3 </summary>

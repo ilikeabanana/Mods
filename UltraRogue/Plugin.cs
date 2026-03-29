@@ -5,10 +5,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Emit;
 using ULTRAKILL.Enemy;
 using Ultrarogue.Items;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+using static Ultrarogue.Plugin;
 using Random = UnityEngine.Random;
 
 // gffg
@@ -24,6 +27,7 @@ namespace Ultrarogue
 
         public static List<DeathEffect> deathEffects = new List<DeathEffect>();
         public static List<HitEffect> hitEffects = new List<HitEffect>();
+        public static List<DamageModifier> dmgModifiers = new List<DamageModifier>();
 
         public static List<BaseItem> possibleItems = new List<BaseItem>();
 
@@ -41,6 +45,7 @@ namespace Ultrarogue
             Nailgun,
             Railcannon,
             RocketLauncher,
+            Arm
         }
 
         public enum Variant
@@ -68,6 +73,8 @@ namespace Ultrarogue
                     return "rai";
                 case Weapon.RocketLauncher:
                     return "rock";
+                case Weapon.Arm:
+                    return "arm";
             }
 
             return "i dont fucking know????";
@@ -75,9 +82,13 @@ namespace Ultrarogue
 
         public static bool isInRogueMode()
         {
-            return SceneHelper.CurrentScene == SceneLoader.SceneName; // Temporary
+            return true; // temp
         }
 
+        public static bool isInRogueScene()
+        {
+            return SceneHelper.CurrentScene == SceneLoader.SceneName;
+        }
         public static BaseItem getItem(string name)
         {
             if (!nameToItem.ContainsKey(name)) return null;
@@ -102,7 +113,9 @@ namespace Ultrarogue
 
         float normalMoveSpeed = 0f;
         float normalJumpHeight = 0f;
-
+        public static int MaxHealth = 100;
+        public static Change AttackSpeed;
+        public static Change cooldownReduction = new Change();
         public static Plugin Instance { get; private set;  }
 
         private void Awake()
@@ -116,6 +129,8 @@ namespace Ultrarogue
             GatherItems();
             //LoadBundle();
             SceneManager.sceneLoaded += SceneManager_sceneLoaded;
+            weapons.Clear();
+            weapons.Add(new AWeapon(Weapon.Revolver, Variant.Blue));
         }
 
         private void SceneManager_sceneLoaded(Scene arg0, LoadSceneMode arg1)
@@ -124,23 +139,31 @@ namespace Ultrarogue
             if (NewMovement.Instance == null) return;
             normalMoveSpeed = NewMovement.Instance.walkSpeed;
             normalJumpHeight = NewMovement.Instance.jumpPower;
-            weapons.Clear();
-            weapons.Add(new AWeapon(Weapon.Revolver, Variant.Blue));
+           
         }
 
         void Update()
         {
             if (Input.GetKeyDown(KeyCode.X))
             {
-                BaseItem item = GiveRandomItem();
-                HudMessageReceiver.Instance?.SendHudMessage(item.ToString());
-
+                BaseItem item = getItem("Missle Launcher");
                 GiveItem(item);
             }
 
-            if (Input.GetKeyDown(KeyCode.Y))
+            if (Input.GetKeyDown(KeyCode.Dollar))
             {
                 StartCoroutine(SceneLoader.LoadLevelAsync(false)); 
+            }
+
+            if (Input.GetKeyDown(KeyCode.Delete))
+            {
+                if(RogueDifficultyManager.Instance == null)
+                {
+                    new GameObject("DiffMan").AddComponent<RogueDifficultyManager>();
+                    return;
+                }
+
+                SpawnEnemiesTest(5);
             }
 
             foreach (var item in items)
@@ -149,6 +172,59 @@ namespace Ultrarogue
             }
 
             ApplyPlayerChanges();
+            ApplyWeaponSpeeds();
+        }
+
+        void SpawnEnemiesTest(int SpawnCredits)
+        {
+            SpawnCredits = Mathf.RoundToInt((float)SpawnCredits * RogueDifficultyManager.Instance.Difficulty);
+            Logger.LogInfo($"Spawncredits: {SpawnCredits}, Difficulty: {RogueDifficultyManager.Instance.Difficulty}");
+            if (SpawnCredits == 0) return;
+            while (SpawnCredits > 0)
+            {
+                EnemyType randomEnemy = (EnemyType)Random.Range(0, System.Enum.GetValues(typeof(EnemyType)).Length);
+                int Cost = RogueDifficultyManager.Instance.GetCost(randomEnemy);
+                if (SpawnCredits - Cost < 0) continue;
+
+                // Check how many we can spawn.
+                int amountCanSpawn = Mathf.FloorToInt(SpawnCredits / Cost);
+                int amountToSpawn = (int)Random.Range((int)1, (int)amountCanSpawn + 1);
+                SpawnCredits -= amountToSpawn * Cost;
+                // How many do we radiance
+                int amountBeforeRadiance = RogueDifficultyManager.Instance.GetCountBeforeRadiance(randomEnemy);
+                int amountRadiance = 0;
+                if (amountToSpawn >= amountBeforeRadiance)
+                {
+                    amountRadiance = Mathf.FloorToInt((float)amountToSpawn / (float)amountBeforeRadiance);
+                    // The amount we radiance we remove that amount from how much we spawn
+                    // so for example we spawn 15 filth, 1 filth will be radiance and 5 filth will spawn normally
+                    amountToSpawn -= amountRadiance * amountBeforeRadiance;
+                    amountToSpawn += amountRadiance;
+                }
+                Logger.LogInfo($"We spawn {amountToSpawn} of {randomEnemy.ToString()} and {amountRadiance} will be radianced");
+                for (int i = 0; i < amountToSpawn; i++)
+                {
+                    GameObject enemy = DefaultReferenceManager.Instance.GetEnemyPrefab(randomEnemy);
+                    if (enemy == null) continue;
+                    Transform randomSpawnPoint = NewMovement.Instance.transform;
+                    GameObject inst = Instantiate(enemy, randomSpawnPoint.position, enemy.transform.rotation);
+                    // when we need to radiance an enemy, we radiance them, and remove the amount of enemies we need to radiance
+                    if (amountRadiance != 0)
+                    {
+                        inst.GetComponent<EnemyIdentifier>().BuffAll();
+                        amountRadiance--;
+                    }
+                }
+            }
+        }
+
+        void ApplyWeaponSpeeds()
+        {
+            if (NewMovement.Instance == null) return;
+            foreach (var anim in NewMovement.Instance.GetComponentsInChildren<Animator>())
+            {
+                anim.speed = AttackSpeed.CalculateChanges(1);
+            }
         }
 
         void ApplyPlayerChanges()
@@ -156,19 +232,49 @@ namespace Ultrarogue
             if (NewMovement.Instance == null) return;
             Change moveChange = new Change();
             Change jumpChange = new Change();
+            Change hpChange = new Change();
+            Change atkSpeedChange = new Change();
+            Change globalDamageChange = new Change();
+            Change cooldownChange = new Change();
+            Dictionary<Weapon, DamageChange> damageChanges = new Dictionary<Weapon, DamageChange>();
+
             foreach (var changes in playerChanges)
             {
-                moveChange.addition += changes.moveSpeed.addition;
-                moveChange.percentage += changes.moveSpeed.percentage;
-                moveChange.multiplier *= changes.moveSpeed.multiplier;
+                moveChange.ApplyChangeToChange(changes.moveSpeed);
 
-                jumpChange.addition += changes.jumpHeight.addition;
-                jumpChange.percentage += changes.jumpHeight.percentage;
-                jumpChange.multiplier *= changes.jumpHeight.multiplier;
+                jumpChange.ApplyChangeToChange(changes.jumpHeight);
+
+                hpChange.ApplyChangeToChange(changes.maxHealth);
+
+                atkSpeedChange.ApplyChangeToChange(changes.attackSpeed);
+
+                cooldownChange.ApplyChangeToChange(changes.cooldownRed);
+
+                globalDamageChange.ApplyChangeToChange(changes.globalDamageMult);
+
+                foreach (var damageChange in changes.damageChanges)
+                {
+                    if (!damageChanges.ContainsKey(damageChange.WeaponType))
+                        damageChanges.Add(damageChange.WeaponType, new DamageChange(damageChange.WeaponType, new Change()));
+
+                    DamageChange dChange = damageChanges[damageChange.WeaponType];
+                    dChange.damageChange.ApplyChangeToChange(damageChange.damageChange);
+                }
             }
 
             NewMovement.Instance.walkSpeed = moveChange.CalculateChanges(normalMoveSpeed);
             NewMovement.Instance.jumpPower = jumpChange.CalculateChanges(normalJumpHeight);
+            globalDamageMult = globalDamageChange;
+            MaxHealth = Mathf.RoundToInt(hpChange.CalculateChanges(100f));
+            AttackSpeed = atkSpeedChange;
+            cooldownReduction = cooldownChange;
+            foreach (var key in damageMultipliers.Keys.ToList())
+                damageMultipliers[key] = new Change();
+
+            foreach (var dChange in damageChanges)
+            {
+                damageMultipliers[dChange.Key] = dChange.Value.damageChange;
+            }
         }
 
         public static DropTable testTable = new DropTable(new Dictionary<Rarity, float>()
@@ -251,8 +357,83 @@ namespace Ultrarogue
                 nameToItem.Add(tiem.ItemName, tiem);
                 tiem.OnStart();
             }
+
+            Logger.LogInfo($"Items registered: {possibleItems.Count}");
         }
-        static int luck = 0;
+
+        public static Weapon HitterToWeapon(string hitter)
+        {
+            switch (hitter)
+            {
+                case "revolver":
+                    return Weapon.Revolver;
+                case "shotgun":
+                case "shotgunzone":
+                    return Weapon.Shotgun;
+                case "nail":
+                case "sawblade":
+                    return Weapon.Nailgun;
+                case "explosion":
+                    return Weapon.RocketLauncher;
+                case "railcannon":
+                case "drill":
+                    return Weapon.Railcannon;
+                case "punch":
+                case "heavypunch":
+                    return Weapon.Arm;
+                default:
+                    return (Weapon)100;
+            }
+        }
+
+        public static List<string> WeaponToHitter(Weapon weapon)
+        {
+            List<string> result = new List<string>();
+            switch (weapon)
+            {
+                case Weapon.Revolver:
+                    result.Add("revolver");
+                    break;
+                case Weapon.Shotgun:
+                    result.Add("shotgun");
+                    result.Add("shotgunzone");
+                    break;
+                case Weapon.Nailgun:
+                    result.Add("sawblade");
+                    result.Add("nail");
+                    break;
+                case Weapon.RocketLauncher:
+                    result.Add("explosion");
+                    break;
+                case Weapon.Railcannon:
+                    result.Add("railcannon");
+                    result.Add("drill");
+                    break;
+                case Weapon.Arm:
+                    result.Add("punch");
+                    result.Add("heavypunch");
+                    break;
+                default:
+                    result.Add("none");
+                    break;
+                
+            }
+
+            return result;
+        }
+        public static Change globalDamageMult;
+
+        public static Dictionary<Weapon, Change> damageMultipliers = new Dictionary<Weapon, Change>()
+        {
+            { Weapon.Revolver,       new Change() },
+            { Weapon.Shotgun,        new Change() },
+            { Weapon.Nailgun,        new Change() },
+            { Weapon.Railcannon,     new Change() },
+            { Weapon.RocketLauncher, new Change() },
+            { Weapon.Arm,            new Change() }
+        };
+
+        public static int luck = 0;
 
         static Dictionary<string, float> procCoeffiecents = new Dictionary<string, float>()
         {
@@ -282,6 +463,87 @@ namespace Ultrarogue
             return false;
         }
         #endregion
+
+        void OnGUI()
+        {
+            if (NewMovement.Instance == null) return;
+
+            GUIStyle labelStyle = new GUIStyle(GUI.skin.label);
+            labelStyle.fontSize = 14;
+            labelStyle.normal.textColor = Color.white;
+
+            GUIStyle headerStyle = new GUIStyle(GUI.skin.label);
+            headerStyle.fontSize = 16;
+            headerStyle.fontStyle = FontStyle.Bold;
+            headerStyle.normal.textColor = Color.yellow;
+
+            int x = 10, y = 10, lineHeight = 20;
+
+            GUI.Label(new Rect(x, y, 300, lineHeight), "=== ULTRAROGUE STATS ===", headerStyle);
+            y += lineHeight + 4;
+
+            // Movement
+            float currentSpeed = NewMovement.Instance.walkSpeed;
+            float speedDiff = currentSpeed - normalMoveSpeed;
+            GUI.Label(new Rect(x, y, 300, lineHeight), $"Move Speed: {currentSpeed:F1} ({(speedDiff >= 0 ? "+" : "")}{speedDiff:F1})", labelStyle);
+            y += lineHeight;
+
+            // Jump
+            float currentJump = NewMovement.Instance.jumpPower;
+            float jumpDiff = currentJump - normalJumpHeight;
+            GUI.Label(new Rect(x, y, 300, lineHeight), $"Jump Power: {currentJump:F1} ({(jumpDiff >= 0 ? "+" : "")}{jumpDiff:F1})", labelStyle);
+            y += lineHeight;
+
+            // Global Damage
+            float globalMult = globalDamageMult.CalculateChanges(1f);
+            GUI.Label(new Rect(x, y, 300, lineHeight), $"Global Damage Mult: x{globalMult:F2}", labelStyle);
+            y += lineHeight;
+            float speedatkDiff = AttackSpeed.CalculateChanges(1f) - 1;
+            GUI.Label(new Rect(x, y, 300, lineHeight), $"Attack Speed: {AttackSpeed:F1} ({(speedatkDiff >= 0 ? "+" : "")}{speedatkDiff:F1})", labelStyle);
+            y += lineHeight + 4;
+
+            // Per-weapon damage
+            GUI.Label(new Rect(x, y, 300, lineHeight), "-- Weapon Damage --", headerStyle);
+            y += lineHeight + 2;
+
+            foreach (var kvp in damageMultipliers)
+            {
+                float weaponMult = kvp.Value.CalculateChanges(1f);
+                Color color = weaponMult > 1f ? Color.green : weaponMult < 1f ? Color.red : Color.white;
+                labelStyle.normal.textColor = color;
+                GUI.Label(new Rect(x, y, 300, lineHeight), $"{kvp.Key}: x{weaponMult:F2}", labelStyle);
+                y += lineHeight;
+            }
+
+            // Items
+            y += 4;
+            labelStyle.normal.textColor = Color.white;
+            GUI.Label(new Rect(x, y, 300, lineHeight), "-- Items --", headerStyle);
+            y += lineHeight + 2;
+
+            if (items.Count == 0)
+            {
+                labelStyle.normal.textColor = Color.gray;
+                GUI.Label(new Rect(x, y, 300, lineHeight), "No items", labelStyle);
+                y += lineHeight;
+            }
+            else
+            {
+                foreach (var kvp in items)
+                {
+                    Color rarityColor = kvp.Key.Rarity switch
+                    {
+                        Rarity.Common => Color.white,
+                        Rarity.Uncommon => Color.green,
+                        Rarity.Legendary => Color.yellow,
+                        _ => Color.white
+                    };
+                    labelStyle.normal.textColor = rarityColor;
+                    GUI.Label(new Rect(x, y, 300, lineHeight), $"{kvp.Key.ItemName} x{kvp.Value}", labelStyle);
+                    y += lineHeight;
+                }
+            }
+        }
     }
 
     public enum Rarity
@@ -337,6 +599,190 @@ namespace Ultrarogue
         }
     }
 
+    [HarmonyPatch]
+    public class PlayerPatches
+    {
+        [HarmonyPatch(typeof(HealthBar), nameof(HealthBar.Update))]
+        [HarmonyPrefix]
+        public static void DisplayCorrectMaxHP(HealthBar __instance)
+        {
+            if (__instance.hpSliders.Length != 0)
+            {
+                foreach (Slider slider in __instance.hpSliders)
+                {
+                    if (slider.gameObject.name.StartsWith("Supercharge"))
+                    {
+                        if (slider.maxValue != Plugin.MaxHealth * 2)
+                        {
+                            slider.maxValue = Plugin.MaxHealth * 2;
+                            slider.minValue = Plugin.MaxHealth;
+                        }
+                    }
+                    else
+                    {
+                        if (slider.maxValue != Plugin.MaxHealth)
+                        {
+                            slider.maxValue = Plugin.MaxHealth;
+                        }
+                    }
+                    
+                }
+            }
+            if (__instance.afterImageSliders != null)
+            {
+                foreach (Slider slider2 in __instance.afterImageSliders)
+                {
+                    if (slider2.maxValue != Plugin.MaxHealth)
+                    {
+                        slider2.maxValue = Plugin.MaxHealth;
+                    }
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(NewMovement), nameof(NewMovement.GetHealth))]
+        [HarmonyPrefix]
+        public static bool HealthChange(NewMovement __instance, int health, bool silent, bool fromExplosion = false, bool bloodsplatter = true)
+        {
+            if (!__instance.dead && (!__instance.exploded || !fromExplosion))
+            {
+                float num = (float)health;
+                float num2 = MaxHealth;
+                if (__instance.difficulty == 0 || (__instance.difficulty == 1 && __instance.sameCheckpointRestarts > 2))
+                {
+                    num2 = MaxHealth * 2;
+                }
+                if (num < 1f)
+                {
+                    num = 1f;
+                }
+                if ((float)__instance.hp <= num2)
+                {
+                    if ((float)__instance.hp + num < num2 - (float)Mathf.RoundToInt(__instance.antiHp))
+                    {
+                        __instance.hp += Mathf.RoundToInt(num);
+                    }
+                    else if ((float)__instance.hp != num2 - (float)Mathf.RoundToInt(__instance.antiHp))
+                    {
+                        __instance.hp = Mathf.RoundToInt(num2) - Mathf.RoundToInt(__instance.antiHp);
+                    }
+                    __instance.hpFlash.Flash(1f);
+                    if (!silent && health > 5)
+                    {
+                        if (__instance.greenHpAud == null)
+                        {
+                            __instance.greenHpAud = __instance.hpFlash.GetComponent<AudioSource>();
+                        }
+                        __instance.greenHpAud.Play(true);
+                    }
+                }
+                if (!silent && health > 5 && MonoSingleton<PrefsManager>.Instance.GetBoolLocal("bloodEnabled", false))
+                {
+                    UnityEngine.Object.Instantiate<GameObject>(__instance.scrnBlood, __instance.fullHud.transform);
+                }
+            }
+            return false;
+
+        }
+
+        [HarmonyPatch(typeof(WeaponCharges), nameof(WeaponCharges.Charge))]
+        [HarmonyPrefix]
+        public static void ApplyCooldownPatch(ref float amount)
+        {
+            amount = cooldownReduction.CalculateChanges(amount);
+        }
+
+        #region Weapon Patches
+
+        [HarmonyPatch(typeof(Revolver), nameof(Revolver.Update))]
+        public static class Revolver_Update_Patch
+        {
+            static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+            {
+                foreach (var instr in instructions)
+                {
+                    if (instr.opcode == OpCodes.Ldc_R4)
+                    {
+                        float val = (float)instr.operand;
+
+                        if (val == 200f || val == 40f || val == 480f)
+                        {
+                            yield return instr; // keep original constant
+                            yield return new CodeInstruction(
+                                OpCodes.Call,
+                                AccessTools.Method(typeof(Revolver_Update_Patch), nameof(ModifyRate))
+                            );
+                            continue;
+                        }
+                    }
+
+                    yield return instr;
+                }
+            }
+
+            public static float ModifyRate(float amount)
+            {
+                return cooldownReduction.CalculateChanges(amount);
+            }
+        }
+
+        [HarmonyPatch(typeof(Nailgun), nameof(Nailgun.Update))]
+        public static class Nailgun_Update_Patch
+        {
+            static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+            {
+                var moveTowards = AccessTools.Method(typeof(Mathf), nameof(Mathf.MoveTowards));
+                var modify = AccessTools.Method(typeof(Nailgun_Update_Patch), nameof(ModifyDelta));
+
+                foreach (var instr in instructions)
+                {
+                    if (instr.opcode == OpCodes.Call && instr.operand as MethodInfo == moveTowards)
+                    {
+                        yield return new CodeInstruction(OpCodes.Call, modify); // modifies top of stack
+                        yield return instr;
+                    }
+                    else
+                    {
+                        yield return instr;
+                    }
+                }
+            }
+
+            public static float ModifyDelta(float maxDelta)
+            {
+                return cooldownReduction.CalculateChanges(maxDelta);
+            }
+        }
+        [HarmonyPatch(typeof(RocketLauncher), nameof(RocketLauncher.Update))]
+        public static class RocketLauncher_Update_Patch
+        {
+            static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+            {
+                var moveTowards = AccessTools.Method(typeof(Mathf), nameof(Mathf.MoveTowards));
+                var modify = AccessTools.Method(typeof(RocketLauncher_Update_Patch), nameof(ModifyDelta));
+
+                foreach (var instr in instructions)
+                {
+                    if (instr.opcode == OpCodes.Call && instr.operand as MethodInfo == moveTowards)
+                    {
+                        yield return new CodeInstruction(OpCodes.Call, modify);
+                        yield return instr;
+                    }
+                    else
+                    {
+                        yield return instr;
+                    }
+                }
+            }
+
+            public static float ModifyDelta(float maxDelta)
+            {
+                return cooldownReduction.CalculateChanges(maxDelta);
+            }
+        }
+
+        #endregion Weapon Patches
+    }
 
     [HarmonyPatch]
     public class EnemyPatches
@@ -348,25 +794,70 @@ namespace Ultrarogue
             if (!Plugin.isInRogueMode()) return;
             if(__instance.dead) return;
 
-            foreach (var deathEffect in Plugin.deathEffects)
+            TeamComponent tComp = __instance.GetComponent<TeamComponent>();
+
+            if(tComp.teamId == Team.Enemies)
             {
-                Plugin.Logger.LogInfo($"Checking {deathEffect.itemName}....");
-                if (Plugin.GetItemCount(deathEffect.itemName) <= 0)
+
+                bool rogueScene = Plugin.isInRogueScene();
+                bool canExec = Plugin.canExecute(25f, "");
+
+                if (!rogueScene && canExec)
                 {
-                    Plugin.Logger.LogInfo($"{deathEffect.itemName} has an itemcount of 0 skipping...");
-                    continue;
+                    if (Random.value <= 0.25f)
+                    {
+                        Weapon weaponEnum = (Weapon)Random.Range(0, Enum.GetValues(typeof(Weapon)).Length);
+                        Variant variantEnum = (Variant)Random.Range(0, Enum.GetValues(typeof(Variant)).Length);
+
+                        AWeapon weapon = new AWeapon(weaponEnum, variantEnum);
+                        HudMessageReceiver.Instance?.SendHudMessage(weapon.ToString());
+                        Plugin.weapons.Add(weapon);
+                        if (weaponEnum == Weapon.Arm)
+                            FistControl.Instance.ResetFists();
+                        else
+                            GunSetter.Instance.ResetWeapons();
+                    }
+                    else
+                    {
+                        ItemPickup.CreatePickup(GiveRandomItem(), __instance.transform.position);
+                    }
+
                 }
-                deathEffect.effect.Invoke(__instance);
+
+                foreach (var deathEffect in Plugin.deathEffects)
+                {
+                    Plugin.Logger.LogInfo($"Checking {deathEffect.itemName}....");
+                    if (Plugin.GetItemCount(deathEffect.itemName) <= 0)
+                    {
+                        Plugin.Logger.LogInfo($"{deathEffect.itemName} has an itemcount of 0 skipping...");
+                        continue;
+                    }
+                    deathEffect.effect.Invoke(__instance);
+                }
             }
+
+
 
         }
 
         [HarmonyPatch(typeof(EnemyIdentifier), nameof(EnemyIdentifier.DeliverDamage))]
-        [HarmonyPostfix]
-        public static void ActivateHitEffects(EnemyIdentifier __instance)
+        [HarmonyPrefix]
+        public static void ActivateHitEffects(ref float multiplier, EnemyIdentifier __instance)
         {
             if (!Plugin.isInRogueMode()) return;
             if (__instance.dead) return;
+
+            Weapon weaponUsed = Plugin.HitterToWeapon(__instance.hitter);
+            if (Plugin.damageMultipliers.ContainsKey(weaponUsed))
+                multiplier = Plugin.damageMultipliers[weaponUsed].CalculateChanges(multiplier);
+
+            multiplier = Plugin.globalDamageMult.CalculateChanges(multiplier);
+
+            foreach (var mod in Plugin.dmgModifiers)
+            {
+                float mult = mod.damageModifier(__instance);
+                multiplier *= mult;
+            }
 
             foreach (var hitEffect in Plugin.hitEffects)
             {
@@ -376,9 +867,8 @@ namespace Ultrarogue
                     Plugin.Logger.LogInfo($"{hitEffect.itemName} has an itemcount of 0 skipping...");
                     continue;
                 }
-                hitEffect.effect.Invoke(__instance);
+                hitEffect.effect.Invoke(__instance, multiplier);
             }
-
         }
     }
 
@@ -472,12 +962,24 @@ namespace Ultrarogue
         }
     }
 
+    public class DamageModifier
+    {
+        public string itemName;
+        public Func<EnemyIdentifier, float> damageModifier;
+
+        public DamageModifier(string itemName, Func<EnemyIdentifier, float> damageModifier)
+        {
+            this.itemName = itemName;
+            this.damageModifier = damageModifier;
+        }
+    }
+
     public class HitEffect
     {
         public string itemName;
-        public Action<EnemyIdentifier> effect;
+        public Action<EnemyIdentifier, float> effect;
 
-        public HitEffect(string itemName, Action<EnemyIdentifier> effect)
+        public HitEffect(string itemName, Action<EnemyIdentifier, float> effect)
         {
             this.itemName = itemName;
             this.effect = effect;
@@ -500,16 +1002,32 @@ namespace Ultrarogue
     {
         public Change moveSpeed;
         public Change jumpHeight;
+        public Change maxHealth;
+        public Change attackSpeed;
+        public Change cooldownRed;
+        public List<DamageChange> damageChanges;
+        public Change globalDamageMult;
 
-        public PlayerChange(Change moveSpeed = null, Change jumpHeight = null)
+        public PlayerChange(Change moveSpeed = null, Change jumpHeight = null, Change maxHealth = null, Change attackSpeed = null, Change cooldownReduction = null, List<DamageChange> damageChanges = null, Change globalDamageMult = null)
         {
             if (moveSpeed == null) moveSpeed = new Change();
             if (jumpHeight == null) jumpHeight = new Change();
+            if (damageChanges == null) damageChanges = new List<DamageChange>();
+            if(globalDamageMult == null) globalDamageMult = new Change();
+            if(maxHealth == null) maxHealth = new Change();
+            if(attackSpeed == null) attackSpeed = new Change();
+            if(cooldownReduction == null) cooldownReduction = new Change(); 
 
             this.moveSpeed = moveSpeed;
             this.jumpHeight = jumpHeight;
+            this.damageChanges = damageChanges;
+            this.globalDamageMult = globalDamageMult;
+            this.maxHealth = maxHealth;
+            this.attackSpeed = attackSpeed;
+            this.cooldownRed = cooldownReduction;
 
             Plugin.playerChanges.Add(this);
+            
         }
     }
 
@@ -526,6 +1044,13 @@ namespace Ultrarogue
             this.multiplier = multiplier;
         }
 
+        public void ApplyChangeToChange(Change change)
+        {
+            this.addition += change.addition;
+            this.percentage += change.percentage;
+            this.multiplier *= change.multiplier;
+        }
+
         public float CalculateChanges(float normalVal)
         {
             float fullPercentage = percentage + 1;
@@ -536,6 +1061,19 @@ namespace Ultrarogue
             return Val;
         }
     }
+
+    public class DamageChange
+    {
+        public Plugin.Weapon WeaponType;
+        public Change damageChange;
+
+        public DamageChange(Weapon weaponType, Change damageChange)
+        {
+            WeaponType = weaponType;
+            this.damageChange = damageChange;
+        }
+    }
+
 
     #endregion
 }

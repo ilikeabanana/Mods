@@ -9,6 +9,7 @@ namespace Ultrarogue.Items
         public virtual string ItemName => "";
         public virtual string itemDescription => string.Empty;
         public virtual Rarity Rarity => Rarity.Common;
+        public virtual List<ItemTag> itemTags => new List<ItemTag>();
         public virtual void OnGotten(int count, bool firstPickup)
         {
 
@@ -28,5 +29,11 @@ namespace Ultrarogue.Items
             return $"Item name: {ItemName}, description: {itemDescription}";
         }
 
+    }
+    public enum ItemTag
+    {
+        Utility,
+        Damage,
+        Healing
     }
 }

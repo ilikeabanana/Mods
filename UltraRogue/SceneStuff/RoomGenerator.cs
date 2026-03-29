@@ -47,7 +47,6 @@ public class RoomGenerator : MonoBehaviour
         while (placed < roomCount)
         {
             Vector2Int dir = directions[Random.Range(0, directions.Length)];
-
             int steps = Random.Range(1, 4);
 
             for (int i = 0; i < steps; i++)
@@ -79,7 +78,56 @@ public class RoomGenerator : MonoBehaviour
             int backSteps = Random.Range(1, path.Count);
             currentPos = path[path.Count - 1 - backSteps];
         }
+
+        FinalizeRooms();
     }
+
+    void FinalizeRooms()
+    {
+        foreach (var kvp in placedRooms)
+        {
+            Vector2Int pos = kvp.Key;
+            Room room = kvp.Value;
+
+            HandleExit(room, pos, Vector2Int.up, room.exitTop);
+            HandleExit(room, pos, Vector2Int.down, room.exitBottom);
+            HandleExit(room, pos, Vector2Int.left, room.exitLeft);
+            HandleExit(room, pos, Vector2Int.right, room.exitRight);
+        }
+    }
+
+    void HandleExit(Room room, Vector2Int pos, Vector2Int dir, Transform exit)
+    {
+        Vector2Int neighborPos = pos + dir;
+
+        if (placedRooms.TryGetValue(neighborPos, out Room neighbor))
+        {
+            // Prevent double doors:
+            // Only place door if this room is "smaller" than neighbor
+            if (IsPrimaryRoom(pos, neighborPos))
+            {
+                room.CreateDoor(exit);
+            }
+            else
+            {
+                room.DisableExit(exit); // neighbor will handle it
+            }
+        }
+        else
+        {
+            room.CreateWall(exit);
+        }
+    }
+
+    bool IsPrimaryRoom(Vector2Int a, Vector2Int b)
+    {
+        if (a.x != b.x)
+            return a.x < b.x;
+
+        return a.y < b.y;
+    }
+
+
 
 
     bool RoomAlreadyAtSpot(Vector2Int spot)
