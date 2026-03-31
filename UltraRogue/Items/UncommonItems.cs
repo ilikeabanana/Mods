@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using HarmonyLib;
+using System.Collections;
 using System.Collections.Generic;
 using ULTRAKILL.Enemy;
 using UnityEngine;
@@ -32,9 +33,10 @@ namespace Ultrarogue.Items
 
     public class WillOWisp : BaseItem
     {
-        public override string ItemName => "Will-o'-the-Wisp";
-        public override string itemDescription => "On kill, detonate the corpse for 350% damage in a 6m radius (+6m and +350% per stack)";
+        public override string ItemName => "Will-o'-the-Maurice";
+        public override string itemDescription => "On kill, 35% chance to detonate the corpse for 350% damage in a 6m radius (+6m and +350% per stack)";
         public override Rarity Rarity => Rarity.Uncommon;
+        public override string ItemIconName => "WillOMaurice";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
 
         public override void OnStart()
@@ -43,7 +45,7 @@ namespace Ultrarogue.Items
             {
                 int count = Plugin.GetItemCount(this);
                 if (count <= 0) return;
-
+                if (!Plugin.canExecute(35f, "")) return;
                 Plugin.Instance.StartCoroutine(explody(eid.transform.position));
             });
         }
@@ -62,6 +64,33 @@ namespace Ultrarogue.Items
                 exp.maxSize = radius;
                 exp.canHit = AffectedSubjects.EnemiesOnly;
                 exp.damage = Mathf.RoundToInt(damage);
+            }
+        }
+    }
+
+    [HarmonyPatch]
+    public class Bouncy : BaseItem
+    {
+        public override string ItemName => "Bouncy Hitscans";
+        public override string itemDescription => "All hitscans have a 25% (+15% chance per stack) to bounce (chance gets smaller every bounce)";
+        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Utility };
+        public override Rarity Rarity => Rarity.Uncommon;
+
+        [HarmonyPatch(typeof(RevolverBeam), nameof(RevolverBeam.Start))]
+        public static void Prefix(RevolverBeam __instance)
+        {
+            int count = Plugin.GetItemCount("Bouncy Hitscans");
+            if (count <= 0) return;
+            if (__instance.hasBeenRicocheter) return;
+            float baseChance = 25f + (15f * count);
+
+            float chance = baseChance;
+
+            while(Plugin.canExecute(chance, ""))
+            {
+                __instance.ricochetAmount++;
+                if (__instance.hitAmount < 2) __instance.hitAmount = 2;
+                chance /= 2;
             }
         }
     }

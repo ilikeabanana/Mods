@@ -38,6 +38,10 @@ namespace Ultrarogue
 
         public static List<AWeapon> weapons = new List<AWeapon>();
 
+#if RUNTIME_ROOMS
+        DebugRoomGenerator debugGen;
+#endif
+
         public enum Weapon
         {
             Revolver,
@@ -87,6 +91,7 @@ namespace Ultrarogue
 
         public static bool isInRogueScene()
         {
+            return false;
             return SceneHelper.CurrentScene == SceneLoader.SceneName;
         }
         public static BaseItem getItem(string name)
@@ -131,6 +136,16 @@ namespace Ultrarogue
             SceneManager.sceneLoaded += SceneManager_sceneLoaded;
             weapons.Clear();
             weapons.Add(new AWeapon(Weapon.Revolver, Variant.Blue));
+
+#if RUNTIME_ROOMS
+            var genObj = new GameObject("DebugRoomGenerator");
+            DontDestroyOnLoad(genObj);
+            debugGen = genObj.AddComponent<DebugRoomGenerator>();
+            genObj.hideFlags = HideFlags.DontSaveInEditor;
+            debugGen.minRooms = 5;
+            debugGen.maxRooms = 10;
+            debugGen.baseSpawnCredits = 40;
+#endif
         }
 
         private void SceneManager_sceneLoaded(Scene arg0, LoadSceneMode arg1)
@@ -146,11 +161,11 @@ namespace Ultrarogue
         {
             if (Input.GetKeyDown(KeyCode.X))
             {
-                BaseItem item = getItem("Missle Launcher");
+                BaseItem item = getItem("Bouncy Hitscans");
                 GiveItem(item);
             }
 
-            if (Input.GetKeyDown(KeyCode.Dollar))
+            if (Input.GetKeyDown(KeyCode.F10))
             {
                 StartCoroutine(SceneLoader.LoadLevelAsync(false)); 
             }
@@ -164,6 +179,58 @@ namespace Ultrarogue
                 }
 
                 SpawnEnemiesTest(5);
+            }
+            #if RUNTIME_ROOMS
+            if (Input.GetKeyDown(KeyCode.F5))
+            {
+                // Make sure RogueDifficultyManager exists
+                if (RogueDifficultyManager.Instance == null)
+                {
+                    var mgrObj = new GameObject("RogueDifficultyManager");
+                    DontDestroyOnLoad(mgrObj);
+                    mgrObj.AddComponent<RogueDifficultyManager>();
+                    Logger.LogInfo("[DEBUG] Created RogueDifficultyManager.");
+                }
+
+                Logger.LogInfo("[DEBUG] Generating room layout...");
+                debugGen.SpawnLayout();
+                RogueDifficultyManager.Instance.MoveStage();
+                HudMessageReceiver.Instance.SendHudMessage($"Difficulty: {RogueDifficultyManager.Instance.Difficulty}");
+                Logger.LogInfo("[DEBUG] Layout ready! Enemies spawned in all non-start rooms.");
+                
+            }
+
+            // ── F6 → Destroy layout ─────────────────────────────────────────────
+            if (Input.GetKeyDown(KeyCode.F6))
+            {
+                debugGen.ClearLayout();
+                Logger.LogInfo("[DEBUG] Layout cleared.");
+            }
+#endif
+
+            // ── F7 → Give random item (quick item test) ─────────────────────────
+            if (Input.GetKeyDown(KeyCode.F7))
+            {
+                var item = GiveRandomItem();
+                GiveItem(item);
+                Logger.LogInfo($"[DEBUG] Gave item: {item}");
+            }
+
+            // ── F8 → Give 10 gold ───────────────────────────────────────────────
+            if (Input.GetKeyDown(KeyCode.F8))
+            {
+                if (RogueDifficultyManager.Instance != null)
+                {
+                    RogueDifficultyManager.Instance.Gold += 10;
+                    Logger.LogInfo($"[DEBUG] Gold: {RogueDifficultyManager.Instance.Gold}");
+                }
+            }
+
+            // ── F9 → Log difficulty ─────────────────────────────────────────────
+            if (Input.GetKeyDown(KeyCode.F9))
+            {
+                if (RogueDifficultyManager.Instance != null)
+                    Logger.LogInfo($"[DEBUG] Difficulty: {RogueDifficultyManager.Instance.Difficulty:F3} | Gold: {RogueDifficultyManager.Instance.Gold}");
             }
 
             foreach (var item in items)
@@ -499,7 +566,7 @@ namespace Ultrarogue
             GUI.Label(new Rect(x, y, 300, lineHeight), $"Global Damage Mult: x{globalMult:F2}", labelStyle);
             y += lineHeight;
             float speedatkDiff = AttackSpeed.CalculateChanges(1f) - 1;
-            GUI.Label(new Rect(x, y, 300, lineHeight), $"Attack Speed: {AttackSpeed:F1} ({(speedatkDiff >= 0 ? "+" : "")}{speedatkDiff:F1})", labelStyle);
+            GUI.Label(new Rect(x, y, 300, lineHeight), $"Attack Speed: {AttackSpeed.CalculateChanges(1f):F1} ({(speedatkDiff >= 0 ? "+" : "")}{speedatkDiff:F1})", labelStyle);
             y += lineHeight + 4;
 
             // Per-weapon damage
@@ -514,6 +581,21 @@ namespace Ultrarogue
                 GUI.Label(new Rect(x, y, 300, lineHeight), $"{kvp.Key}: x{weaponMult:F2}", labelStyle);
                 y += lineHeight;
             }
+            if(RogueDifficultyManager.Instance != null)
+            {
+                y += 4;
+                labelStyle.normal.textColor = Color.white;
+                GUI.Label(new Rect(x, y, 300, lineHeight), "-- ROGUE STATS --", headerStyle);
+                y += lineHeight + 2;
+
+                GUI.Label(new Rect(x, y, 300, lineHeight), $"Difficulty: {RogueDifficultyManager.Instance.Difficulty}", labelStyle);
+                y += lineHeight;
+                GUI.Label(new Rect(x, y, 300, lineHeight), $"Gold: {RogueDifficultyManager.Instance.Gold}", labelStyle);
+                y += lineHeight;
+            }
+           
+
+
 
             // Items
             y += 4;
@@ -798,7 +880,7 @@ namespace Ultrarogue
 
             if(tComp.teamId == Team.Enemies)
             {
-
+                /*
                 bool rogueScene = Plugin.isInRogueScene();
                 bool canExec = Plugin.canExecute(25f, "");
 
@@ -822,7 +904,7 @@ namespace Ultrarogue
                         ItemPickup.CreatePickup(GiveRandomItem(), __instance.transform.position);
                     }
 
-                }
+                }*/
 
                 foreach (var deathEffect in Plugin.deathEffects)
                 {

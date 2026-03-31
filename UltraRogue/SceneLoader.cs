@@ -10,6 +10,7 @@ using HarmonyLib;
 
 using BepLogSource = BepInEx.Logging.ManualLogSource;
 using BepLogger = BepInEx.Logging.Logger;
+using Unity.AI.Navigation;
 
 /// <summary> Handles loading and accessing the empty scene. </summary>
 [HarmonyPatch]
@@ -89,6 +90,7 @@ public static class SceneLoader
         yield return ShaderManager.LoadShadersFromDictionaryAsync();
 
         new GameObject("generator").AddComponent<RoomGenerator>();
+        new GameObject("NavMesh").AddComponent<NavMeshSurface>();
     }
 
     /// <summary> Patches <see cref="SceneHelper.LoadSceneCoroutine(string, bool)"/> to make it use our loader if it's trying to load our scene :3 </summary>

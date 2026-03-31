@@ -8,6 +8,7 @@ namespace Ultrarogue.Items
     {
         public virtual string ItemName => "";
         public virtual string itemDescription => string.Empty;
+        public virtual string ItemIconName => ItemName.Replace(" ", "_");
         public virtual Rarity Rarity => Rarity.Common;
         public virtual List<ItemTag> itemTags => new List<ItemTag>();
         public virtual void OnGotten(int count, bool firstPickup)
