@@ -4,7 +4,7 @@
           Condition="'$(CopyToBepInExPluginsDir)' == 'true'">
     
     <PropertyGroup>
-      <BepInExPluginsDir>C:\Users\MichielLievenVDeBack\AppData\Roaming\r2modmanPlus-local\ULTRAKILL\profiles\ultrarogue\BepInEx/plugins/</BepInExPluginsDir>
+      <BepInExPluginsDir>C:\Users\michi\AppData\Roaming\r2modmanPlus-local\ULTRAKILL\profiles\ultrarogue\BepInEx\plugins\</BepInExPluginsDir>
       <SourceDir>$(MSBuildProjectDirectory)\$(OutputPath)</SourceDir>
       <DestinationDir>$(BepInExPluginsDir)$(AssemblyName)/</DestinationDir>
     </PropertyGroup>

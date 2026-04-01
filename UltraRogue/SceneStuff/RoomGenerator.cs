@@ -82,7 +82,7 @@ public class RoomGenerator : MonoBehaviour
     void PlaceRoom(Vector2Int gridPos, bool isStart = false)
     {
         Room prefab = roomPrefabs[Random.Range(0, roomPrefabs.Count)];
-        Vector3 worldPos = new Vector3(gridPos.x * 10f, 0f, gridPos.y * 10f);
+        Vector3 worldPos = new Vector3(gridPos.x * 30f, 0f, gridPos.y * 30f);
 
         Room room = Instantiate(prefab, worldPos, Quaternion.identity);
         room.position = gridPos;
@@ -163,7 +163,7 @@ public class RoomGenerator : MonoBehaviour
             _ => roomPrefabs[Random.Range(0, roomPrefabs.Count)],
         };
 
-        Vector3 worldPos = new Vector3(pos.x * 10f, 0f, pos.y * 10f);
+        Vector3 worldPos = new Vector3(pos.x * 30f, 0f, pos.y * 30f);
         Room room = Instantiate(prefab, worldPos, Quaternion.identity);
         room.position = pos;
         room.roomType = roomType;

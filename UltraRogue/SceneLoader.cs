@@ -26,30 +26,13 @@ public static class SceneLoader
     public static bool Loaded = false;
 
     /// <summary> Load the assetbundle containing the scene, and return the bundle load async operation if u wanna wait for it :3 </summary>
-    public static AsyncOperation Load()
+    public static void Load()
     {
         // istg why does this crash the game when u dont do this
         Addressables.LoadAssetAsync<GameObject>("FirstRoom").WaitForCompletion();
 
-        // load embedded asset bundle :3 meow rawr
-        Stream bundleStream = Assembly.GetExecutingAssembly()
-        .GetManifestResourceStream("Ultrarogue.ultrarogue");
+        BundleLoader.Load();
 
-        var asyncOp = AssetBundle.LoadFromStreamAsync(bundleStream);
-
-        asyncOp.completed += (op) =>
-        {
-            AssetBundle bundle = ((AssetBundleCreateRequest)op).assetBundle;
-
-            foreach (string scenePath in bundle.GetAllScenePaths())
-                logger.LogInfo("Scene in bundle: " + scenePath);
-
-            Loaded = true;
-        };
-
-
-
-        return asyncOp;
     }
 
 
@@ -67,10 +50,11 @@ public static class SceneLoader
 
         // if the bundle isnt loaded yet then like load it :P oh yea and wait for it to load
         if (!Loaded)
-            yield return Load();
-
+            Load();
+        yield return new WaitForSeconds(1f); // idk wait a second ig???
         // actually fucking load the scene lmao
-        yield return SceneManager.LoadSceneAsync("Assets/Maps/RogueMode/Data/EpicLevel.unity");
+        var op = Addressables.LoadSceneAsync("Assets/Modding/RogueMode/EpicLevel.unity", LoadSceneMode.Single);
+        yield return op;
 
         // set current scene and last scene once the level is done loading
         if (SceneHelper.CurrentScene != SceneName)
@@ -86,10 +70,10 @@ public static class SceneLoader
 
         yield return new WaitForSeconds(1f);
 
-        yield return ShaderManager.ApplyShadersAsync(SceneManager.GetActiveScene().GetRootGameObjects());
-        yield return ShaderManager.LoadShadersFromDictionaryAsync();
+        //yield return ShaderManager.ApplyShadersAsync(SceneManager.GetActiveScene().GetRootGameObjects());
+        //yield return ShaderManager.LoadShadersFromDictionaryAsync();
 
-        new GameObject("generator").AddComponent<RoomGenerator>();
+        //new GameObject("generator").AddComponent<RoomGenerator>();
         new GameObject("NavMesh").AddComponent<NavMeshSurface>();
     }
 

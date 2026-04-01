@@ -148,17 +148,17 @@ public class Room : MonoBehaviour
     public void CreateDoor(Transform exit)
     {
 #if RUNTIME_ROOMS
-        var rh = GetComponent<RuntimeRoomDoorHandler>();
-        if (rh != null) { rh.PlaceDoor(exit); return; }
+    var rh = GetComponent<RuntimeRoomDoorHandler>();
+    if (rh != null) { rh.PlaceDoor(exit); return; }
 #endif
-        if (doorPrefab != null) Instantiate(doorPrefab, exit.position, exit.rotation, transform);
+        if (doorPrefab != null) Instantiate(doorPrefab, exit.position, exit.rotation * Quaternion.Euler(0, 90, 0), transform);
     }
 
     public void CreateWall(Transform exit)
     {
 #if RUNTIME_ROOMS
-        var rh = GetComponent<RuntimeRoomDoorHandler>();
-        if (rh != null) { rh.PlaceWall(exit); return; }
+    var rh = GetComponent<RuntimeRoomDoorHandler>();
+    if (rh != null) { rh.PlaceWall(exit); return; }
 #endif
         if (wallPrefab != null) Instantiate(wallPrefab, exit.position, exit.rotation, transform);
     }
