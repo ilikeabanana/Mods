@@ -75,6 +75,59 @@ public static class SceneLoader
 
         //new GameObject("generator").AddComponent<RoomGenerator>();
         new GameObject("NavMesh").AddComponent<NavMeshSurface>();
+
+        yield return new WaitForSeconds(0.1f);
+        Plugin.Instance.StartCoroutine(PlayPixelAnimation());
+    }
+
+    static IEnumerator PlayPixelAnimation()
+    {
+        // Wait until PostProcessV2_Handler is ready
+        yield return new WaitUntil(() => PostProcessV2_Handler.Instance != null);
+
+        float target = PostProcessV2_Handler.Instance.downscaleResolution;
+        float actualTarget = target;
+        // Early out so you at least know why nothing happens
+        if (target == 0f)
+        {
+            target = 720;
+            logger.LogInfo("Pixelization target is 0, skipping animation.");
+        }
+
+        float t = 0;
+        while (t < 1)
+        {
+            t += Time.deltaTime / 5;
+            float pixelizationValue = Mathf.Lerp(1, target, t);
+            Shader.SetGlobalFloat("_ResY", pixelizationValue);
+            PostProcessV2_Handler.Instance.downscaleResolution = pixelizationValue;
+            yield return null;
+        }
+
+        Shader.SetGlobalFloat("_ResY", actualTarget);
+        PostProcessV2_Handler.Instance.downscaleResolution = actualTarget;
+
+        NewMovement nm = MonoSingleton<NewMovement>.Instance;
+        GunControl gc = MonoSingleton<GunControl>.Instance;
+        GameStateManager.Instance.PopState("pit-falling");
+        if (!nm.activated)
+        {
+            nm.activated = true;
+            nm.cc.activated = true;
+            nm.cc.CameraShake(1f);
+            nm.cc.enabled = true;
+        }
+
+        gc.YesWeapon();
+        MonoSingleton<PlayerActivatorRelay>.Instance.ResetIndex();
+        MonoSingleton<PlayerActivatorRelay>.Instance.Activate();
+        if (nm.levelOver)
+        {
+            nm.levelOver = false;
+            MonoSingleton<StatsManager>.Instance.UnhideShit();
+        }
+        PlayerActivator.lastActivatedPosition = MonoSingleton<NewMovement>.Instance.transform.position;
+        MonoSingleton<FistControl>.Instance.YesFist();
     }
 
     /// <summary> Patches <see cref="SceneHelper.LoadSceneCoroutine(string, bool)"/> to make it use our loader if it's trying to load our scene :3 </summary>

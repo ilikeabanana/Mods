@@ -12,29 +12,7 @@ public class ItemPedestal : MonoBehaviour
     void Awake()
     {
         chosenItem = Plugin.GiveRandomItem();
+        ItemPickup.CreatePickup(chosenItem, transform.position);
     }
 
-    bool collected = false;
-
-    void Update()
-    {
-        if (collected) return;
-
-        if (NewMovement.Instance == null) return;
-
-        if (Vector3.Distance(NewMovement.Instance.transform.position, transform.position) <= 2f)
-        {
-            Collect();
-        }
-    }
-
-    public void Collect()
-    {
-        if (collected) return;
-        collected = true;
-
-        HudMessageReceiver.Instance?.SendHudMessage(chosenItem.ToString());
-        Plugin.GiveItem(chosenItem);
-        Destroy(gameObject);
-    }
 }

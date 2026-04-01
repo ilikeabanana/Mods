@@ -1,5 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+using Unity.AI.Navigation;
 using UnityEngine;
+using UnityEngine.Events;
+using Random = UnityEngine.Random;
 
 public class RoomGenerator : MonoBehaviour
 {
@@ -73,12 +78,39 @@ public class RoomGenerator : MonoBehaviour
 
         DesignateBossRoom();
         FinalizeConnections();
+        BuildNavMesh();
 
         int special = 3;
         Debug.Log($"[RoomGenerator] Spawned {placed} combat rooms + {special} special rooms + 1 boss room.");
     }
 
+    void BuildNavMesh() => StartCoroutine(buildDaMesh());
 
+    void NavmeshBuilt()
+    {
+        SandboxNavmesh instance = MonoSingleton<SandboxNavmesh>.Instance;
+        instance.navmeshBuilt = (UnityAction)Delegate.Remove(
+            instance.navmeshBuilt, new UnityAction(NavmeshBuilt));
+    }
+
+    IEnumerator buildDaMesh()
+    {
+        yield return new WaitForSeconds(0.1f);
+
+        if (SandboxNavmesh.Instance != null)
+        {
+            yield return null;
+            SandboxNavmesh instance = MonoSingleton<SandboxNavmesh>.Instance;
+            instance.navmeshBuilt = (UnityAction)Delegate.Combine(
+                instance.navmeshBuilt, new UnityAction(NavmeshBuilt));
+            MonoSingleton<SandboxNavmesh>.Instance.Rebake();
+            yield break;
+        }
+
+        NavMeshSurface surface = FindObjectOfType<NavMeshSurface>();
+        if (surface == null) surface = gameObject.AddComponent<NavMeshSurface>();
+        surface.BuildNavMesh();
+    }
     void PlaceRoom(Vector2Int gridPos, bool isStart = false)
     {
         Room prefab = roomPrefabs[Random.Range(0, roomPrefabs.Count)];

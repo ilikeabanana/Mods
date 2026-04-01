@@ -23,11 +23,18 @@
   <Import Project="Properties/DeployToPlugins.targets" />
 
   <ItemGroup>
-    <None Remove="ultrarogue" />
+    <None Remove="catalog.json" />
+    <None Remove="catalogStuff\catalog.json" />
+    <None Remove="catalogStuff\ultrarogue_assets_all_384f23987d187b4c7663f1b3a00a1a1a.bundle" />
+    <None Remove="catalogStuff\Ultrarogue_monoscripts.bundle" />
+    <None Remove="catalogStuff\ultrarogue_scenes_all_850c401cb0c06cc81dec3e84306ce5f5.bundle" />
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="ultrarogue" />
+    <EmbeddedResource Include="catalogStuff\catalog.json" />
+    <EmbeddedResource Include="catalogStuff\ultrarogue_assets_all_384f23987d187b4c7663f1b3a00a1a1a.bundle" />
+    <EmbeddedResource Include="catalogStuff\Ultrarogue_monoscripts.bundle" />
+    <EmbeddedResource Include="catalogStuff\ultrarogue_scenes_all_850c401cb0c06cc81dec3e84306ce5f5.bundle" />
   </ItemGroup>
   <ItemGroup>
     <Publicize Include="Assembly-CSharp" />
@@ -55,8 +62,14 @@
     <Reference Include="Unity.Addressables">
       <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ULTRAKILL\ULTRAKILL_Data\Managed\Unity.Addressables.dll</HintPath>
     </Reference>
+    <Reference Include="Unity.AI.Navigation">
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ULTRAKILL\ULTRAKILL_Data\Managed\Unity.AI.Navigation.dll</HintPath>
+    </Reference>
     <Reference Include="Unity.ResourceManager">
       <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ULTRAKILL\ULTRAKILL_Data\Managed\Unity.ResourceManager.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ULTRAKILL\ULTRAKILL_Data\Managed\UnityEngine.UI.dll</HintPath>
     </Reference>
   </ItemGroup>
   
