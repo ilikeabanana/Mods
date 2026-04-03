@@ -44,7 +44,7 @@ namespace Ultrarogue
 
         public enum Weapon
         {
-            Revolver,
+            Revolver,  
             Shotgun,
             Nailgun,
             Railcannon,

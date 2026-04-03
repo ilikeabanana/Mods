@@ -35,6 +35,18 @@ public static class SceneLoader
 
     }
 
+    static string[] messages = new string[]
+    {
+        "You should die- You should throw a fucking beach party",
+        "Items are items, and weapons are weapons",
+        "Banana",
+        "I am wrting",
+        "Literacy, fuck yeah",
+        "FUCK YOU",
+        "I am loading level",
+        "tip: die",
+        "fun fact: die"
+    };
 
     /// <summary> Asynchronously loads the Empty level. </summary>
     public static IEnumerator LoadLevelAsync(bool noSplash)
@@ -45,7 +57,9 @@ public static class SceneLoader
         if (!noSplash)
         {
             SceneHelper.Instance.loadingBlocker.SetActive(true);
-            SceneHelper.SetLoadingSubtext("I am loading the amazing level fuck you");
+
+            string randomMessage = messages[Random.Range(0, messages.Length)];
+            SceneHelper.SetLoadingSubtext(randomMessage);
         }
 
         // if the bundle isnt loaded yet then like load it :P oh yea and wait for it to load
@@ -68,15 +82,11 @@ public static class SceneLoader
         SceneHelper.SetLoadingSubtext("");
         SceneHelper.Instance.loadingBlocker.SetActive(false);
 
-        yield return new WaitForSeconds(1f);
-
         //yield return ShaderManager.ApplyShadersAsync(SceneManager.GetActiveScene().GetRootGameObjects());
         //yield return ShaderManager.LoadShadersFromDictionaryAsync();
 
         //new GameObject("generator").AddComponent<RoomGenerator>();
         new GameObject("NavMesh").AddComponent<NavMeshSurface>();
-
-        yield return new WaitForSeconds(0.1f);
         Plugin.Instance.StartCoroutine(PlayPixelAnimation());
     }
 
@@ -91,13 +101,12 @@ public static class SceneLoader
         if (target == 0f)
         {
             target = 720;
-            logger.LogInfo("Pixelization target is 0, skipping animation.");
         }
 
         float t = 0;
         while (t < 1)
         {
-            t += Time.deltaTime / 5;
+            t += Time.deltaTime;
             float pixelizationValue = Mathf.Lerp(1, target, t);
             Shader.SetGlobalFloat("_ResY", pixelizationValue);
             PostProcessV2_Handler.Instance.downscaleResolution = pixelizationValue;
