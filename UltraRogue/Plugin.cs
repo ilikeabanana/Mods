@@ -535,7 +535,7 @@ namespace Ultrarogue
         void OnGUI()
         {
             if (NewMovement.Instance == null) return;
-
+            return;
             GUIStyle labelStyle = new GUIStyle(GUI.skin.label);
             labelStyle.fontSize = 14;
             labelStyle.normal.textColor = Color.white;
@@ -909,10 +909,8 @@ namespace Ultrarogue
 
                 foreach (var deathEffect in Plugin.deathEffects)
                 {
-                    Plugin.Logger.LogInfo($"Checking {deathEffect.itemName}....");
                     if (Plugin.GetItemCount(deathEffect.itemName) <= 0)
                     {
-                        Plugin.Logger.LogInfo($"{deathEffect.itemName} has an itemcount of 0 skipping...");
                         continue;
                     }
                     deathEffect.effect.Invoke(__instance);
@@ -944,10 +942,8 @@ namespace Ultrarogue
 
             foreach (var hitEffect in Plugin.hitEffects)
             {
-                Plugin.Logger.LogInfo($"Checking {hitEffect.itemName}....");
                 if (Plugin.GetItemCount(hitEffect.itemName) <= 0)
                 {
-                    Plugin.Logger.LogInfo($"{hitEffect.itemName} has an itemcount of 0 skipping...");
                     continue;
                 }
                 hitEffect.effect.Invoke(__instance, multiplier);

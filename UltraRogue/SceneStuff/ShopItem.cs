@@ -1,5 +1,6 @@
 using Ultrarogue;
 using Ultrarogue.Items;
+using Ultrarogue.SceneStuff;
 using UnityEngine;
 
 public class ShopItem : MonoBehaviour
@@ -12,27 +13,56 @@ public class ShopItem : MonoBehaviour
 
     void Awake()
     {
-        ItemPickup.CreatePickupConditional(Plugin.GiveRandomItem(), transform.position, () =>
+        if(Random.value >= 0.5f)
         {
-            var mgr = RogueDifficultyManager.Instance;
-            if (mgr == null) return false;
 
-            if (mgr.Gold >= cost)
+            ItemPickup.CreatePickupConditional(Plugin.GiveRandomItem(), transform.position, () =>
             {
-                purchased = true;
-                mgr.Gold -= cost;
-                HudMessageReceiver.Instance?.SendHudMessage($"Bought: {item}  (-{cost} gold)");
-                return true;
-            }
-            else if (messageCooldown <= 0f)
-            {
-                HudMessageReceiver.Instance?.SendHudMessage(
-                    $"Need {cost} gold  (you have {mgr.Gold})");
-                messageCooldown = 2f;
+                var mgr = RogueDifficultyManager.Instance;
+                if (mgr == null) return false;
+
+                if (mgr.Gold >= cost)
+                {
+                    purchased = true;
+                    mgr.Gold -= cost;
+                    HudMessageReceiver.Instance?.SendHudMessage($"Bought: {item}  (-{cost} gold)");
+                    return true;
+                }
+                else if (messageCooldown <= 0f)
+                {
+                    HudMessageReceiver.Instance?.SendHudMessage(
+                        $"Need {cost} gold  (you have {mgr.Gold})");
+                    messageCooldown = 2f;
+                    return false;
+                }
                 return false;
-            }
-            return false;
-        });
+            });
+        }
+        else
+        {
+            WeaponPickupRogue.CreatePickupConditional(transform.position, () =>
+            {
+                var mgr = RogueDifficultyManager.Instance;
+                if (mgr == null) return false;
+
+                if (mgr.Gold >= cost)
+                {
+                    purchased = true;
+                    mgr.Gold -= cost;
+                    HudMessageReceiver.Instance?.SendHudMessage($"Bought: {item}  (-{cost} gold)");
+                    return true;
+                }
+                else if (messageCooldown <= 0f)
+                {
+                    HudMessageReceiver.Instance?.SendHudMessage(
+                        $"Need {cost} gold  (you have {mgr.Gold})");
+                    messageCooldown = 2f;
+                    return false;
+                }
+                return false;
+            });
+        }
+
     }
 
     void Update()
