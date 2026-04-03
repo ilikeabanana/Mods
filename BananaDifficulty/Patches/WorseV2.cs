@@ -141,7 +141,7 @@ namespace BananaDifficulty.Patches
         }
 
         private static IEnumerator GroundSlam(V2 __instance)
-        {
+        { 
             Object.Instantiate(BananaDifficultyPlugin.v2FlashUnpariable,
                 __instance.transform.position + Vector3.up, Quaternion.identity);
 

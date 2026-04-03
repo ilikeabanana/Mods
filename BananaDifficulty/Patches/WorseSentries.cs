@@ -10,6 +10,7 @@ namespace BananaDifficulty.Patches
         [HarmonyPatch("Shoot")]
         public static void Prefix(RevolverBeam __instance)
         {
+            if (!BananaDifficultyPlugin.CanUseIt(-999)) return;
             if (__instance.beamType == BeamType.Enemy)
             {
                 __instance.pierceLayerMask = LayerMaskDefaults.Get(LMD.Player);
@@ -73,6 +74,7 @@ namespace BananaDifficulty.Patches
         [HarmonyPostfix]
         public static void ExtarProjectile(Turret __instance)
         {
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
             Vector3 position = __instance.isBarrelPortalCrossed ? __instance.barrelPos : new Vector3(__instance.transform.position.x, __instance.barrelTip.transform.position.y, __instance.transform.position.z);
             GameObject proj = Object.Instantiate(BananaDifficultyPlugin.projNormal, position, __instance.shootRotation);
 

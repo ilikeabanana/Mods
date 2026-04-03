@@ -10,6 +10,7 @@ namespace BananaDifficulty.Patches
         [HarmonyPostfix]
         public static void Postfix(MinosPrime __instance)
         {
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
             if (__instance.activated)
             {
                 if (!__instance.inAction)

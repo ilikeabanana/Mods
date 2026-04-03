@@ -1,4 +1,8 @@
 ﻿using HarmonyLib;
+using System.Collections.Generic;
+using System.Reflection;
+using System.Reflection.Emit;
+using UnityEngine;
 using UnityEngine.AddressableAssets;
 
 namespace BananaDifficulty.Patches
@@ -20,11 +24,6 @@ namespace BananaDifficulty.Patches
         {
             if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
 
-            if(__instance.isEnraged && __instance.eid.enemyType == EnemyType.Virtue)
-            {
-                __instance.RandomDodge(true);
-            }
-
             if (__instance.crashing && !__instance.parried)
             {
                 __instance.transform.forward = (MonoSingleton<NewMovement>.Instance.transform.position - __instance.transform.position).normalized;
@@ -39,4 +38,5 @@ namespace BananaDifficulty.Patches
             __instance.projectile = new AssetReference("6be53089211b2eb4ab93a26541e4e65b");
         }
     }
+   
 }

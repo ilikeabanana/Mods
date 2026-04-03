@@ -30,6 +30,7 @@ namespace BananaDifficulty.Patches
         [HarmonyPostfix]
         public static void Shoot_Postfix(Mass __instance, int arm, GameObject projectile, float velocity)
         {
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
             if (__instance.dead || __instance.eid.target == null)
             {
                 return;

@@ -163,9 +163,8 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>
-		mkdir "..\..\..\..\..\AppData\Roaming\r2modmanPlus-local\ULTRAKILL\profiles\BananaDifficulty\BepInEx\plugins\$(TargetName)"
-		xcopy /q/y/i "$(TargetPath)" "..\..\..\..\..\AppData\Roaming\r2modmanPlus-local\ULTRAKILL\profiles\BananaDifficulty\BepInEx\plugins\$(TargetName)" /E /H /C</PostBuildEvent>
+    <PostBuildEvent>mkdir "C:\Users\MichielLievenVDeBack\AppData\Roaming\r2modmanPlus-local\ULTRAKILL\profiles\BananaDifficulty\BepInEx\plugins\$(TargetName)"
+xcopy /q/y/i "$(TargetPath)" "C:\Users\MichielLievenVDeBack\AppData\Roaming\r2modmanPlus-local\ULTRAKILL\profiles\BananaDifficulty\BepInEx\plugins\$(TargetName)" /E /H /C</PostBuildEvent>
   </PropertyGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
