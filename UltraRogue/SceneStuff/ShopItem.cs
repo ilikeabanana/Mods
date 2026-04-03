@@ -10,6 +10,31 @@ public class ShopItem : MonoBehaviour
     bool purchased = false;
     float messageCooldown = 0f;
 
+    void Awake()
+    {
+        ItemPickup.CreatePickupConditional(Plugin.GiveRandomItem(), transform.position, () =>
+        {
+            var mgr = RogueDifficultyManager.Instance;
+            if (mgr == null) return false;
+
+            if (mgr.Gold >= cost)
+            {
+                purchased = true;
+                mgr.Gold -= cost;
+                HudMessageReceiver.Instance?.SendHudMessage($"Bought: {item}  (-{cost} gold)");
+                return true;
+            }
+            else if (messageCooldown <= 0f)
+            {
+                HudMessageReceiver.Instance?.SendHudMessage(
+                    $"Need {cost} gold  (you have {mgr.Gold})");
+                messageCooldown = 2f;
+                return false;
+            }
+            return false;
+        });
+    }
+
     void Update()
     {
         if (purchased) return;
@@ -18,23 +43,7 @@ public class ShopItem : MonoBehaviour
         if (Vector3.Distance(NewMovement.Instance.transform.position, transform.position) > 2f)
             return;
 
-        var mgr = RogueDifficultyManager.Instance;
-        if (mgr == null) return;
-
-        if (mgr.Gold >= cost)
-        {
-            purchased = true;
-            mgr.Gold -= cost;
-            HudMessageReceiver.Instance?.SendHudMessage($"Bought: {item}  (-{cost} gold)");
-            Plugin.GiveItem(item);
-            Destroy(gameObject);
-        }
-        else if (messageCooldown <= 0f)
-        {
-            HudMessageReceiver.Instance?.SendHudMessage(
-                $"Need {cost} gold  (you have {mgr.Gold})");
-            messageCooldown = 2f;
-        }
+        
     }
 
     public static ShopItem CreateShopItem(BaseItem item, Vector3 position, int cost = 3)
