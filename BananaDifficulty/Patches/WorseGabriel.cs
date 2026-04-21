@@ -44,6 +44,44 @@ namespace BananaDifficulty.Patches
                 component.windUpSpeedMultiplier *= __instance.eid.totalSpeedModifier;
                 component.damage = Mathf.RoundToInt((float)component.damage * __instance.eid.totalDamageModifier);
             }
+
+            if(BananaDifficultyPlugin.CanUseIt(__instance.eid.difficulty) && BananaDifficultyPlugin.ExtremeMode.Value)
+            {
+                __instance.spearAttacks += 2;
+            }
+        }
+
+        [HarmonyPatch(nameof(Gabriel.SpearAttack))]
+        [HarmonyPostfix]
+        public static void MoreVirtueBeams(Gabriel __instance)
+        {
+            if (BananaDifficultyPlugin.CanUseIt(__instance.eid.difficulty) && BananaDifficultyPlugin.ExtremeMode.Value)
+            {
+                GameObject gameObject = Object.Instantiate<GameObject>(BananaDifficultyPlugin.insignificant, __instance.eid.target.position, Quaternion.identity);
+                VirtueInsignia component = gameObject.GetComponent<VirtueInsignia>();
+                component.target = __instance.eid.target;
+                component.predictive = true;
+                if (__instance.eid.difficulty == 1)
+                {
+                    component.windUpSpeedMultiplier = 0.875f;
+                }
+                else if (__instance.eid.difficulty == 0)
+                {
+                    component.windUpSpeedMultiplier = 0.75f;
+                }
+                if (__instance.eid.difficulty >= 4)
+                {
+                    component.explosionLength = ((__instance.eid.difficulty == 5) ? 5f : 3.5f);
+                }
+                if (MonoSingleton<PlayerTracker>.Instance.playerType == PlayerType.Platformer)
+                {
+                    gameObject.transform.localScale *= 0.75f;
+                    component.windUpSpeedMultiplier *= 0.875f;
+                }
+                gameObject.transform.localScale *= 0.25f;
+                component.windUpSpeedMultiplier *= __instance.eid.totalSpeedModifier;
+                component.damage = Mathf.RoundToInt((float)component.damage * __instance.eid.totalDamageModifier);
+            }
         }
 
         private static void FireProjectileAtAngle(GameObject objectToSpawn, float angleOffset, Gabriel __instance)

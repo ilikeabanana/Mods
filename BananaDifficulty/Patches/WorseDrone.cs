@@ -24,6 +24,11 @@ namespace BananaDifficulty.Patches
         {
             if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
 
+            if(BananaDifficultyPlugin.ExtremeMode.Value && __instance.isEnraged && __instance.eid.enemyType == EnemyType.Virtue)
+            {
+                __instance.RandomDodge();
+            }
+
             if (__instance.crashing && !__instance.parried)
             {
                 __instance.transform.forward = (MonoSingleton<NewMovement>.Instance.transform.position - __instance.transform.position).normalized;

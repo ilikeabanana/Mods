@@ -53,7 +53,7 @@ namespace BananaDifficulty.Patches
         public static void MoreBeams(Geryon __instance)
         {
             if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
-            __instance.beamsAmount += 3; // default 5 → 9 beams
+            __instance.beamsAmount += 3; 
         }
 
         [HarmonyPatch("BowForwardShoot")]

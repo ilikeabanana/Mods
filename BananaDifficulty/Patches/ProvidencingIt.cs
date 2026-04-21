@@ -105,6 +105,42 @@ namespace BananaDifficulty.Patches
                 }
             });
         }
+        [HarmonyPatch(typeof(Pincer), nameof(Pincer.Start))]
+        public static class FireMOREEEE
+        {
+            public static void Postfix(Pincer __instance)
+            {
+                if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
+                if (!BananaDifficultyPlugin.ExtremeMode.Value) return;
+
+                var original = __instance.beams;
+
+                Transform bem = UnityEngine.Object.Instantiate(original[0], __instance.transform);
+                bem.Rotate(45, 0, 0);
+
+                Transform bem1 = UnityEngine.Object.Instantiate(original[0], __instance.transform);
+                bem1.Rotate(135, 0, 0);
+
+                Transform bem2 = UnityEngine.Object.Instantiate(original[0], __instance.transform);
+                bem2.Rotate(225, 0, 0);
+
+                Transform bem3 = UnityEngine.Object.Instantiate(original[0], __instance.transform);
+                bem3.Rotate(315, 0, 0);
+
+                Transform[] newBeams = new Transform[original.Length + 4];
+
+                for (int i = 0; i < original.Length; i++)
+                    newBeams[i] = original[i];
+
+                newBeams[original.Length] = bem;
+                newBeams[original.Length + 1] = bem1;
+                newBeams[original.Length + 2] = bem2;
+                newBeams[original.Length + 3] = bem3;
+
+                __instance.beams = newBeams;
+            }
+        }
+
     }
 
     public class SpinYipeeee : MonoBehaviour

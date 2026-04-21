@@ -13,7 +13,7 @@ namespace BananaDifficulty.Patches
         {
             int dif = __instance.parentDrone != null ? __instance.parentDrone.difficulty : -1;
             if (!BananaDifficultyPlugin.CanUseIt(dif)) return;
-            if (!BananaDifficultyPlugin.HardMode.Value) return;
+            if (!BananaDifficultyPlugin.HardMode.Value && !BananaDifficultyPlugin.ExtremeMode.Value) return;
             if (__instance.gameObject.name.StartsWith("DoubleInsig")) return;
 
             __instance.StartCoroutine(SpawnInsignias(__instance));
@@ -23,8 +23,29 @@ namespace BananaDifficulty.Patches
         {
             SpawnWithOffset(original, Quaternion.Euler(0, 0, 90), "DoubleInsig1");
             yield return new WaitForSeconds(0.1f);
+
             SpawnWithOffset(original, Quaternion.Euler(90, 0, 0), "DoubleInsig2");
+
+            if (BananaDifficultyPlugin.ExtremeMode.Value)
+            {
+                yield return new WaitForSeconds(0.1f);
+
+                // Diagonal rotations (combined axes)
+                SpawnWithOffset(original, Quaternion.Euler(45, 0, 45), "DoubleInsigDiag1");
+                yield return new WaitForSeconds(0.1f);
+
+                SpawnWithOffset(original, Quaternion.Euler(-45, 0, 45), "DoubleInsigDiag2");
+                yield return new WaitForSeconds(0.1f);
+
+                SpawnWithOffset(original, Quaternion.Euler(45, 0, -45), "DoubleInsigDiag3");
+                yield return new WaitForSeconds(0.1f);
+
+                SpawnWithOffset(original, Quaternion.Euler(-45, 0, -45), "DoubleInsigDiag4");
+
+                Object.Instantiate(BananaDifficultyPlugin.lightningExplosion, original.transform.position, Quaternion.identity);
+            }
         }
+
 
         private static VirtueInsignia SpawnWithOffset(VirtueInsignia original, Quaternion offset, string name)
         {

@@ -52,6 +52,32 @@ namespace BananaDifficulty.Patches
 
                 spawnedIdol.AddComponent<DestroyOnCheckpointRestart>();
             }
+
+            if (BananaDifficultyPlugin.ExtremeMode.Value)
+            {
+                // We are doing seedbased to have the same radiance everywhere
+                // How we set this up is, level name + EnemyType + Current Position
+                int levelR = SceneHelper.CurrentScene.GetHashCode();
+                int enemyN = __instance.enemyType.GetHashCode();
+                int posG = Mathf.RoundToInt(__instance.transform.position.magnitude);
+                System.Random rng = new System.Random(levelR + enemyN + posG);
+
+                if(rng.NextDouble() <= 0.5)
+                {
+                    __instance.BuffAll();
+                }
+
+
+                // hehe random placements!!!!!
+                List<EnemyType> notMovedEnemies = new List<EnemyType>() { EnemyType.Providence, EnemyType.Power, EnemyType.Minos, EnemyType.GabrielSecond,
+                EnemyType.Gabriel, EnemyType.Drone, EnemyType.Idol, EnemyType.Deathcatcher, EnemyType.Geryon, EnemyType.Leviathan, EnemyType.Mindflayer,
+                EnemyType.Virtue};
+
+                if (!notMovedEnemies.Contains(__instance.enemyType))
+                {
+                    __instance.transform.position = ModUtils.GetRandomNavMeshPoint(__instance.transform.position, 1.5f);
+                }
+            }
         }
 
 
@@ -72,9 +98,9 @@ namespace BananaDifficulty.Patches
         }
         [HarmonyPatch(nameof(EnemyIdentifier.DeliverDamage))]
         [HarmonyPrefix]
-        public static void Damage_Postfix(ref float multiplier, EnemyIdentifier __instance)
+        public static bool Damage_Postfix(ref float multiplier, EnemyIdentifier __instance)
         {
-            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return true;
 
             List<string> hittersToReturn = new List<string>()
             {
@@ -84,12 +110,14 @@ namespace BananaDifficulty.Patches
             if (hittersToReturn.Contains(__instance.hitter))
             {
                 multiplier /= 3;
+                if (BananaDifficultyPlugin.ExtremeMode.Value) return false;
             }
 
             if(__instance.hitter == "hook" && __instance.enemyType == EnemyType.Virtue)
             {
                 __instance.drone.Enrage();
             }
+            return true;
         }
 
     }

@@ -72,6 +72,11 @@ namespace BananaDifficulty.Patches
                         stats.health = stats.originalHealth;
                         component.eid.health = stats.health;
                     }
+
+                    if (BananaDifficultyPlugin.ExtremeMode.Value)
+                    {
+                        component.eid.BuffAll();
+                    }
                 }
             }
         }

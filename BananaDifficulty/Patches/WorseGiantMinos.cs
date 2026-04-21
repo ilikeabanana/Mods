@@ -22,6 +22,13 @@ namespace BananaDifficulty.Patches
             if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
             __instance.SpawnParasites();
         }
+        [HarmonyPatch(nameof(MinosBoss.SetSpeed))]
+        [HarmonyPostfix]
+        public static void Speed_Postfix(MinosBoss __instance)
+        {
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return;
+            __instance.anim.speed *= 1.2f;
+        }
 
         [HarmonyPatch(nameof(MinosBoss.GotParried))]
         [HarmonyPrefix]

@@ -35,7 +35,7 @@ namespace BananaDifficulty.Patches
                 newDeath.transform.parent = __instance.transform.parent;
 
                 newDeath.GetComponent<EnemyIdentifier>().dontCountAsKills = true;
-
+                newDeath.name += "DontBeScared";
             }
         }
 

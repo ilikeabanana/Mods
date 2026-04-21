@@ -25,5 +25,29 @@ namespace BananaDifficulty.Patches
             __instance.tempBeam.GetComponent<ContinuousBeam>().ignoreInvincibility = true;
             __instance.tempBeam.GetComponent<LineRenderer>().widthMultiplier *= 3;
         }
+
+        [HarmonyPatch(nameof(Mindflayer.DeathExplosion))]
+        [HarmonyPrefix]
+        public static bool Kaboom_Prefix(Mindflayer __instance)
+        {
+            if (!BananaDifficultyPlugin.CanUseIt(__instance.difficulty)) return true;
+            if (!BananaDifficultyPlugin.ExtremeMode.Value) return true;
+            GameObject expl = Object.Instantiate<GameObject>(__instance.deathExplosion.ToAsset(), __instance.transform.position, Quaternion.identity);
+
+            foreach (var ex in expl.GetComponentsInChildren<Explosion>())
+            {
+                ex.playerDamageOverride = 999999; // funny explosion instakill
+            }
+
+            if (__instance.eid.drillers.Count > 0)
+            {
+                for (int i = __instance.eid.drillers.Count - 1; i >= 0; i--)
+                {
+                    Object.Destroy(__instance.eid.drillers[i].gameObject);
+                }
+            }
+            Object.Destroy(__instance.gameObject);
+            return false;
+        }
     }
 }

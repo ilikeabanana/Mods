@@ -28,7 +28,10 @@ namespace BananaDifficulty.Patches
         {
             if (!BananaDifficultyPlugin.CanUseIt(__instance.eid.difficulty)) return true;
             if (__instance.eid.dead) return true;
-
+            if (BananaDifficultyPlugin.ExtremeMode.Value)
+            {
+                NewMovement.Instance.GetHurt(999, false, ignoreInvincibility: true, instablack: true);
+            }
 
             if (!__instance.harmless)
             {

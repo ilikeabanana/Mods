@@ -27,14 +27,15 @@ namespace BananaDifficulty
     [BepInPlugin(MyGUID, PluginName, VersionString)]
     public class BananaDifficultyPlugin : BaseUnityPlugin
     {
-        private const string MyGUID = "com.michi.BananaDifficulty";
+        private const string MyGUID = "com.banana.BananaDifficulty";
         private const string PluginName = "BananaDifficulty";
-        private const string VersionString = "1.0.0";
+        private const string VersionString = "2.0.0";
 
         private static readonly Harmony Harmony = new Harmony(MyGUID);
         public static ManualLogSource Log = new ManualLogSource(PluginName);
 
         public static ConfigEntry<bool> HardMode;
+        public static ConfigEntry<bool> ExtremeMode;
 
         public static GameObject projBeam;
         public static GameObject projBeamTurret;
@@ -94,6 +95,7 @@ namespace BananaDifficulty
             Log = Logger;
 
             HardMode = Config.Bind<bool>("Difficulty Settings", "Hard Mode", false, "Makes virtue beams appear on every side, have double shockwaves, and also makes schisms fire thrice as many projectiles.");
+            ExtremeMode = Config.Bind<bool>("Difficulty Settings", "Extreme Mode", false, "Readds alot of the scrapped ideas, and also adds randomly radianced enemies :DDDDD (Not meant to be beaten at all actually, this is just... to let myself go wild, do not expect any nerfs for this, only buffs)");
             var patchedMethods = Harmony.GetPatchedMethods();
             foreach (var m in patchedMethods)
                 Log.LogInfo($"Patched: {m.DeclaringType?.Name}.{m.Name}");
@@ -472,6 +474,20 @@ namespace BananaDifficulty
             return null;
         }
     }
+
+    [HarmonyPatch(typeof(FinalRank), nameof(FinalRank.SetInfo))]
+    public class funny
+    {
+        public static void Postfix(FinalRank __instance)
+        {
+            if (!BananaDifficultyPlugin.CanUseIt(-999)) return;
+            if (BananaDifficultyPlugin.HardMode.Value)
+                __instance.extraInfo.text += "+ <color=red>HARD MODE ENABLED</color> \n";
+            if (BananaDifficultyPlugin.ExtremeMode.Value)
+                __instance.extraInfo.text += "+ <color=yellow><size=200%>EXTREME</size> MODE ENABLED</color> \n";
+        }
+    }
+
     [HarmonyPatch(typeof(DiscordController), nameof(DiscordController.SendActivity))]
     internal class DiscordController_SendActivity_Patch
     {

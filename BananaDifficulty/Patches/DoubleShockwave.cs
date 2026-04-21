@@ -20,10 +20,15 @@ namespace BananaDifficulty.Patches
         {
             if (!BananaDifficultyPlugin.CanUseIt(-1)) return;
             if (__instance.gameObject.name == "DoubleShock") return;
-            if (!BananaDifficultyPlugin.HardMode.Value) return;
+
+            if (!BananaDifficultyPlugin.HardMode.Value && !BananaDifficultyPlugin.ExtremeMode.Value) return;
             PhysicalShockwave shock = Object.Instantiate(__instance);
             shock.gameObject.name = "DoubleShock";
             shock.transform.Rotate(new Vector3(0, 0, 90));
+            if (BananaDifficultyPlugin.ExtremeMode.Value)
+            {
+                shock.ignorePlayerDash = true;
+            }
         }
     }
 }

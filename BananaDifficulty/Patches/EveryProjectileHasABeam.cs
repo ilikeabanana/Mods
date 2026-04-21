@@ -13,7 +13,7 @@ namespace BananaDifficulty.Patches
     /// for your mod.
     /// </summary>
     [HarmonyPatch(typeof(Projectile))]
-    internal class EveryProjectileHasABeam
+    internal class EveryProjectileHasABeam 
     {
         public static List<ContinuousBeam> alreadyExistingBeams = new List<ContinuousBeam>();
         public static List<Projectile> alreadyExistingProjs = new List<Projectile>();
