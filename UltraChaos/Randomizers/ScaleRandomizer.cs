@@ -20,10 +20,14 @@ namespace Ultrachaos.Randomizers
 
             foreach (var t in allTransforms)
             {
+                if (!Plugin.CanChangeObj(t.gameObject)) continue;
                 if (t is RectTransform) continue;
                 if (t.GetComponent<Canvas>()) continue;
                 if (Plugin.isPlayerChild(t)) continue;
-
+                if (Plugin.isFirstRoomChild(t)) continue;
+                if (Plugin.isFinalRoomChild(t)) continue;
+                if (Plugin.isEnemyChild(t)) continue;
+                if (t.gameObject.GetComponent<PlayerActivator>()) continue;
                 t.localScale *= ScaleMult.GetRand;
             }
         }

@@ -25,16 +25,18 @@
   <ItemGroup>
     <None Remove="catalog.json" />
     <None Remove="catalogStuff\catalog.json" />
+    <None Remove="catalogStuff\ultrarogue_assets_all_18be7df414a5951c4d194640b7568886.bundle" />
     <None Remove="catalogStuff\ultrarogue_assets_all_384f23987d187b4c7663f1b3a00a1a1a.bundle" />
     <None Remove="catalogStuff\Ultrarogue_monoscripts.bundle" />
+    <None Remove="catalogStuff\ultrarogue_scenes_all_7eeb66d39f8b9b0f7cdae6df6f5b8280.bundle" />
     <None Remove="catalogStuff\ultrarogue_scenes_all_850c401cb0c06cc81dec3e84306ce5f5.bundle" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="catalogStuff\catalog.json" />
-    <EmbeddedResource Include="catalogStuff\ultrarogue_assets_all_384f23987d187b4c7663f1b3a00a1a1a.bundle" />
+    <EmbeddedResource Include="catalogStuff\ultrarogue_assets_all_18be7df414a5951c4d194640b7568886.bundle" />
     <EmbeddedResource Include="catalogStuff\Ultrarogue_monoscripts.bundle" />
-    <EmbeddedResource Include="catalogStuff\ultrarogue_scenes_all_850c401cb0c06cc81dec3e84306ce5f5.bundle" />
+    <EmbeddedResource Include="catalogStuff\ultrarogue_scenes_all_7eeb66d39f8b9b0f7cdae6df6f5b8280.bundle" />
   </ItemGroup>
   <ItemGroup>
     <Publicize Include="Assembly-CSharp" />

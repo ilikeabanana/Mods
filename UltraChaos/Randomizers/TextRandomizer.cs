@@ -30,7 +30,6 @@ namespace Ultrachaos.Randomizers
                 return input;
 
             _randomizer.AddToPool(input);
-            Plugin.Logger.LogInfo($"Pool size: {_randomizer.Pool.Count}");
 
             if (_randomizer.Pool.Count <= 1)
                 return input;
@@ -94,6 +93,7 @@ namespace Ultrachaos.Randomizers
         [HarmonyPrefix]
         public static void Pagetext(SettingsPage settingsPage)
         {
+            if (!Plugin.IsGameplayScene()) return;
             foreach (var cat in settingsPage.categories)
             {
                 cat.title = GetRandomized(cat.title);

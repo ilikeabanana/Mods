@@ -93,7 +93,7 @@ namespace Ultrachaos
 
         public static bool CanChangeObj(GameObject obj)
         {
-            return !isConfiggyChild(obj.transform);
+            return !isConfiggyChild(obj.transform) && !isOptionsChild(obj.transform);
         }
 
         public static bool isConfiggyChild(Transform obj)
@@ -106,6 +106,16 @@ namespace Ultrachaos
             return false;
         }
 
+        public static bool isOptionsChild(Transform obj)
+        {
+            if (obj.gameObject.name.Contains("OptionsMenu")) return true;
+
+            if (obj.parent != null)
+                return isOptionsChild(obj.parent);
+
+            return false;
+        }
+
         public static bool isPlayerChild(Transform obj)
         {
             if (obj.GetComponent<NewMovement>()) return true;
@@ -113,6 +123,37 @@ namespace Ultrachaos
 
             if (obj.parent != null)
                 return isPlayerChild(obj.parent);
+
+            return false;
+        }
+        public static bool isEnemyChild(Transform obj)
+        {
+            if (obj.GetComponent<EnemyIdentifier>()) return true;
+            if (obj.GetComponent<EnemyIdentifierIdentifier>()) return true;
+
+            if (obj.parent != null)
+                return isEnemyChild(obj.parent);
+
+            return false;
+        }
+
+        public static bool isFirstRoomChild(Transform obj)
+        {
+            if (obj.gameObject.name.ToLower().Contains("firstroom")) return true;
+
+            if (obj.parent != null)
+                return isFirstRoomChild(obj.parent);
+
+            return false;
+        }
+
+        public static bool isFinalRoomChild(Transform obj)
+        {
+            if (obj.gameObject.name.ToLower().Contains("finalroom")) return true;
+            if (obj.gameObject.GetComponent<FinalRoom>()) return true;
+
+            if (obj.parent != null)
+                return isFinalRoomChild(obj.parent);
 
             return false;
         }
