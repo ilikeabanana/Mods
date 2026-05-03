@@ -24,18 +24,14 @@
 
   <ItemGroup>
     <None Remove="catalog.json" />
-    <None Remove="catalogStuff\catalog.json" />
-    <None Remove="catalogStuff\ultrarogue_assets_all_384f23987d187b4c7663f1b3a00a1a1a.bundle" />
-    <None Remove="catalogStuff\Ultrarogue_monoscripts.bundle" />
-    <None Remove="catalogStuff\ultrarogue_scenes_all_850c401cb0c06cc81dec3e84306ce5f5.bundle" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="catalogStuff\**\*.*" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="ItemIcons\**\*.*" />
   </ItemGroup>
 
-  <ItemGroup>
-    <EmbeddedResource Include="catalogStuff\catalog.json" />
-    <EmbeddedResource Include="catalogStuff\ultrarogue_assets_all_384f23987d187b4c7663f1b3a00a1a1a.bundle" />
-    <EmbeddedResource Include="catalogStuff\Ultrarogue_monoscripts.bundle" />
-    <EmbeddedResource Include="catalogStuff\ultrarogue_scenes_all_850c401cb0c06cc81dec3e84306ce5f5.bundle" />
-  </ItemGroup>
   <ItemGroup>
     <Publicize Include="Assembly-CSharp" />
   </ItemGroup>
@@ -65,8 +61,23 @@
     <Reference Include="Unity.AI.Navigation">
       <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ULTRAKILL\ULTRAKILL_Data\Managed\Unity.AI.Navigation.dll</HintPath>
     </Reference>
+    <Reference Include="Unity.InputSystem">
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ULTRAKILL\ULTRAKILL_Data\Managed\Unity.InputSystem.dll</HintPath>
+    </Reference>
     <Reference Include="Unity.ResourceManager">
       <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ULTRAKILL\ULTRAKILL_Data\Managed\Unity.ResourceManager.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.TextMeshPro">
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ULTRAKILL\ULTRAKILL_Data\Managed\Unity.TextMeshPro.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.ImageConversionModule">
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ULTRAKILL\ULTRAKILL_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.InputLegacyModule">
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ULTRAKILL\ULTRAKILL_Data\Managed\UnityEngine.InputLegacyModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.InputModule">
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ULTRAKILL\ULTRAKILL_Data\Managed\UnityEngine.InputModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UI">
       <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ULTRAKILL\ULTRAKILL_Data\Managed\UnityEngine.UI.dll</HintPath>

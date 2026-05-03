@@ -1,19 +1,21 @@
 ﻿using HarmonyLib;
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
+using ULTRAKILL.Portal;
+using ULTRAKILL.Portal.Native;
 using UnityEngine;
 
 namespace Ultrarogue.Items
 {
-    public class FiringFaster : BaseItem
+    public class SoldierChip : BaseItem
     {
-        public override string ItemName => "Firing";
+        public override string ItemName => "Soldier Chip";
         public override string itemDescription => "Increase firerate by 15%";
         Change atkSpeedChange;
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
+        
         public override void OnStart()
         {
             atkSpeedChange = new Change(percentage: 0);
@@ -33,6 +35,7 @@ namespace Ultrarogue.Items
         public override string ItemName => "Bigger Shells";
         public override string itemDescription => "Shotgun damage +10%, projectiles are 7% larger";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
+        public override List<Plugin.Weapon> WeaponRequirements => new List<Plugin.Weapon>() { Plugin.Weapon.Shotgun };
         DamageChange damageChange;
         public override void OnStart()
         {
@@ -59,7 +62,7 @@ namespace Ultrarogue.Items
     public class Gasoline : BaseItem
     {
         public override string ItemName => "Gasoline";
-        public override string itemDescription => "On kill, ignite nearby enemies in a 5m radius (+5m per stack) for 120% damage";
+        public override string itemDescription => "On kill, create 10 (+2 per stack) gasoline projectiles";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
 
         public override void OnStart()
@@ -68,45 +71,50 @@ namespace Ultrarogue.Items
             {
                 int count = Plugin.GetItemCount(this);
                 if (count <= 0) return;
-                Plugin.Instance.StartCoroutine(delayedExplody(eid));
+                for (int i = 0; i < (2 * count) + 10; i++)
+                {
+                    StartCoroutine(SpawnNapalm(eid.transform));
+                }
             });
         }
-
-        IEnumerator delayedExplody(EnemyIdentifier eid)
+        IEnumerator SpawnNapalm(Transform pos)
         {
             yield return new WaitForEndOfFrame();
+            GameObject obj = UnityEngine.Object.Instantiate(
+                AssetsManager.napalmProj,
+                pos.position + Vector3.up,
+                Quaternion.identity
+            );
 
-            int count = Plugin.GetItemCount(this);
+            Rigidbody rb = obj.GetComponent<Rigidbody>();
+            // Generate a random upward direction
+            Vector3 randomDir = new Vector3(
+                Random.Range(-1f, 1f),
+                Random.Range(0.5f, 1f), // ensures it's upward
+                Random.Range(-1f, 1f)
+            ).normalized;
 
-            float radius = 5f * count;
-            Collider[] hits = Physics.OverlapSphere(eid.transform.position, radius);
+            rb.velocity = randomDir * 25f;
+        }
+    }
 
-            foreach (Collider col in hits)
+    public class SandWorm : BaseItem
+    {
+        public override string ItemName => "Sand Worm";
+        public override string itemDescription => "Sanded enemies take +35% more damage";
+        public override List<ItemTag> itemTags => new List<ItemTag>() {  ItemTag.Damage };
+
+        public override void OnStart()
+        {
+            new DamageModifier(ItemName, (eid) =>
             {
-                EnemyIdentifier? nearby = col.GetComponent<EnemyIdentifier>();
-                if (nearby == null || nearby == eid || nearby.dead) continue;
+                int c = Plugin.GetItemCount(this);
 
-                nearby.hitter = "fire";
-                nearby.DeliverDamage(
-                    col.gameObject,
-                    Vector3.zero,
-                    eid.transform.position,
-                    multiplier: 0.5f,
-                    false
-                );
-                if (nearby.flammables != null && nearby.flammables.Count > 0)
-                {
-                    nearby.StartBurning((float)(15 / 10));
-                }
-                else
-                {
-                    Flammable componentInChildren = nearby.GetComponentInChildren<Flammable>();
-                    if (componentInChildren != null)
-                    {
-                        componentInChildren.Burn((float)(15 / 10), false);
-                    }
-                }
-            }
+                if (c == 0) return 1;
+
+                return 1f + (0.35f * c);
+
+            });
         }
     }
 
@@ -116,7 +124,7 @@ namespace Ultrarogue.Items
         public override string itemDescription => "Arm damage +15%";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         DamageChange damageChange;
-
+        public override List<Plugin.Weapon> WeaponRequirements => new List<Plugin.Weapon>() { Plugin.Weapon.Arm };
         public override void OnStart()
         {
             damageChange = new DamageChange(Plugin.Weapon.Arm, new Change(percentage: 0));
@@ -135,7 +143,7 @@ namespace Ultrarogue.Items
         public override string itemDescription => "Revolver damage +12%";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         DamageChange damageChange;
-
+        public override List<Plugin.Weapon> WeaponRequirements => new List<Plugin.Weapon>() { Plugin.Weapon.Revolver };
         public override void OnStart()
         {
             damageChange = new DamageChange(Plugin.Weapon.Revolver, new Change(percentage: 0));
@@ -172,7 +180,7 @@ namespace Ultrarogue.Items
         public override string itemDescription => "Railcannon damage +15%";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         DamageChange damageChange;
-
+        public override List<Plugin.Weapon> WeaponRequirements => new List<Plugin.Weapon>() { Plugin.Weapon.Railcannon };
         public override void OnStart()
         {
             damageChange = new DamageChange(Plugin.Weapon.Railcannon, new Change(percentage: 0));
@@ -191,7 +199,7 @@ namespace Ultrarogue.Items
         public override string itemDescription => "Nailgun damage +10%";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         DamageChange damageChange;
-
+        public override List<Plugin.Weapon> WeaponRequirements => new List<Plugin.Weapon>() { Plugin.Weapon.Nailgun };
         public override void OnStart()
         {
             damageChange = new DamageChange(Plugin.Weapon.Nailgun, new Change(percentage: 0));
@@ -222,25 +230,6 @@ namespace Ultrarogue.Items
         }
     }
 
-    public class Combatblood : BaseItem
-    {
-        public override string ItemName => "Combat blood";
-        public override string itemDescription => "On kill, restore 3 HP (+1 per stack)";
-        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Healing };
-
-        public override void OnStart()
-        {
-            new DeathEffect(ItemName, (eid) =>
-            {
-                int count = Plugin.GetItemCount(this);
-                if (count <= 0 || NewMovement.Instance == null) return;
-
-                int heal = 2 + count;
-                NewMovement.Instance.hp = Mathf.Min(NewMovement.Instance.hp + heal, Plugin.MaxHealth);
-            });
-        }
-    }
-
     public class IronSights : BaseItem
     {
         public override string ItemName => "Iron Sights";
@@ -266,7 +255,7 @@ namespace Ultrarogue.Items
         public override string itemDescription => "Rocket Launcher damage +12%";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         DamageChange damageChange;
-
+        public override List<Plugin.Weapon> WeaponRequirements => new List<Plugin.Weapon>() { Plugin.Weapon.RocketLauncher };
         public override void OnStart()
         {
             damageChange = new DamageChange(Plugin.Weapon.RocketLauncher, new Change(percentage: 0));

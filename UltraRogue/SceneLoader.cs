@@ -37,15 +37,10 @@ public static class SceneLoader
 
     static string[] messages = new string[]
     {
-        "You should die- You should throw a fucking beach party",
-        "Items are items, and weapons are weapons",
-        "Banana",
-        "I am wrting",
-        "Literacy, fuck yeah",
-        "FUCK YOU",
-        "I am loading level",
-        "tip: die",
-        "fun fact: die"
+        "The higher the game difficulty, the more rooms, and enemies spawn",
+        "Although items can greatly help survivability, getting your arsenal is a bigger priority",
+        "Difficulty gets increased over time, causing more enemies to spawn, and sometimes make them radiant",
+        "Each room has a chance to give nothing, gold, or keys!"
     };
 
     /// <summary> Asynchronously loads the Empty level. </summary>
@@ -66,6 +61,9 @@ public static class SceneLoader
         if (!Loaded)
             Load();
         yield return new WaitForSeconds(1f); // idk wait a second ig???
+
+        AssetsManager.weaponMat = Addressables.LoadAssetAsync<Material>("Assets/Modding/RogueMode/WeaponPickup.mat").WaitForCompletion();
+
         // actually fucking load the scene lmao
         var op = Addressables.LoadSceneAsync("Assets/Modding/RogueMode/EpicLevel.unity", LoadSceneMode.Single);
         yield return op;
@@ -94,7 +92,8 @@ public static class SceneLoader
     {
         // Wait until PostProcessV2_Handler is ready
         yield return new WaitUntil(() => PostProcessV2_Handler.Instance != null);
-
+        yield return new WaitUntil(() => NewMovement.Instance != null);
+        NewMovement.Instance.transform.position = Vector3.zero;
         float target = PostProcessV2_Handler.Instance.downscaleResolution;
         float actualTarget = target;
         // Early out so you at least know why nothing happens
@@ -137,6 +136,8 @@ public static class SceneLoader
         }
         PlayerActivator.lastActivatedPosition = MonoSingleton<NewMovement>.Instance.transform.position;
         MonoSingleton<FistControl>.Instance.YesFist();
+        MonoSingleton<StatsManager>.Instance.StartTimer();
+        NewMovement.Instance.hp = Plugin.MaxHealth;
     }
 
     /// <summary> Patches <see cref="SceneHelper.LoadSceneCoroutine(string, bool)"/> to make it use our loader if it's trying to load our scene :3 </summary>

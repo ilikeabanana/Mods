@@ -6,10 +6,6 @@ using UnityEngine;
 
 namespace Ultrarogue.Items
 {
-    // ─────────────────────────────────────────────
-    //  ORIGINAL ITEMS
-    // ─────────────────────────────────────────────
-
     public class IgnitionTank : BaseItem
     {
         public override string ItemName => "Ignition Tank";
@@ -27,6 +23,25 @@ namespace Ultrarogue.Items
                 }
 
                 return 1;
+            });
+        }
+    }
+
+    public class Combatblood : BaseItem
+    {
+        public override string ItemName => "Combat blood";
+        public override string itemDescription => "On kill, restore 3 HP (+1 per stack)";
+        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Healing };
+        public override Rarity Rarity => Rarity.Uncommon;
+        public override void OnStart()
+        {
+            new DeathEffect(ItemName, (eid) =>
+            {
+                int count = Plugin.GetItemCount(this);
+                if (count <= 0 || NewMovement.Instance == null) return;
+
+                int heal = 2 + count;
+                NewMovement.Instance.hp = Mathf.Min(NewMovement.Instance.hp + heal, Plugin.MaxHealth);
             });
         }
     }
@@ -75,7 +90,7 @@ namespace Ultrarogue.Items
         public override string itemDescription => "All hitscans have a 25% (+15% chance per stack) to bounce (chance gets smaller every bounce)";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Utility };
         public override Rarity Rarity => Rarity.Uncommon;
-
+        public override List<Plugin.Weapon> WeaponRequirements => new List<Plugin.Weapon>() { Plugin.Weapon.Revolver };
         [HarmonyPatch(typeof(RevolverBeam), nameof(RevolverBeam.Start))]
         public static void Prefix(RevolverBeam __instance)
         {
@@ -117,28 +132,6 @@ namespace Ultrarogue.Items
             });
         }
     }
-    public class GlassCannon : BaseItem
-    {
-        public override string ItemName => "Glass Cannon";
-        public override string itemDescription => "Max HP -20%. Global damage +30%";
-        public override Rarity Rarity => Rarity.Uncommon;
-        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
-        Change hpChange;
-        Change dmgChange;
-
-        public override void OnStart()
-        {
-            hpChange = new Change(percentage: 0);
-            dmgChange = new Change(percentage: 0);
-            new PlayerChange(maxHealth: hpChange, globalDamageMult: dmgChange);
-        }
-
-        public override void OnUpdate(int count)
-        {
-            hpChange.percentage = -0.20f * count;
-            dmgChange.percentage = 0.30f * count;
-        }
-    }
 
     public class NailBomb : BaseItem
     {
@@ -146,7 +139,7 @@ namespace Ultrarogue.Items
         public override string itemDescription => "Nailgun kills explode for 150% damage in a 5m radius (+5m per stack)";
         public override Rarity Rarity => Rarity.Uncommon;
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
-
+        public override List<Plugin.Weapon> WeaponRequirements => new List<Plugin.Weapon>() { Plugin.Weapon.Nailgun };
         public override void OnStart()
         {
             new DeathEffect(ItemName, (eid) =>
@@ -180,82 +173,13 @@ namespace Ultrarogue.Items
         }
     }
 
-    public class LeechBullets : BaseItem
-    {
-        public override string ItemName => "Leeching Bullets";
-        public override string itemDescription => "Revolver hits restore 1 HP (+1 per stack)";
-        public override Rarity Rarity => Rarity.Uncommon;
-        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Healing };
-
-        public override void OnStart()
-        {
-            new HitEffect(ItemName, (eid, dmg) =>
-            {
-                int count = Plugin.GetItemCount(this);
-                if (count <= 0 || NewMovement.Instance == null) return;
-                if (eid.hitter != "revolver") return;
-
-                int heal = 1 * count;
-                NewMovement.Instance.hp = Mathf.Min(NewMovement.Instance.hp + heal, Plugin.MaxHealth);
-            });
-        }
-    }
-
-    public class Overcharge : BaseItem
-    {
-        public override string ItemName => "Overcharge";
-        public override string itemDescription => "Railcannon damage +25%";
-        public override Rarity Rarity => Rarity.Uncommon;
-        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
-        DamageChange railChange;
-
-        public override void OnStart()
-        {
-            railChange = new DamageChange(Plugin.Weapon.Railcannon, new Change(percentage: 0));
-            new PlayerChange(
-                damageChanges: new List<DamageChange>() { railChange }
-            );
-        }
-
-        public override void OnUpdate(int count)
-        {
-            railChange.damageChange.percentage = 0.25f * count;
-        }
-    }
-
-    public class FeatherFists : BaseItem
-    {
-        public override string ItemName => "Feather Fists";
-        public override string itemDescription => "Arm damage +25%, move speed +10%";
-        public override Rarity Rarity => Rarity.Uncommon;
-        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
-        DamageChange armChange;
-        Change moveChange;
-
-        public override void OnStart()
-        {
-            armChange = new DamageChange(Plugin.Weapon.Arm, new Change(percentage: 0));
-            moveChange = new Change(percentage: 0);
-            new PlayerChange(
-                damageChanges: new List<DamageChange>() { armChange },
-                moveSpeed: moveChange
-            );
-        }
-
-        public override void OnUpdate(int count)
-        {
-            armChange.damageChange.percentage = 0.25f * count;
-            moveChange.percentage = 0.10f * count;
-        }
-    }
-
     public class SpikyNails : BaseItem
     {
         public override string ItemName => "Spiky Nails";
         public override string itemDescription => "Enemies with nail get +1% (+1% per stack) more damage per nail stuck in them.";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         public override Rarity Rarity => Rarity.Uncommon;
-
+        public override List<Plugin.Weapon> WeaponRequirements => new List<Plugin.Weapon>() { Plugin.Weapon.Nailgun };
         public override void OnStart()
         {
             new DamageModifier(ItemName, (eid) =>

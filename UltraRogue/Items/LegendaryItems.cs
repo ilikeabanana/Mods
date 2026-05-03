@@ -1,16 +1,15 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Numerics;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 
 namespace Ultrarogue.Items
 {
-    // ─────────────────────────────────────────────
-    //  ORIGINAL ITEMS
-    // ─────────────────────────────────────────────
 
-    public class LuckyLeave : BaseItem
+    public class LuckyLeaf : BaseItem
     {
-        public override string ItemName => "Lucky Leave";
+        public override string ItemName => "Lucky Leaf";
         public override string itemDescription => "+1 luck";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Utility };
         public override Rarity Rarity => Rarity.Legendary;
@@ -39,6 +38,68 @@ namespace Ultrarogue.Items
         }
     }
 
+    public class VinnyPimpHat : BaseItem
+    {
+        public override string ItemName => "Vinny's Pimp Hat";
+        public override string itemDescription => "Every 15 seconds fire a purple saw that deals 150% (+150% per stack) damage and stays until the room is cleared.";
+
+        public override Rarity Rarity => Rarity.Legendary;
+        float t = 0;
+        bool wasPreviouslyFighting = false;
+
+        GameObject sawPrefab = null;
+        public override void OnUpdate(int count)
+        {
+            if (count <= 0) return;
+
+            if(wasPreviouslyFighting && !Room.isFighting)
+            {
+                Nail[] allNails = GameObject.FindObjectsOfType<Nail>();
+                foreach (var nail in allNails)
+                {
+                    if (!nail.sawblade) continue;
+                    if (nail.gameObject.name.Contains("SawVinny"))
+                    {
+                        Object.Destroy(nail.gameObject);
+                    }
+                }
+            }
+
+            if (Room.isFighting)
+            {
+                t += Time.deltaTime;
+
+                if(t >= 5)
+                {
+                    // FIRE THE SAW!!!
+                    if (sawPrefab == null)
+                        sawPrefab = Addressables.LoadAssetAsync<GameObject>("Assets/Modding/RogueMode/SawVinny.prefab").WaitForCompletion();
+
+                    FireSaw(1.5f * count);
+                    t = 0;
+                }
+            }
+            wasPreviouslyFighting = Room.isFighting;
+        }
+
+        void FireSaw(float damage)
+        {
+            float currentSpread = 2f;
+            GameObject gameObject2 = Object.Instantiate<GameObject>(sawPrefab, CameraController.Instance.GetDefaultPos(), CameraController.Instance.transform.rotation);
+
+            gameObject2.transform.Rotate(Random.Range(-currentSpread / 3f, currentSpread / 3f), Random.Range(-currentSpread / 3f, currentSpread / 3f), Random.Range(-currentSpread / 3f, currentSpread / 3f));
+            Rigidbody rigidbody;
+            if (gameObject2.TryGetComponent<Rigidbody>(out rigidbody))
+            {
+                rigidbody.velocity = gameObject2.transform.forward * 200f;
+            }
+            Nail nail;
+            if (gameObject2.TryGetComponent<Nail>(out nail))
+            {
+                nail.damage = damage;
+            }
+        }
+    }
     public class AgonizedMask : BaseItem
     {
         public override Rarity Rarity => Rarity.Legendary;
@@ -183,47 +244,32 @@ namespace Ultrarogue.Items
             });
         }
     }
-    public class BloodPact : BaseItem
+
+    public class MachineVirus : BaseItem
     {
-        public override string ItemName => "Blood Pact";
-        public override string itemDescription => "Max HP halved. Global damage +100% per stack";
+        public override string ItemName => "Machine Virus";
+        public override string itemDescription => "Increase damage by 0.5% for every time that enemy was hit.";
+
+        Dictionary<EnemyIdentifier, int> hits = new Dictionary<EnemyIdentifier, int>();
         public override Rarity Rarity => Rarity.Legendary;
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
-        Change hpChange;
-        Change dmgChange;
-
         public override void OnStart()
         {
-            hpChange = new Change(percentage: 0);
-            dmgChange = new Change(percentage: 0);
-            new PlayerChange(maxHealth: hpChange, globalDamageMult: dmgChange);
-        }
+            new DamageModifier(ItemName, (eid) =>
+            {
+                int c = Plugin.GetItemCount(this);
+                if (c == 0) return 1f;
 
-        public override void OnUpdate(int count)
-        {
-            hpChange.percentage = -0.50f;
-            dmgChange.percentage = 1.0f * count;
-        }
-    }
+                int hit = 0;
+                if(!hits.TryGetValue(eid, out hit))
+                {
+                    hits.Add(eid, hit = 1);
+                    hit = 1;
+                }
 
-    public class Parasite : BaseItem
-    {
-        public override string ItemName => "Parasite";
-        public override string itemDescription => "+1% global damage per distinct item in your inventory (+1% per stack)";
-        public override Rarity Rarity => Rarity.Legendary;
-        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
-        Change dmgChange;
+                return 1 + ((0.5f*c) * hit);
 
-        public override void OnStart()
-        {
-            dmgChange = new Change(percentage: 0);
-            new PlayerChange(globalDamageMult: dmgChange);
-        }
-
-        public override void OnUpdate(int count)
-        {
-            int distinctItems = Plugin.items.Count;
-            dmgChange.percentage = 0.01f * distinctItems * count;
+            });
         }
     }
 }

@@ -11,12 +11,12 @@ public class ShopItem : MonoBehaviour
     bool purchased = false;
     float messageCooldown = 0f;
 
-    void Awake()
+    void Start()
     {
         if(Random.value >= 0.5f)
         {
 
-            ItemPickup.CreatePickupConditional(Plugin.GiveRandomItem(), transform.position, () =>
+            ItemPickup.CreatePickupConditional(Plugin.GiveRandomItem(), transform, () =>
             {
                 var mgr = RogueDifficultyManager.Instance;
                 if (mgr == null) return false;
@@ -40,7 +40,7 @@ public class ShopItem : MonoBehaviour
         }
         else
         {
-            WeaponPickupRogue.CreatePickupConditional(transform.position, () =>
+            WeaponPickupRogue.CreatePickupConditional(transform, () =>
             {
                 var mgr = RogueDifficultyManager.Instance;
                 if (mgr == null) return false;
