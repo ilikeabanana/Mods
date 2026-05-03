@@ -13,6 +13,9 @@ namespace Ultrarogue.SceneStuff
 
         void Update()
         {
+            transform.LookAt(Camera.main.transform);
+            transform.Rotate(0, 180, 0); // because quad faces +Z
+
             if (Vector3.Distance(NewMovement.Instance.transform.position, transform.position) <= 2f)
             {
                 if (pickedUp) return;
@@ -22,43 +25,58 @@ namespace Ultrarogue.SceneStuff
                 }
                 pickedUp = true;
                 HudMessageReceiver.Instance?.SendHudMessage(weapon.ToString());
-                Plugin.weapons.Add(weapon);
-                if (weapon.weapon == Weapon.Arm)
-                    FistControl.Instance.ResetFists();
-                else
-                    GunSetter.Instance.ResetWeapons();
+                Plugin.AddWeapon(weapon);
                 Destroy(gameObject);
             }
         }
 
-        public static void CreatePickup(Vector3 position)
+        public static void CreatePickup(Transform position)
         {
-            GameObject pickup = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            GameObject pickup = GameObject.CreatePrimitive(PrimitiveType.Quad);
             pickup.GetComponent<Collider>().enabled = false;
 
-            Weapon weaponEnum = (Weapon)Random.Range(0, System.Enum.GetValues(typeof(Weapon)).Length);
-            Variant variantEnum = (Variant)Random.Range(0, System.Enum.GetValues(typeof(Variant)).Length);
+            AWeapon weapon = AWeapon.GenerateWeapon();
+            Material mat = new Material(AssetsManager.weaponMat);
+            mat.SetInt("_CullMode", 0); // Off
+            mat.EnableKeyword("BILLBOARD");
 
-            AWeapon weapon = new AWeapon(weaponEnum, variantEnum);
+            mat.mainTexture = AssetsManager.prefToDescriptor(weapon.ToString(), weapon.Alternate).icon.texture;
+            pickup.GetComponent<MeshRenderer>().material = mat;
 
             pickup.AddComponent<WeaponPickupRogue>().weapon = weapon;
-            pickup.transform.position = position + Vector3.up * 2;
+            pickup.transform.position = position.position + Vector3.up * 2;
+            pickup.transform.parent = position;
+            pickup.transform.localScale *= 2;
+            pickup.transform.localScale = new Vector3(
+                pickup.transform.localScale.x * 2f,
+                pickup.transform.localScale.y,
+                pickup.transform.localScale.z
+            );
         }
 
-        public static void CreatePickupConditional(Vector3 position, Func<bool> pickupCon)
+        public static void CreatePickupConditional(Transform position, Func<bool> pickupCon)
         {
-            GameObject pickup = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            GameObject pickup = GameObject.CreatePrimitive(PrimitiveType.Quad);
             pickup.GetComponent<Collider>().enabled = false;
 
-            Weapon weaponEnum = (Weapon)Random.Range(0, System.Enum.GetValues(typeof(Weapon)).Length);
-            Variant variantEnum = (Variant)Random.Range(0, System.Enum.GetValues(typeof(Variant)).Length);
+            AWeapon weapon = AWeapon.GenerateWeapon();
+            Material mat = new Material(AssetsManager.weaponMat);
+            mat.SetInt("_CullMode", 0); // Off
+            mat.EnableKeyword("BILLBOARD");
 
-            AWeapon weapon = new AWeapon(weaponEnum, variantEnum);
-
+            mat.mainTexture = AssetsManager.prefToDescriptor(weapon.ToString(), weapon.Alternate).icon.texture;
+            pickup.GetComponent<MeshRenderer>().material = mat;
             WeaponPickupRogue pickup_component = pickup.AddComponent<WeaponPickupRogue>();
             pickup_component.weapon = weapon;
             pickup_component.canPickup = pickupCon;
-            pickup.transform.position = position + Vector3.up * 2;
+            pickup.transform.position = position.position + Vector3.up * 2;
+            pickup.transform.parent = position;
+            pickup.transform.localScale *= 2;
+            pickup.transform.localScale = new Vector3(
+                pickup.transform.localScale.x * 2f,
+                pickup.transform.localScale.y,
+                pickup.transform.localScale.z
+            );
         }
     }
 }

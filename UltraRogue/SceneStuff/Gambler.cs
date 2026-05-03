@@ -41,7 +41,7 @@ public class Gambler : MonoBehaviour
         if (Random.value <= 0.35f)
         {
             HudMessageReceiver.Instance?.SendHudMessage("You won!");
-            ItemPickup.CreatePickup(Plugin.GiveRandomItem(), transform.position);
+            ItemPickup.CreatePickup(Plugin.GiveRandomItem(), transform);
         }
         else
         {

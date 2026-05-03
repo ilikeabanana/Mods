@@ -13,10 +13,11 @@ namespace Ultrarogue
     {
         /// <summary> Directory with all the asset bundles for the catalog to load. </summary>
         public static string EpicScene => Path.Combine(Application.temporaryCachePath, "Ultrarogue");
-
+        static bool alrLoaded = false;
         /// <summary> Gets the embedded resources then moves them to the <see cref="BundleDir"/> , then loads the catalog synchronously. </summary>
         public static void Load()
         {
+            if (alrLoaded) return;
             if (Directory.Exists(EpicScene))
                 Directory.Delete(EpicScene, true);
 
@@ -48,7 +49,7 @@ namespace Ultrarogue
                 Path.Combine(EpicScene, "catalog.json"),
                 autoReleaseHandle: true
             ).WaitForCompletion();
-        
+            alrLoaded = true;
         }
     }
 

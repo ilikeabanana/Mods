@@ -12,6 +12,9 @@ public class ItemPickup : MonoBehaviour
     Func<bool> canPickup;
     void Update()
     {
+        transform.transform.LookAt(Camera.main.transform);
+        transform.transform.Rotate(0, 180f, 0); // Quads face backwards
+
         if (Vector3.Distance(NewMovement.Instance.transform.position, transform.position) <= 2f)
         {
             if (pickedUp) return;
@@ -25,19 +28,29 @@ public class ItemPickup : MonoBehaviour
             Destroy(gameObject);
         }
     }
-    public static void CreatePickup(BaseItem item, Vector3 position)
+    public static void CreatePickup(BaseItem item, Transform position)
     {
-        GameObject pickup = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        GameObject pickup = GameObject.CreatePrimitive(PrimitiveType.Quad);
         pickup.GetComponent<Collider>().enabled = false;
         pickup.AddComponent<ItemPickup>().item = item;
-        pickup.transform.position = position + Vector3.up * 2;
+        Material mat = new Material(AssetsManager.weaponMat);
+        mat.mainTexture = item.ItemTexture;
+        pickup.GetComponent<MeshRenderer>().material = mat;
+        pickup.transform.position = position.position + Vector3.up * 3;
+        pickup.transform.parent = position;
+        pickup.transform.localScale *= 3;
     }
-    public static void CreatePickupConditional(BaseItem item, Vector3 position, Func<bool> pickupCon)
+    public static void CreatePickupConditional(BaseItem item, Transform position, Func<bool> pickupCon)
     {
-        GameObject pickup = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        GameObject pickup = GameObject.CreatePrimitive(PrimitiveType.Quad);
         pickup.GetComponent<Collider>().enabled = false;
         pickup.AddComponent<ItemPickup>().item = item;
         pickup.GetComponent<ItemPickup>().canPickup = pickupCon;
-        pickup.transform.position = position + Vector3.up * 2;
+        Material mat = new Material(AssetsManager.weaponMat);
+        mat.mainTexture = item.ItemTexture;
+        pickup.GetComponent<MeshRenderer>().material = mat;
+        pickup.transform.position = position.position + Vector3.up * 3;
+        pickup.transform.localScale *= 3;
+        pickup.transform.parent = position;
     }
 }
