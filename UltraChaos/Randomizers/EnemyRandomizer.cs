@@ -120,6 +120,10 @@ namespace Ultrachaos.Randomizers
 
             }
 
+            Enemy eee = FindEnemyComponent(eid.gameObject);
+            Enemy eeer = FindEnemyComponent(randomedEID.gameObject);
+            eeer.dontDie = eee.dontDie;
+
 
             UnityEvent eventtt = eid.onDeath;
             randomedEID.onDeath.AddListener(() =>
