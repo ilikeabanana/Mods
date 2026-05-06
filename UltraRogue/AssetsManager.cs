@@ -28,6 +28,7 @@ public class AssetsManager
     public static GameObject napalmProj;
     public static GameObject mindflayerBeam;
     public static GameObject funnyPowerIntroSpawn;
+    public static AudioClip StalkerWarning;
 
     public static void Init()
     {
@@ -62,6 +63,12 @@ public class AssetsManager
             mindflayerBeam = Addressables
                 .LoadAssetAsync<GameObject>(
                     "Assets/Prefabs/Attacks and Projectiles/Hitscan Beams/Mindflayer Beam.prefab")
+                .WaitForCompletion();
+
+        if (StalkerWarning == null)
+            StalkerWarning = Addressables
+                .LoadAssetAsync<AudioClip>(
+                    "Assets/Sounds/Enemies/StalkerWarning.wav")
                 .WaitForCompletion();
 
     }

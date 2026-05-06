@@ -358,7 +358,6 @@ namespace Ultrarogue
                 items.Clear();
             }
 
-            if (ShaderManager.shaderDictionary.Count <= 0) StartCoroutine(ShaderManager.LoadShadersAsync());
             if (NewMovement.Instance == null) return;
             normalMoveSpeed = NewMovement.Instance.walkSpeed;
             normalJumpHeight = NewMovement.Instance.jumpPower;
@@ -372,7 +371,7 @@ namespace Ultrarogue
 
             if (Input.GetKeyDown(KeyCode.X))
             {
-                Plugin.GiveItem("Residual Cannon");
+                Plugin.GiveItem("Prime Head");
             }
             #if RUNTIME_ROOMS
             if (Input.GetKeyDown(KeyCode.F5))

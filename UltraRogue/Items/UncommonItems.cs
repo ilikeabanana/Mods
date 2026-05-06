@@ -121,7 +121,7 @@ namespace Ultrarogue.Items
             if (__instance.hasBeenRicocheter) return;
             if (__instance.beamType == BeamType.Enemy) return;
             if (__instance.beamType == BeamType.MaliciousFace) return;
-            float baseChance = 25f + (15f * count);
+            float baseChance = 25f + (15f * (count -1));
 
             float chance = baseChance;
 

@@ -23,7 +23,7 @@ namespace Ultrarogue.Items
     public class PrimeHead : BaseItem
     {
         public override string ItemName => "Prime Head";
-        public override string itemDescription => "Cooldowns reduce by 20%";
+        public override string itemDescription => "Cooldowns reduce by 50%";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Utility };
         public override Rarity Rarity => Rarity.Legendary;
         Change change = new Change(percentage: 0);
@@ -35,7 +35,7 @@ namespace Ultrarogue.Items
 
         public override void OnUpdate(int count)
         {
-            change.percentage = 0.20f * count;
+            change.percentage = 0.50f * count;
         }
     }
 
@@ -115,7 +115,7 @@ namespace Ultrarogue.Items
         public override string ItemName => "Residual Cannon";
         public override string itemDescription => "On hitscan fire, create a continuous beam that stays for 0.5s (+0.5s per stack) and deals 100% TOTAL damage";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
-        public override Rarity Rarity => Rarity.Uncommon;
+        public override Rarity Rarity => Rarity.Legendary;
         public override List<Plugin.Weapon> WeaponRequirements => new List<Plugin.Weapon>() { Plugin.Weapon.Revolver };
         [HarmonyPatch(typeof(RevolverBeam), nameof(RevolverBeam.Start))]
         public static void Postfix(RevolverBeam __instance)

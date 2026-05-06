@@ -1,4 +1,5 @@
-﻿using Ultrarogue;
+﻿using System.Collections;
+using Ultrarogue;
 using UnityEngine;
 
 public class Gambler : MonoBehaviour
@@ -80,6 +81,14 @@ public class Gambler : MonoBehaviour
     void Explode()
     {
         exploded = true;
+        StartCoroutine(explosionNumerator());
+    }
+
+    IEnumerator explosionNumerator()
+    {
+        gameObject.AddComponent<AudioSource>().PlayOneShot(AssetsManager.StalkerWarning);
+
+        yield return new WaitForSeconds(1f);
 
         var explosionPrefab = DefaultReferenceManager.Instance.explosion;
         if (explosionPrefab != null)
