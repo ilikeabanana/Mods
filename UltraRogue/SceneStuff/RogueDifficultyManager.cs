@@ -48,6 +48,39 @@ public class RogueDifficultyManager : MonoBehaviour
         itemsUI = GameObject.Find("Items").transform.Find("Panel").gameObject;
         itemsUI.SetActive(false);
         itemParent = itemsUI.GetComponent<GridLayoutGroup>();
+
+        Transform stats = GameObject.Find("Items").transform.Find("Stats");
+
+        statSpeedText = stats.Find("StatSpeed/Stt").GetComponent<TMP_Text>();
+        statDamageText = stats.Find("StatDamage/Stt").GetComponent<TMP_Text>();
+        statAtkSpeedText = stats.Find("StatAtkSpeed/Stt").GetComponent<TMP_Text>();
+        statCooldownText = stats.Find("StatCooldown/Stt").GetComponent<TMP_Text>();
+    }
+
+    void UpdateStatsUI()
+    {
+        if (NewMovement.Instance == null) return;
+
+        // Movement speed
+        float speed = NewMovement.Instance.walkSpeed;
+        float baseSpeed = Plugin.Instance.normalMoveSpeed;
+
+        float speedMult = speed / baseSpeed;
+
+        // Attack speed
+        float atkSpeed = Plugin.AttackSpeed.CalculateChanges(1f);
+
+        // Damage
+        float dmg = Plugin.globalDamageMult.CalculateChanges(1f);
+
+        // Cooldown
+        float cd = Plugin.cooldownReduction.CalculateChanges(1f);
+
+        // Apply text
+        statSpeedText.text = $"x{speedMult:F2}";
+        statDamageText.text = $"x{dmg:F2}";
+        statAtkSpeedText.text = $"x{atkSpeed:F2}";
+        statCooldownText.text = $"x{cd:F2}";
     }
 
     public void AddItem(BaseItem item)
@@ -111,20 +144,28 @@ public class RogueDifficultyManager : MonoBehaviour
     }
 
     GameObject itemsUI;
+    private TMP_Text statSpeedText;
+    private TMP_Text statDamageText;
+    private TMP_Text statAtkSpeedText;
+    private TMP_Text statCooldownText;
+
     void Update()
     {
         if (InputManager.Instance.InputSource.Stats.IsPressed)
         {
             itemsUI.SetActive(true);
+            statDamageText.transform.parent.parent.gameObject.SetActive(true);
         }
         else
         {
             itemsUI.SetActive(false);
+            statDamageText.transform.parent.parent.gameObject.SetActive(false);
         }
 
         Difficulty += (Time.deltaTime / 180) * difficultyScaleMult;
         goldText.text = "Gold: " + Gold;
         keyText.text = "Keys: " + Keys;
+        UpdateStatsUI();
     }
 
     public void MoveStage()

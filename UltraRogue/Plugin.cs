@@ -127,7 +127,7 @@ namespace Ultrarogue
             return 0;
         }
 
-        float normalMoveSpeed = 0f;
+        public float normalMoveSpeed = 0f;
         float normalJumpHeight = 0f;
         public static int MaxHealth = 100;
         public static Change AttackSpeed;
@@ -1219,7 +1219,7 @@ namespace Ultrarogue
             {
                 for (int i = 0; i < 2; i++)
                 {
-                    yield return new WaitForSeconds(AttackSpeed.CalculateChanges(__instance.altVersion ? 0.5f : 0.2f));
+                    yield return new WaitForSeconds((__instance.altVersion ? 0.5f : 0.2f) / AttackSpeed.CalculateChanges(1f));
                     if (__instance == null || !__instance.gameObject.activeInHierarchy)
                         yield break;
                     if (!__instance.inman.InputSource.Fire1.IsPressed) yield break;
