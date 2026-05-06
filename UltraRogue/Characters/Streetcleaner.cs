@@ -13,24 +13,5 @@ namespace Ultrarogue.Characters
             new AWeapon(Plugin.Weapon.RocketLauncher, Plugin.Variant.Red)
         };
         public override List<string> StartingItems => new List<string>() { "Gasoline" };
-
-        Change HPChange = new Change(addition: 150);
-
-        PlayerChange change;
-
-        public override void Update(bool selected)
-        {
-            if (change == null)
-                change = new PlayerChange(maxHealth: HPChange);
-
-            if (selected)
-            {
-                HPChange.addition = -45;
-            }
-            else
-            {
-                HPChange.addition = 0;
-            }
-        }
     }
 }

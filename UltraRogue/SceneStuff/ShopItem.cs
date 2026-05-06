@@ -13,7 +13,7 @@ public class ShopItem : MonoBehaviour
 
     void Start()
     {
-        if(Random.value >= 0.5f)
+        if((float)RogueDifficultyManager.ItemRNG.NextDouble() >= 0.5f)
         {
 
             ItemPickup.CreatePickupConditional(Plugin.GiveRandomItem(), transform, () =>

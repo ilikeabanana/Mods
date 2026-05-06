@@ -9,6 +9,7 @@ using System;
 
 
 // This is actually just the rogue manager... but eh, too lazy to change lol
+[DefaultExecutionOrder(-1)]
 public class RogueDifficultyManager : MonoBehaviour
 {
     public static RogueDifficultyManager Instance { get; private set; }
@@ -24,26 +25,92 @@ public class RogueDifficultyManager : MonoBehaviour
 
     float difficultyScaleMult = 1f;
     public int floor = 1;
+    Dictionary<string, int> itemCounts;
+    Dictionary<string, GameObject> itemUIObjects;
+
+    public static System.Random ItemRNG;
+    public static System.Random GambleItemRNG;
+    public static System.Random RoomRNG;
+    public static System.Random BossRNG;
+
     void Awake()
     {
+        ItemRNG = new System.Random(Plugin.GameSeed.GetHashCode());
+        GambleItemRNG = new System.Random(Plugin.GameSeed.GetHashCode() * 2); // Considering you can infinitely gamble, it might cause rng issues.
+        RoomRNG = new System.Random(Plugin.GameSeed.GetHashCode() / 2);
+        BossRNG = new System.Random(Plugin.GameSeed.GetHashCode() ^ 2);
         Instance = this;
-        Difficulty = 1;
+        Difficulty = Plugin.CurrentDifficulty;
+
+        itemCounts = new Dictionary<string, int>();
+        itemUIObjects = new Dictionary<string, GameObject>();
 
         itemsUI = GameObject.Find("Items").transform.Find("Panel").gameObject;
         itemsUI.SetActive(false);
+        itemParent = itemsUI.GetComponent<GridLayoutGroup>();
+    }
+
+    public void AddItem(BaseItem item)
+    {
+        if (item == null)
+        {
+            Plugin.Logger.LogError("AddItem called with null item!");
+            return;
+        }
+
+        if (itemParent == null)
+        {
+            Plugin.Logger.LogError("itemParent is not assigned in the Inspector!");
+            
+            return;
+        }
+
+        string itemKey = item.ItemName;
+
+        if (itemCounts.ContainsKey(itemKey))
+        {
+            itemCounts[itemKey]++;
+
+            if (itemUIObjects.TryGetValue(itemKey, out GameObject existingUI) && existingUI != null)
+            {
+                TMP_Text countLabel = existingUI.GetComponentInChildren<TMP_Text>();
+                if (countLabel != null)
+                    countLabel.text = $"(x{itemCounts[itemKey]})";
+            }
+        }
+        else
+        {
+            itemCounts[itemKey] = 1;
+
+            GameObject container = new GameObject(itemKey);
+            container.transform.SetParent(itemParent.transform, false);
+
+            Image icon = container.AddComponent<Image>();
+            if (item.ItemIcon != null)
+                icon.sprite = item.ItemIcon;
+            else
+                Plugin.Logger.LogWarning($"Item '{itemKey}' has no icon!");
+
+            GameObject labelObj = new GameObject("CountLabel");
+            labelObj.transform.SetParent(container.transform, false);
+
+            TMP_Text countText = labelObj.AddComponent<TextMeshProUGUI>();
+            countText.text = "";
+            countText.fontSize = 14;
+            countText.alignment = TextAlignmentOptions.BottomRight;
+            countText.color = Color.white;
+
+            RectTransform rt = labelObj.GetComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+
+            itemUIObjects[itemKey] = container;
+        }
     }
 
     GameObject itemsUI;
-    
-    public void AddItem(BaseItem item)
-    {
-        GameObject img = new GameObject();
-        Image imgg = img.AddComponent<Image>();
-        imgg.sprite = item.ItemIcon;
-
-        img.transform.parent = itemsUI.transform;
-    }
-
     void Update()
     {
         if (InputManager.Instance.InputSource.Stats.IsPressed)
@@ -66,15 +133,12 @@ public class RogueDifficultyManager : MonoBehaviour
         Plugin.Logger.LogInfo("Before: " + difficultyScaleMult);
         int diff = Plugin.CurrentDifficulty;
         Plugin.Logger.LogInfo("Difficulty pref: " + diff);
-        difficultyScaleMult *= 1.34f * ((diff + 1) / 3);
+        difficultyScaleMult *= 1.34f * ((diff + 2) / 3);
         Plugin.Logger.LogInfo("After: " + difficultyScaleMult);
-        // Harmless = 0,3333333333333333 = 0,4466666666666666 per stage
-        // Lenient = 0,6666666666666667 = 0,8933333333333334 per stage
-        // Standard = 1 = 1.34 per stage
-        // Violent = 1,333333333333333 = 1,786666666666666 per stage
-        // Brutal = 1,666666666666667 = 2,233333333333334 per stage
-        // UKMD = 2 = 2.68 per stage
+        // Easy mode = 0,6666666666666667 = 0,8933333333333334 per floor.
+        // Hard mode = 1 = 1.34 per floor.
         floor++;
+        GambleItemRNG = new System.Random(Plugin.GameSeed.GetHashCode() * (floor + 2));
     }
 
     public int GetCountBeforeRadiance(EnemyType enemyType)
@@ -137,7 +201,7 @@ public class RogueDifficultyManager : MonoBehaviour
 
                 options.Add(new BossPick(new List<BossEntry>()
                 {
-                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.Power)[0].gameObject, 20),
+                    new BossEntry(AssetsManager.funnyPowerIntroSpawn, 20),
                 }));
 
                 options.Add(new BossPick(new List<BossEntry>()
@@ -147,6 +211,7 @@ public class RogueDifficultyManager : MonoBehaviour
                 break;
             case 3:
             case 4:
+            case 5:
                 options.Add(new BossPick(new List<BossEntry>()
                 {
                     new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.V2)[0].gameObject, 0),
@@ -168,8 +233,8 @@ public class RogueDifficultyManager : MonoBehaviour
                     new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.Sisyphus)[0].gameObject, 50),
                 }));
                 break;
-            case 5:
             case 6:
+            case 7:
                 options.Add(new BossPick(new List<BossEntry>()
                 {
                     new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.Ferryman)[0].gameObject, 0),
@@ -212,32 +277,32 @@ public class RogueDifficultyManager : MonoBehaviour
                 }));
                 options.Add(new BossPick(new List<List<BossEntry>>()
                 {
-                    new List<BossEntry> { new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.Power)[0].gameObject, 0) }, // Wave 1
-                    new List<BossEntry> { new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.Power)[0].gameObject, 0), 
-                        new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.Power)[0].gameObject, 0) } // Wave 2
+                    new List<BossEntry> { new BossEntry(AssetsManager.funnyPowerIntroSpawn, 0) }, // Wave 1
+                    new List<BossEntry> { new BossEntry(AssetsManager.funnyPowerIntroSpawn, 0), 
+                        new BossEntry(AssetsManager.funnyPowerIntroSpawn, 0) } // Wave 2
                 }));
                 break;
             default:
                 options.Add(new BossPick(new List<BossEntry>()
                 {
-                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.MinosPrime)[0].gameObject, 0),
+                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.MinosPrime)[0].gameObject, 0, 25, 8),
                 }));
                 options.Add(new BossPick(new List<BossEntry>()
                 {
-                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.SisyphusPrime)[0].gameObject, 130),
+                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.SisyphusPrime)[0].gameObject, 130, 20, 8),
                 }));
                 options.Add(new BossPick(new List<BossEntry>()
                 {
-                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.MirrorReaper)[0].gameObject, 0),
+                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.MirrorReaper)[0].gameObject, 0, 23, 8),
                 }));
                 options.Add(new BossPick(new List<BossEntry>()
                 {
-                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.BigJohnator)[0].gameObject, 100),
+                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.BigJohnator)[0].gameObject, 100, 12, 8),
                 }));
                 options.Add(new BossPick(new List<BossEntry>()
                 {
-                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.MaliciousFace)[0].gameObject, 60),
-                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.MaliciousFace)[0].gameObject, 60),
+                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.MaliciousFace)[0].gameObject, 60, 45, 8),
+                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.MaliciousFace)[0].gameObject, 60, 45, 8),
                 }));
                 break;
         }
@@ -248,7 +313,37 @@ public class RogueDifficultyManager : MonoBehaviour
         return options[UnityEngine.Random.Range(0, options.Count)];
     }
 
+    public bool CanSpawn(EnemyType enemy)
+    {
+        switch (enemy)
+        {
+            case EnemyType.Filth:
+            case EnemyType.Stray:
+            case EnemyType.Schism:
+            case EnemyType.Drone:
+            case EnemyType.Soldier:
+                return true;
+            case EnemyType.Streetcleaner:
+                return Plugin.SelectedChar.GetType() != typeof(Ultrarogue.Characters.Streetcleaner);
+            case EnemyType.MaliciousFace:
+            case EnemyType.Cerberus:
+            case EnemyType.Swordsmachine:
+            case EnemyType.Mindflayer:
+                return floor >= 3;
+            case EnemyType.Power:
+            case EnemyType.Ferryman:
+            case EnemyType.Sisyphus:
+                return floor >= 5;
+            case EnemyType.HideousMass:
+            case EnemyType.V2:
+            case EnemyType.V2Second:
+            case EnemyType.Gabriel:
+                return floor >= 6;
+            default:
+                return floor >= 9;
 
+        }
+    }
 
     public int GetCost(EnemyType enemyType)
     {
@@ -263,13 +358,13 @@ public class RogueDifficultyManager : MonoBehaviour
             case EnemyType.Streetcleaner:
                 return 5;
             case EnemyType.Cerberus:
-                return 16;
-            case EnemyType.Swordsmachine:
                 return 20;
+            case EnemyType.Swordsmachine:
+                return 25;
             case EnemyType.Drone:
                 return 4;
             case EnemyType.HideousMass:
-                return 40;
+                return 48;
             case EnemyType.V2:
                 return 175;
             case EnemyType.V2Second:
@@ -285,7 +380,7 @@ public class RogueDifficultyManager : MonoBehaviour
             case EnemyType.GabrielSecond:
                 return 335;
             case EnemyType.Soldier:
-                return 6;
+                return 4;
             case EnemyType.Mindflayer:
                 return 55;
             case EnemyType.Sisyphus:
@@ -307,9 +402,11 @@ public class RogueDifficultyManager : MonoBehaviour
             case EnemyType.Guttertank:
                 return 40;
             case EnemyType.Mannequin:
-                return 25;
+                return 14;
             case EnemyType.MirrorReaper:
                 return 125;
+            case EnemyType.Mandalore:
+                return 145;
             case EnemyType.Ferryman:
                 return 55;
             case EnemyType.MaliciousFace:
@@ -325,7 +422,6 @@ public class RogueDifficultyManager : MonoBehaviour
 
 public class BossPick
 {
-    // Each entry in this list is a "Wave" (which is itself a list of BossEntries)
     public List<List<BossEntry>> waves = new List<List<BossEntry>>();
     public Action<EnemyIdentifier> onSpawn;
 
@@ -335,7 +431,6 @@ public class BossPick
         this.onSpawn = onSpawn;
     }
 
-    // Constructor for single-wave bosses (backward compatibility)
     public BossPick(List<BossEntry> singleWave, Action<EnemyIdentifier> onSpawn = null)
     {
         this.waves = new List<List<BossEntry>> { singleWave };
@@ -347,11 +442,15 @@ public class BossEntry
 {
     public GameObject prefab;
     public float healthMod;
+    public float healthPerFloorMod;
+    public int startFloor;
 
 
-    public BossEntry(GameObject prefab, float healthMod = 0)
+    public BossEntry(GameObject prefab, float healthMod = 0, float healthPerFloorMod = 0, int startFloor = 0)
     {
         this.prefab = prefab;
         this.healthMod = healthMod;
+        this.healthPerFloorMod = healthPerFloorMod;
+        this.startFloor = startFloor;
     }
 }

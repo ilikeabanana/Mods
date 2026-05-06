@@ -26,11 +26,33 @@ namespace Ultrarogue.Items
             });
         }
     }
+    public class Executioner : BaseItem
+    {
+        public override string ItemName => "Executioner";
+        public override string itemDescription => "Enemies below 20% HP take 100% more damage (+100% per stack)";
+        public override Rarity Rarity => Rarity.Uncommon;
+        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
+
+        public override void OnStart()
+        {
+            new DamageModifier(ItemName, (eid) =>
+            {
+                int count = Plugin.GetItemCount(this);
+                if (count <= 0) return 1f;
+
+                float hpPercent = eid.health / eid.GetComponent<Enemy>().originalHealth;
+                if (hpPercent < 0.20f)
+                    return 1f + (1.0f * count);
+
+                return 1f;
+            });
+        }
+    }
 
     public class Combatblood : BaseItem
     {
         public override string ItemName => "Combat blood";
-        public override string itemDescription => "On kill, restore 3 HP (+1 per stack)";
+        public override string itemDescription => "On kill, restore 3 HP (+3 per stack)";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Healing };
         public override Rarity Rarity => Rarity.Uncommon;
         public override void OnStart()
@@ -40,7 +62,7 @@ namespace Ultrarogue.Items
                 int count = Plugin.GetItemCount(this);
                 if (count <= 0 || NewMovement.Instance == null) return;
 
-                int heal = 2 + count;
+                int heal = 3 * count;
                 NewMovement.Instance.hp = Mathf.Min(NewMovement.Instance.hp + heal, Plugin.MaxHealth);
             });
         }
@@ -97,6 +119,8 @@ namespace Ultrarogue.Items
             int count = Plugin.GetItemCount("Bouncy Hitscans");
             if (count <= 0) return;
             if (__instance.hasBeenRicocheter) return;
+            if (__instance.beamType == BeamType.Enemy) return;
+            if (__instance.beamType == BeamType.MaliciousFace) return;
             float baseChance = 25f + (15f * count);
 
             float chance = baseChance;
@@ -176,7 +200,7 @@ namespace Ultrarogue.Items
     public class SpikyNails : BaseItem
     {
         public override string ItemName => "Spiky Nails";
-        public override string itemDescription => "Enemies with nail get +1% (+1% per stack) more damage per nail stuck in them.";
+        public override string itemDescription => "Enemies with nail get +0.1% (+0.1% per stack) more damage per nail stuck in them.";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         public override Rarity Rarity => Rarity.Uncommon;
         public override List<Plugin.Weapon> WeaponRequirements => new List<Plugin.Weapon>() { Plugin.Weapon.Nailgun };
@@ -188,7 +212,7 @@ namespace Ultrarogue.Items
                 if (count <= 0) return 1f;
 
                 int nailsStuck = eid.nailsAmount;
-                float damageIncrease = (0.01f * count) * nailsStuck;
+                float damageIncrease = (0.001f * count) * nailsStuck;
                 return damageIncrease + 1;
             });
         }

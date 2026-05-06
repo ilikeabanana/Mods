@@ -17,6 +17,8 @@ namespace Ultrachaos.Randomizers
 
         protected abstract RandomConfigValue GetConfigValue();
 
+        protected virtual void Log(string message) { }
+
         public void ResetMappings()
         {
             _map.Clear();
@@ -31,10 +33,7 @@ namespace Ultrachaos.Randomizers
                 Pool.Add(item);
         }
 
-        public virtual void Initialize()
-        {
-
-        }
+        public virtual void Initialize() { }
 
         public void AddRangeToPool(IEnumerable<T> items)
         {
@@ -73,21 +72,29 @@ namespace Ultrachaos.Randomizers
                         if (!_map.TryGetValue(key, out T mapped))
                         {
                             List<T> available = CPool
-                                .Where(item => !_usedIds.Contains(GetInstanceID(item)))
+                                .Where(item => !_usedIds.Contains(GetInstanceID(item)) && GetInstanceID(item) != key)
                                 .ToList();
 
-                            List<T> filtered = CPool
-                                .Where(item => GetInstanceID(item) != key)
-                                .ToList();
+                            Log($"[UniquePerKind] key={key} | pool={CPool.Count} | usedIds=[{string.Join(",", _usedIds)}] | available={available.Count}");
 
-                            if (filtered.Count == 0)
+                            if (available.Count == 0)
+                            {
+                                available = CPool.Where(item => GetInstanceID(item) != key).ToList();
+                                Log($"[UniquePerKind] key={key} | pool exhausted, falling back to {available.Count} candidates");
+                            }
+
+                            if (available.Count == 0)
                                 return original;
 
-                            mapped = filtered[NextIndex(filtered.Count)];
-
-
+                            mapped = available[NextIndex(available.Count)];
                             _usedIds.Add(GetInstanceID(mapped));
                             _map[key] = mapped;
+
+                            Log($"[UniquePerKind] key={key} -> assigned id={GetInstanceID(mapped)} | usedIds now=[{string.Join(",", _usedIds)}]");
+                        }
+                        else
+                        {
+                            Log($"[UniquePerKind] key={key} -> already mapped to id={GetInstanceID(mapped)} (cache hit)");
                         }
                         return mapped;
                     }

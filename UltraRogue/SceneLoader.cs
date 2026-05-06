@@ -86,6 +86,7 @@ public static class SceneLoader
         //new GameObject("generator").AddComponent<RoomGenerator>();
         new GameObject("NavMesh").AddComponent<NavMeshSurface>();
         Plugin.Instance.StartCoroutine(PlayPixelAnimation());
+        
     }
 
     static IEnumerator PlayPixelAnimation()
@@ -93,6 +94,7 @@ public static class SceneLoader
         // Wait until PostProcessV2_Handler is ready
         yield return new WaitUntil(() => PostProcessV2_Handler.Instance != null);
         yield return new WaitUntil(() => NewMovement.Instance != null);
+        Plugin.RogueMode = true;
         NewMovement.Instance.transform.position = Vector3.zero;
         float target = PostProcessV2_Handler.Instance.downscaleResolution;
         float actualTarget = target;

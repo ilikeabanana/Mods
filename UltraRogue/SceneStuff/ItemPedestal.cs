@@ -11,7 +11,7 @@ public class ItemPedestal : MonoBehaviour
 
     void Start()
     {
-        if(Random.value <= 0.5f)
+        if((float)RogueDifficultyManager.ItemRNG.NextDouble() <= 0.5f)
         {
             chosenItem = Plugin.GiveRandomItem();
             ItemPickup.CreatePickup(chosenItem, transform);

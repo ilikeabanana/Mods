@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using HarmonyLib;
+using System.Collections;
 using System.Collections.Generic;
 using System.Numerics;
 using UnityEngine;
@@ -41,7 +42,7 @@ namespace Ultrarogue.Items
     public class VinnyPimpHat : BaseItem
     {
         public override string ItemName => "Vinny's Pimp Hat";
-        public override string itemDescription => "Every 15 seconds fire a purple saw that deals 150% (+150% per stack) damage and stays until the room is cleared.";
+        public override string itemDescription => "Every 5 seconds fire a purple saw that deals 150% (+150% per stack) damage and stays until the room is cleared.";
 
         public override Rarity Rarity => Rarity.Legendary;
         float t = 0;
@@ -97,6 +98,7 @@ namespace Ultrarogue.Items
             if (gameObject2.TryGetComponent<Nail>(out nail))
             {
                 nail.damage = damage;
+                nail.hitAmount = float.MaxValue - 1;
             }
         }
     }
@@ -104,29 +106,46 @@ namespace Ultrarogue.Items
     {
         public override Rarity Rarity => Rarity.Legendary;
         public override string ItemName => "Agonized Mask";
-        public override string itemDescription => "On Kill spawn a puppet as an ally";
+        public override string itemDescription => "Have a 25% (+10% per stack) for an enemy to spawn as a puppet (does NOT include bosses)";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Utility };
-        public override void OnStart()
+    }
+    [HarmonyPatch]
+    public class ResidualCannon : BaseItem
+    {
+        public override string ItemName => "Residual Cannon";
+        public override string itemDescription => "On hitscan fire, create a continuous beam that stays for 0.5s (+0.5s per stack) and deals 100% TOTAL damage";
+        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
+        public override Rarity Rarity => Rarity.Uncommon;
+        public override List<Plugin.Weapon> WeaponRequirements => new List<Plugin.Weapon>() { Plugin.Weapon.Revolver };
+        [HarmonyPatch(typeof(RevolverBeam), nameof(RevolverBeam.Start))]
+        public static void Postfix(RevolverBeam __instance)
         {
-            new DeathEffect(ItemName, (eid) =>
+            int count = Plugin.GetItemCount("Residual Cannon");
+            if (count <= 0) return;
+            if (__instance.beamType == BeamType.Enemy) return;
+            if (__instance.beamType == BeamType.MaliciousFace) return;
+
+            GameObject beam = Object.Instantiate(AssetsManager.mindflayerBeam, __instance.transform.position, __instance.transform.rotation);
+            if(beam.TryGetComponent<ContinuousBeam>(out ContinuousBeam bem))
             {
-                if (!Plugin.canExecute(7f * Plugin.GetItemCount(this), "")) return;
-                EnemyType type = eid.enemyType;
-                GameObject? prefab = DefaultReferenceManager.Instance?.GetEnemyPrefab(type);
-                if (prefab != null)
-                {
-                    GameObject instantiated = Object.Instantiate(prefab, eid.transform.position, eid.transform.rotation);
-                    instantiated.AddComponent<TeamComponent>().teamId = Team.Player;
-                    instantiated.GetComponent<EnemyIdentifier>().puppet = true;
-                }
-            });
+                bem.damage = __instance.damage * 10f;
+                bem.canHitPlayer = false;
+                bem.canHitEnemy = true;
+            }
+
+            if(beam.TryGetComponent<LineRenderer>(out LineRenderer lr))
+            {
+                lr.startColor = __instance.lr.startColor;
+                lr.endColor = __instance.lr.endColor;
+                lr.colorGradient = __instance.lr.colorGradient;
+            }
+            Object.Destroy(beam, 0.5f * count);
         }
     }
-
     public class Soulcatcher : BaseItem
     {
         public override string ItemName => "Soulcatcher";
-        public override string itemDescription => "Each kill permanently increases global damage by 0.5% (+0.5% per stack)";
+        public override string itemDescription => "Each kill permanently increases global damage by 1% with a maximum of +150% (+150% per stack)";
         public override Rarity Rarity => Rarity.Legendary;
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         Change dmgChange;
@@ -141,7 +160,8 @@ namespace Ultrarogue.Items
             {
                 int count = Plugin.GetItemCount(this);
                 if (count <= 0) return;
-                killBonus += 0.005f * count;
+                if (killBonus >= 1.5f * count) return;
+                killBonus += 0.01f;
             });
         }
 
@@ -154,7 +174,7 @@ namespace Ultrarogue.Items
     public class CerberusHead : BaseItem
     {
         public override string ItemName => "Cerberus Head";
-        public override string itemDescription => "All weapons deal +100% more damage";
+        public override string itemDescription => "All weapons deal +60% more damage";
         public override Rarity Rarity => Rarity.Legendary;
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         Change dmgChange;
@@ -167,13 +187,13 @@ namespace Ultrarogue.Items
 
         public override void OnUpdate(int count)
         {
-            dmgChange.percentage = 1f * count;
+            dmgChange.percentage = 0.60f * count;
         }
     }
     public class WarMachine : BaseItem
     {
         public override string ItemName => "War Machine";
-        public override string itemDescription => "Attack speed +30%, move speed +20%";
+        public override string itemDescription => "Attack speed +45%, move speed +20%";
         public override Rarity Rarity => Rarity.Legendary;
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage, ItemTag.Utility };
         Change atkChange;
@@ -188,38 +208,16 @@ namespace Ultrarogue.Items
 
         public override void OnUpdate(int count)
         {
-            atkChange.percentage = 0.30f * count;
+            atkChange.percentage = 0.45f * count;
             moveChange.percentage = 0.20f * count;
         }
     }
 
-    public class Executioner : BaseItem
-    {
-        public override string ItemName => "Executioner";
-        public override string itemDescription => "Enemies below 20% HP take 100% more damage (+100% per stack)";
-        public override Rarity Rarity => Rarity.Legendary;
-        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
-
-        public override void OnStart()
-        {
-            new DamageModifier(ItemName, (eid) =>
-            {
-                int count = Plugin.GetItemCount(this);
-                if (count <= 0) return 1f;
-
-                float hpPercent = eid.health / eid.GetComponent<Enemy>().originalHealth;
-                if (hpPercent < 0.20f)
-                    return 1f + (1.0f * count);
-
-                return 1f;
-            });
-        }
-    }
 
     public class HellsFire : BaseItem
     {
         public override string ItemName => "Hell's Fire";
-        public override string itemDescription => "All hits ignite enemies";
+        public override string itemDescription => "All hits ignite enemies, enemies on fire take +100% more damage";
         public override Rarity Rarity => Rarity.Legendary;
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
 
@@ -241,6 +239,19 @@ namespace Ultrarogue.Items
                     Flammable f = eid.GetComponentInChildren<Flammable>();
                     if (f != null) f.Burn(burnDuration, false);
                 }
+            });
+
+            new DamageModifier(ItemName, (eid) =>
+            {
+                int count = Plugin.GetItemCount(this);
+                if (count <= 0 || eid.dead || eid.hitter != "fire") return 1f;
+                Flammable[] flams = eid.flammables.ToArray();
+                foreach (var f in flams)
+                {
+                    if (f.burning)
+                        return 1f + count;
+                }
+                return 1f;
             });
         }
     }
@@ -266,8 +277,8 @@ namespace Ultrarogue.Items
                     hits.Add(eid, hit = 1);
                     hit = 1;
                 }
-
-                return 1 + ((0.5f*c) * hit);
+                hits[eid]++;
+                return 1 + ((0.005f*c) * hit);
 
             });
         }

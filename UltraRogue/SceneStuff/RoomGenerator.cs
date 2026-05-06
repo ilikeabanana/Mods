@@ -43,18 +43,17 @@ public class RoomGenerator : MonoBehaviour
     float roomWidth = 59.5f;
     float roomHeight = 30f;
 
-    // Add to [Header("Generation Settings")] block:
     [Header("Performance")]
     [Tooltip("How many grid cells away from the player rooms stay active (1 = current + immediate neighbors).")]
     int activationRadius = 2;
 
-    // Add field near the other privates:
     private bool _generationComplete = false;
     private float _nextActivationCheck = 0f;
     private const float ActivationCheckInterval = 0.3f;
 
     void Awake()
     {
+        Room.roomIndex = 0;
         Instance = this;
         StartCoroutine(GenerateRooms());
     }
@@ -64,20 +63,18 @@ public class RoomGenerator : MonoBehaviour
         StopAllCoroutines();
         StatsManager.Instance.StopTimer();
         MusicManager.Instance.StopMusic();
-        // Destroy all existing rooms
         foreach (var room in placedRooms.Values)
         {
             if (room != null)
                 Destroy(room.gameObject);
         }
 
-        // Clear data
         placedRooms.Clear();
         path.Clear();
-        // Add Reset in RegenerateRooms(), before StartCoroutine:
+
         _generationComplete = false;
         if (MinimapUI.Instance != null) MinimapUI.Instance.ClearAndReset();
-        // Start fresh generation
+
         StartCoroutine(GenerateRooms(false));
     }
 
@@ -91,7 +88,7 @@ public class RoomGenerator : MonoBehaviour
             yield break;
         }
 
-        int count = Mathf.RoundToInt((float)Random.Range(minRooms, maxRooms)
+        int count = Mathf.RoundToInt((float)RogueDifficultyManager.RoomRNG.Next(minRooms, maxRooms)
                       * Plugin.CurrentDifficulty);
 
         Vector2Int current = Vector2Int.zero;
@@ -102,8 +99,8 @@ public class RoomGenerator : MonoBehaviour
 
         while (placed < count && safetyBreak++ < 1000)
         {
-            Vector2Int dir = directions[Random.Range(0, directions.Length)];
-            int steps = Random.Range(1, 4);
+            Vector2Int dir = directions[RogueDifficultyManager.RoomRNG.Next(0, directions.Length)];
+            int steps = RogueDifficultyManager.RoomRNG.Next(1, 4);
 
             for (int i = 0; i < steps && placed < count; i++)
             {
@@ -115,15 +112,14 @@ public class RoomGenerator : MonoBehaviour
                 placed++;
             }
 
-            int back = Random.Range(1, path.Count);
+            int back = RogueDifficultyManager.RoomRNG.Next(1, path.Count);
             current = path[path.Count - 1 - Mathf.Min(back, path.Count - 1)];
         }
 
-        PlaceSpecialRooms();
         DesignateBossRoom();
+        PlaceSpecialRooms();
         FinalizeConnections();
         BuildNavMesh();
-        // Add after BuildNavMesh(); in GenerateRooms():
 
 
         int special = 3;
@@ -233,12 +229,9 @@ public class RoomGenerator : MonoBehaviour
             Vector3 p = room.transform.position;
             room.transform.position = new Vector3(p.x, targetY, p.z);
 
-            Debug.Log($"[RoomGenerator] Aligned {gridPos} via {dir}: " +
-                      $"room.y={targetY:F2}  (neighbourExitY={neighborExit.position.y:F2}  myExitLocalY={myExitLocalY:F2})");
             return;
         }
 
-        Debug.LogWarning($"[RoomGenerator] Could not find a valid exit pair to align room at {gridPos} — left at y=0.");
     }
 
 
@@ -246,7 +239,7 @@ public class RoomGenerator : MonoBehaviour
     {
         Room prefab = isStart
             ? roomPrefabs[0]
-            : roomPrefabs[Random.Range(0, roomPrefabs.Count)];
+            : roomPrefabs[RogueDifficultyManager.RoomRNG.Next(0, roomPrefabs.Count)];
 
         Vector3 worldPos = new Vector3(gridPos.x * roomWidth, 0f, gridPos.y * roomHeight);
 
@@ -275,7 +268,7 @@ public class RoomGenerator : MonoBehaviour
 
         for (int i = candidates.Count - 1; i > 0; i--)
         {
-            int j = Random.Range(0, i + 1);
+            int j = RogueDifficultyManager.RoomRNG.Next(0, i + 1);
             (candidates[i], candidates[j]) = (candidates[j], candidates[i]);
         }
 
@@ -300,8 +293,6 @@ public class RoomGenerator : MonoBehaviour
                     if (placedRooms.ContainsKey(candidate + d))
                         neighbourCount++;
 
-                // Only true dead-ends: exactly one existing-room neighbour,
-                // and not already in the list.
                 if (neighbourCount == 1 && !deadEnds.Contains(candidate))
                     deadEnds.Add(candidate);
             }
@@ -316,30 +307,47 @@ public class RoomGenerator : MonoBehaviour
 
     void TryPlaceSpecialRoom(ref List<Vector2Int> candidates, RoomType roomType)
     {
-        if (candidates.Count == 0)
+        Vector2Int pos = Vector2Int.zero;
+        bool found = false;
+
+        while (candidates.Count > 0)
         {
-            Debug.LogWarning($"[RoomGenerator] No candidate position for {roomType} room — skipping.");
+            pos = candidates[0];
+            candidates.RemoveAt(0);
+
+            candidates.RemoveAll(c =>
+            {
+                foreach (var d in directions)
+                    if (c == pos + d) return true;
+                return false;
+            });
+
+            bool adjacentToSpecial = false;
+            foreach (var d in directions)
+            {
+                if (placedRooms.TryGetValue(pos + d, out Room adj) && adj.roomType != RoomType.Normal)
+                {
+                    adjacentToSpecial = true;
+                    break;
+                }
+            }
+
+            if (!adjacentToSpecial) { found = true; break; }
+            Debug.Log($"[RoomGenerator] Skipping {roomType} candidate {pos} — adjacent to a special room.");
+        }
+
+        if (!found)
+        {
+            Debug.LogWarning($"[RoomGenerator] No valid candidate for {roomType} room — skipping.");
             return;
         }
 
-        Vector2Int pos = candidates[0];
-        candidates.RemoveAt(0);
-
-        // ── After picking this slot, remove every candidate that sits directly
-        //    next to it so special rooms can never be adjacent to each other. ──
-        candidates.RemoveAll(c =>
-        {
-            foreach (var d in directions)
-                if (c == pos + d) return true;
-            return false;
-        });
-
         Room prefab = roomType switch
         {
-            RoomType.Treasure => treasureRoomPrefab != null ? treasureRoomPrefab : roomPrefabs[Random.Range(0, roomPrefabs.Count)],
-            RoomType.Shop => shopRoomPrefab != null ? shopRoomPrefab : roomPrefabs[Random.Range(0, roomPrefabs.Count)],
-            RoomType.Gambling => gamblingRoomPrefab != null ? gamblingRoomPrefab : roomPrefabs[Random.Range(0, roomPrefabs.Count)],
-            _ => roomPrefabs[Random.Range(0, roomPrefabs.Count)],
+            RoomType.Treasure => treasureRoomPrefab != null ? treasureRoomPrefab : roomPrefabs[RogueDifficultyManager.RoomRNG.Next(0, roomPrefabs.Count)],
+            RoomType.Shop => shopRoomPrefab != null ? shopRoomPrefab : roomPrefabs[RogueDifficultyManager.RoomRNG.Next(0, roomPrefabs.Count)],
+            RoomType.Gambling => gamblingRoomPrefab != null ? gamblingRoomPrefab : roomPrefabs[RogueDifficultyManager.RoomRNG.Next(0, roomPrefabs.Count)],
+            _ => roomPrefabs[RogueDifficultyManager.RoomRNG.Next(0, roomPrefabs.Count)],
         };
 
         Vector3 worldPos = new Vector3(pos.x * roomWidth, 0f, pos.y * roomHeight);
@@ -374,6 +382,18 @@ public class RoomGenerator : MonoBehaviour
 
             if (neighbourCount != 1) continue;
 
+            bool adjacentToSpecial = false;
+            foreach (var dir in directions)
+            {
+                if (placedRooms.TryGetValue(kvp.Key + dir, out Room adj) &&
+                    adj.roomType != RoomType.Normal && adj.roomType != RoomType.Boss)
+                {
+                    adjacentToSpecial = true;
+                    break;
+                }
+            }
+            if (adjacentToSpecial) continue;
+
             int manhattan = Mathf.Abs(kvp.Key.x) + Mathf.Abs(kvp.Key.y);
             if (manhattan > bestManhattan)
             {
@@ -381,6 +401,7 @@ public class RoomGenerator : MonoBehaviour
                 bossPos = kvp.Key;
             }
         }
+
 
         if (bestManhattan < 0)
         {
@@ -413,7 +434,7 @@ public class RoomGenerator : MonoBehaviour
 
         Room prefab = bossRoomPrefab != null
             ? bossRoomPrefab
-            : roomPrefabs[Random.Range(0, roomPrefabs.Count)];
+            : roomPrefabs[RogueDifficultyManager.RoomRNG.Next(0, roomPrefabs.Count)];
 
         Room bossRoom = Instantiate(prefab, new Vector3(oldWorldPos.x, 0f, oldWorldPos.z), Quaternion.identity);
         bossRoom.position = bossPos;
@@ -505,7 +526,6 @@ public class RoomGenerator : MonoBehaviour
                 return;
             }
 
-            // --- ORIGINAL LOGIC ---
             bool useMyDoor =
                 IsSpecialRoomPriority(room.roomType, neighbor.roomType) ||
                 (room.roomType == neighbor.roomType && IsPrimary(pos, neighborPos));
@@ -520,7 +540,6 @@ public class RoomGenerator : MonoBehaviour
             room.CreateWall(exit);
         }
     }
-    // Add new methods:
     void Update()
     {
         if (!_generationComplete) return;

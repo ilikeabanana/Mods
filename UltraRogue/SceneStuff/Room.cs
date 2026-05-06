@@ -1,23 +1,24 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using ULTRAKILL.Portal;
 using ULTRAKILL.Portal.Geometry;
 using Ultrarogue;
 using Ultrarogue.Characters;
+using Ultrarogue.Items;
 using Ultrarogue.SceneStuff;
 using UnityEngine;
+using Random=UnityEngine.Random;
 
-// ── Room type ──────────────────────────────────────────────────────────────────
-// Used by both runtime generation and (optionally) prefab-based generation.
 public enum RoomType
 {
     Normal,
     Start,
     Boss,
-    Treasure,   // One free item on a pedestal; no enemies.
-    Shop,       // 2–3 items purchasable with gold; no enemies.
-    Gambling,   // A Gambler machine; no enemies.
+    Treasure,
+    Shop,
+    Gambling,
 }
 
 public class Room : MonoBehaviour
@@ -34,11 +35,11 @@ public class Room : MonoBehaviour
 
     public List<Transform> spawnPoints = new List<Transform>();
 
-    // ── Room type ─────────────────────────────────────────────────────────────
 
     public RoomType roomType = RoomType.Normal;
 
-    /// <summary>Convenience accessor — true when this is a boss room.</summary>
+    public static int roomIndex;
+    System.Random enemyRando;
     public bool isBossRoom => roomType == RoomType.Boss;
 
     public BossPick bossEnemyType;
@@ -78,59 +79,86 @@ public class Room : MonoBehaviour
         CloseOffRoom();
         playerHealthAtFightStart = MonoSingleton<NewMovement>.Instance.hp;
         SpawnCredits = Mathf.RoundToInt((float)SpawnCredits * RogueDifficultyManager.Instance.Difficulty);
+        SpawnCredits = Mathf.Max(SpawnCredits, 3);
+        Plugin.Logger.LogInfo($"Room has {SpawnCredits} spawn credits because difficulty is {RogueDifficultyManager.Instance.Difficulty}");
         isFighting = true;
 
         int spawnedEnemies = 0;
         while (SpawnCredits > 0)
         {
-            EnemyType randomEnemy = (EnemyType)Random.Range(0, System.Enum.GetValues(typeof(EnemyType)).Length);
+            EnemyType randomEnemy = (EnemyType)enemyRando.Next(0, System.Enum.GetValues(typeof(EnemyType)).Length);
+            if (!RogueDifficultyManager.Instance.CanSpawn(randomEnemy)) continue;
             int cost = RogueDifficultyManager.Instance.GetCost(randomEnemy);
             if (SpawnCredits - cost < 0) continue;
 
             int amountCanSpawn = Mathf.FloorToInt(SpawnCredits / cost);
-            int amountToSpawn = Random.Range(1, amountCanSpawn + 1);
+            int amountToSpawn = enemyRando.Next(1, amountCanSpawn + 1);
             SpawnCredits -= amountToSpawn * cost;
 
-            int amountBeforeRadiance = RogueDifficultyManager.Instance.GetCountBeforeRadiance(randomEnemy);
-            int amountRadiance = 0;
-            if (amountToSpawn >= amountBeforeRadiance)
+            int baseC = RogueDifficultyManager.Instance.GetCountBeforeRadiance(randomEnemy);
+            var radianceBuffCounts = new List<int>();
+            int threshold = baseC;
+            int remaining = amountToSpawn;
+            int tierLevel = 1;
+
+            while (remaining >= threshold)
             {
-                amountRadiance = Mathf.FloorToInt((float)amountToSpawn / amountBeforeRadiance);
-                amountToSpawn -= amountRadiance * amountBeforeRadiance;
-                amountToSpawn += amountRadiance;
+                radianceBuffCounts.Add(tierLevel);
+                remaining -= threshold;
+                float fThreshold = (float)threshold * Mathf.Sqrt(baseC);
+                threshold = Mathf.RoundToInt(fThreshold);
+                tierLevel++;
             }
+            amountToSpawn = remaining + radianceBuffCounts.Count;
 
             GameObject enemyPrefab = DefaultReferenceManager.Instance.GetEnemyPrefab(randomEnemy);
+            if (randomEnemy == EnemyType.Power)
+                enemyPrefab = AssetsManager.funnyPowerIntroSpawn;
             if (enemyPrefab == null) continue;
-
-            // ── Fit check: sample once per enemy type, reuse for all spawns ──
-            Vector3 halfExtents = GetPrefabHalfExtents(enemyPrefab);
 
             for (int i = 0; i < amountToSpawn; i++)
             {
                 spawnedEnemies++;
-                yield return new WaitForSeconds(0.05f);
+                if (spawnedEnemies <= 25)
+                    yield return new WaitForSeconds(0.05f);
+                else
+                    yield return new WaitForSeconds(0.05f / (spawnedEnemies - 24));
 
-                Transform spawnPt = FindFittingSpawnPoint(halfExtents);
+                Transform spawnPt = spawnPoints[enemyRando.Next(0, spawnPoints.Count)];
 
                 if (spawnPt == null)
                 {
                     Debug.LogWarning($"[Room] No fitting spawn point for {randomEnemy} — skipping this unit.");
-                    continue; // enemy simply won't spawn rather than clipping through a wall
+                    continue;
                 }
 
                 Vector3 pos = spawnPt.position;
-                if (isFlying(randomEnemy)) pos += Vector3.up;
+                if (isFlying(randomEnemy)) pos += Vector3.up * 3f;
 
-                GameObject inst = Instantiate(enemyPrefab, spawnPt.position, enemyPrefab.transform.rotation);
+                pos += new Vector3((float)((enemyRando.NextDouble() * 4.0) - 2.0), 0, (float)((enemyRando.NextDouble() * 4.0) - 2.0));
+
+                GameObject inst = Instantiate(enemyPrefab, pos, enemyPrefab.transform.rotation);
                 inst.transform.parent = transform;
 
-                if (amountRadiance != 0)
+                if (radianceBuffCounts.Count > 0)
                 {
                     EnemyIdentifier eid = inst.GetComponent<EnemyIdentifier>();
                     if (eid == null) eid = inst.GetComponentInChildren<EnemyIdentifier>();
-                    eid.BuffAll();
-                    amountRadiance--;
+                    int buffCount = radianceBuffCounts[0];
+                    radianceBuffCounts.RemoveAt(0);
+                    for (int b = 0; b < buffCount; b++)
+                        eid.BuffAll();
+
+                    BaseItem mask = Plugin.getItem("Agonized Mask");
+                    int c = Plugin.GetItemCount(mask);
+
+                    if(c > 0)
+                    {
+                        if(Random.value <= (0.25f + (0.10f * c)))
+                        {
+                            eid.puppet = true;
+                        }
+                    }
                 }
             }
         }
@@ -159,7 +187,9 @@ public class Room : MonoBehaviour
             {
                 if (bossEntry.prefab == null) continue;
 
-                Vector3 spawnPos = transform.position + Vector3.up * 1f + new Vector3(UnityEngine.Random.Range(-2f, 2f), 0f, UnityEngine.Random.Range(-2f, 2f));
+                
+
+                Vector3 spawnPos = transform.position + Vector3.up * 1f + new Vector3(UnityEngine.Random.Range(-4f, 4f), 0f, UnityEngine.Random.Range(-4f, 4f));
                 GameObject bossInst = Instantiate(bossEntry.prefab, spawnPos, bossEntry.prefab.transform.rotation);
                 bossInst.transform.parent = transform;
 
@@ -168,51 +198,53 @@ public class Room : MonoBehaviour
                 if (eid != null)
                 {
                     waveEnemies.Add(eid);
-                    if (bossEntry.healthMod != 0)
+                    if (bossEntry.healthMod != 0 || bossEntry.healthPerFloorMod != 0)
                     {
                         Enemy e = FindEnemyComponent(bossInst);
-                        eid.health = bossEntry.healthMod;
-                        e.health = bossEntry.healthMod;
-                        e.originalHealth = bossEntry.healthMod;
+                        int floorsActive = Mathf.Max(0, RogueDifficultyManager.Instance.floor - bossEntry.startFloor);
+                        float totalHealth = bossEntry.healthMod + bossEntry.healthPerFloorMod * floorsActive;
+                        eid.health = totalHealth;
+                        e.health = totalHealth;
+                        e.originalHealth = totalHealth;
                     }
                     bossEnemyType.onSpawn?.Invoke(eid);
+                    if (eid.gameObject.GetComponent<BossHealthBar>() == null)
+                        eid.gameObject.AddComponent<BossHealthBar>();
+                    if(eid.enemyType == EnemyType.Gabriel || eid.enemyType == EnemyType.GabrielSecond)
+                    {
+                        eid.onDeath.AddListener(() =>
+                        {
+                            Destroy(bossInst); // Prevent that stupid fucking gabe bug
+                        });
+                    }
                 }
 
-                if (bossInst.GetComponent<BossHealthBar>() == null)
-                    bossInst.AddComponent<BossHealthBar>();
+                
             }
 
-            // WAIT for the current wave to be cleared
             bool waveAlive = true;
             while (waveAlive)
             {
-                yield return new WaitForSeconds(0.5f); // Check every half second
+                yield return new WaitForSeconds(0.15f);
                 waveAlive = waveEnemies.Any(e => e != null && !e.dead);
             }
 
-            Debug.Log($"[Room] Wave {w + 1} cleared!");
-
-            // Brief pause between waves
             if (w < bossEnemyType.waves.Count - 1)
-                yield return new WaitForSeconds(1.5f);
+                yield return new WaitForSeconds(0.25f);
         }
 
-        hasSpawnedEnemies = true; // This triggers OnRoomCleared via Update()
+        hasSpawnedEnemies = true;
     }
 
     public static Enemy FindEnemyComponent(GameObject obj)
     {
         if (obj == null) return null;
 
-        // Try self
         Enemy e = obj.GetComponent<Enemy>();
         if (e != null) return e;
-
-        // Try children
         e = obj.GetComponentInChildren<Enemy>(true);
         if (e != null) return e;
 
-        // Try parent
         e = obj.GetComponentInParent<Enemy>();
         return e;
     }
@@ -255,6 +287,8 @@ public class Room : MonoBehaviour
 
     void Awake()
     {
+        enemyRando = new System.Random(Plugin.GameSeed.GetHashCode() ^ roomIndex + 1);
+        roomIndex++;
         gameObject.AddComponent<GoreZone>();
         bossEnemyType = RogueDifficultyManager.Instance.GetBoss();
 
@@ -274,7 +308,6 @@ public class Room : MonoBehaviour
 
         if (!hasSpawnedEnemies || rewardGiven) return;
 
-        // Check if any enemies are still alive in this room
         EnemyIdentifier[] enemies = GetComponentsInChildren<EnemyIdentifier>();
 
         EnemyIdentifier[] aliveEnemies = enemies.Where((x) => !x.dead).ToArray();
@@ -296,31 +329,39 @@ public class Room : MonoBehaviour
     {
         MonoSingleton<MusicManager>.Instance.ArenaMusicEnd();
         MonoSingleton<TimeController>.Instance.SlowDown(0.15f);
-
+        MonoSingleton<StainVoxelManager>.Instance.ClearAll();
+        GasolineProjectile[] projs = GameObject.FindObjectsByType<GasolineProjectile>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        foreach (var proj in projs)
+        {
+            Destroy(proj.gameObject);
+        }
         rewardGiven = true;
         isFighting = false;
 
         if (!isBossRoom)
         {
-
-            // ── 1. Heal chance (non-V1 characters only) ───────────────────────────
             if (Plugin.SelectedChar.GetType() != typeof(V1))
             {
-                if (Random.value <= 0.35f)                       // 35 % to heal
+                int currentHp = MonoSingleton<NewMovement>.Instance.hp;
+                int maxHp = Plugin.MaxHealth;
+
+                if (currentHp < maxHp)
                 {
-                    int healAmt = Random.Range(5, 20);
-                    MonoSingleton<NewMovement>.Instance.GetHealth(healAmt, false);
-                    Debug.Log($"[Room] Healed player for {healAmt} HP (non-V1 perk).");
+                    float missingRatio = 1f - ((float)currentHp / maxHp);
+                    float healChance = Mathf.Lerp(0.10f, 0.65f, missingRatio);
+
+                    if (Random.value <= healChance)
+                    {
+                        int healAmt = Random.Range(5, 50);
+                        MonoSingleton<NewMovement>.Instance.GetHealth(healAmt, false);
+                    }
                 }
             }
 
-            // ── 2 & 3. Item / gold / key rewards ─────────────────────────────────
-            // Item chance is small; slightly higher on a flawless clear.
-            float itemChance = tookNoDamage ? 0.05f : 0.015f;  // 1.5 % normal, 5 % flawless
+            float itemChance = tookNoDamage ? 0.05f : 0.015f;
 
-            if (Random.value <= itemChance)
+            if (enemyRando.NextDouble() <= itemChance)
             {
-                // Spawn a random item at a point near the room centre.
                 Vector3 itemPos = transform.position + new Vector3(
                     Random.Range(-2f, 2f), 1f, Random.Range(-2f, 2f));
                 GameObject plc = new GameObject("ItemDropAnchor");
@@ -330,17 +371,17 @@ public class Room : MonoBehaviour
             }
             else
             {
-                // Both flawless and normal clears share the same loot table.
-                // Flawless clears get a boosted roll (+0.20) so gold/keys are
-                // more likely, but the key threshold is reachable either way.
-                float chanceVal = Plugin.getChanceVal() + (tookNoDamage ? 0.20f : 0f);
+                float chanceVal = (float)enemyRando.NextDouble() + (tookNoDamage ? 0.20f : 0f);
+
+                float keyThreshold = Mathf.Min(0.75f + RogueDifficultyManager.Instance.Keys * 0.08f, 0.97f);
+
                 if (chanceVal <= 0.22f)
                 {
                     // Nothing
                 }
-                else if (chanceVal <= 0.75f)
+                else if (chanceVal <= keyThreshold)
                 {
-                    int goldAmount = Random.Range(1, 3);
+                    int goldAmount = enemyRando.Next(1, tookNoDamage ? 4 : 3);
                     for (int i = 0; i < goldAmount; i++)
                         RogueDifficultyManager.Instance.Gold++;
                     if (tookNoDamage)
@@ -354,15 +395,19 @@ public class Room : MonoBehaviour
                 }
             }
         }
-        else  // ── Boss room reward (unchanged) ───────────────────────────────────
+        else
         {
             Vector3 spawnPos = transform.position + new Vector3(
                 Random.Range(-2f, 2f), 1f, Random.Range(-2f, 2f));
             GameObject plc = new GameObject("aaaaaaaaaaaa");
             plc.transform.position = spawnPos;
-            ItemPickup.CreatePickup(Plugin.GiveRandomItem(), plc.transform);
-
-            CreatePortal();
+            ItemPickup.CreatePickupConditional(Plugin.GiveRandomItem(), plc.transform, () =>
+            {
+                CreatePortal();
+                return true;
+            });
+            NewMovement.Instance.FullHeal();
+            
         }
 
         foreach (var door in FindObjectsByType<Door>(FindObjectsInactive.Include, FindObjectsSortMode.None))
@@ -376,49 +421,6 @@ public class Room : MonoBehaviour
         }
     }
 
-    private Vector3 GetPrefabHalfExtents(GameObject prefab)
-    {
-        // Temporarily instantiate *disabled* so Awake/Start don't fire,
-        // sample the collider, then immediately destroy.
-        GameObject temp = Instantiate(prefab);
-        temp.SetActive(false);
-
-        Collider col = temp.GetComponent<Collider>();
-        if (col == null) col = temp.GetComponentInChildren<Collider>();
-
-        Vector3 halfExtents = (col != null)
-            ? col.bounds.extents * 0.85f   // 15 % margin keeps us conservative
-            : new Vector3(0.4f, 0.8f, 0.4f); // sensible humanoid fallback
-
-        Destroy(temp);
-        return halfExtents / 2;
-    }
-
-
-    private Transform FindFittingSpawnPoint(Vector3 halfExtents)
-    {
-        // Shuffle a copy so we don't bias toward index 0 every time.
-        List<Transform> shuffled = spawnPoints.OrderBy(_ => Random.value).ToList();
-
-        foreach (Transform pt in shuffled)
-        {
-            // Raise the centre by halfExtents.y so the box sits *on* the floor
-            // rather than half-buried in it.
-            Vector3 centre = pt.position + Vector3.up * halfExtents.y;
-
-            bool blocked = Physics.CheckBox(
-                centre,
-                halfExtents,
-                Quaternion.identity,
-                ~0,                          // every layer
-                QueryTriggerInteraction.Ignore
-            );
-
-            if (!blocked) return pt;
-        }
-
-        return shuffled[0]; // no point has room
-    }
 
     public void CreatePortal()
     {

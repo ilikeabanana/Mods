@@ -46,6 +46,7 @@ namespace Ultrarogue
 
         public static List<BaseCharacter> characters = new List<BaseCharacter>();
 
+        public static string GameSeed = "Banana";
 
 #if RUNTIME_ROOMS
         DebugRoomGenerator debugGen;
@@ -93,9 +94,11 @@ namespace Ultrarogue
             return "i dont fucking know????";
         }
 
+        public static bool RogueMode = false;
+
         public static bool isInRogueMode()
         {
-            return true; // temp
+            return RogueMode;
         }
 
         public static bool isInRogueScene()
@@ -213,7 +216,14 @@ namespace Ultrarogue
         }
 
         public static int CurrentDifficulty = 1;
-
+        public static string GenerateRandomString(int length)
+        {
+            const string pool = "abcdefghijklmnopqrstuvwxyz0123456789";
+            var chars = Enumerable.Range(0, length)
+                .Select(_ => pool[Random.Range(0,pool.Length)])
+                .ToArray();
+            return new string(chars).ToUpper();
+        }
         IEnumerator SpawnThings()
         {
             CurrentDifficulty = 1;
@@ -238,7 +248,7 @@ namespace Ultrarogue
             GameObject men = Instantiate(RogueMenu.Result, parentMen.transform);
             men.SetActive(false);
 
-            
+            TMP_InputField seedField = men.transform.Find("SeedField").GetComponent<TMP_InputField>();
 
             men.transform.Find("Play").GetComponent<Button>().onClick.AddListener(() =>
             {
@@ -253,7 +263,10 @@ namespace Ultrarogue
                 }
                 items.Clear();
                 weapons.Clear();
-
+                if (string.IsNullOrEmpty(seedField.text))
+                    GameSeed = GenerateRandomString(6);
+                else
+                    GameSeed = seedField.text;
                 if (SelectedChar.StartingWeapons == null || SelectedChar.StartingWeapons.Count == 0)
                 {
                     Logger.LogWarning($"[Play] {SelectedChar.Name} has no StartingWeapons — falling back to defaults.");
@@ -326,12 +339,23 @@ namespace Ultrarogue
 
         private void SceneManager_sceneLoaded(Scene arg0, LoadSceneMode arg1)
         {
-
+            if (FindObjectOfType<RogueDifficultyManager>())
+                RogueMode = true;
+            else
+                RogueMode = false;
             if(SceneHelper.CurrentScene == "Main Menu")
             {
                 if (!AssetsManager.IsReady)
                     AssetsManager.Init();
                 StartCoroutine(SpawnThings());
+            }
+            else
+            {
+                foreach (var tiem in items)
+                {
+                    tiem.Key.OnGotten(0, false);
+                }
+                items.Clear();
             }
 
             if (ShaderManager.shaderDictionary.Count <= 0) StartCoroutine(ShaderManager.LoadShadersAsync());
@@ -345,18 +369,11 @@ namespace Ultrarogue
 
         void Update()
         {
+
             if (Input.GetKeyDown(KeyCode.X))
             {
-                BaseItem item = getItem("Vinny's Pimp Hat");
-                GiveItem(item);
+                Plugin.GiveItem("Residual Cannon");
             }
-
-            if (Input.GetKeyDown(KeyCode.F10))
-            {
-                StartCoroutine(SceneLoader.LoadLevelAsync(false)); 
-            }
-
-
             #if RUNTIME_ROOMS
             if (Input.GetKeyDown(KeyCode.F5))
             {
@@ -384,9 +401,6 @@ namespace Ultrarogue
                 Logger.LogInfo("[DEBUG] Layout cleared.");
             }
 #endif
-
-
-            // ── F8 → Give 10 gold ───────────────────────────────────────────────
             foreach (var ch in characters)
             {
                 ch.Update(SelectedChar == ch);
@@ -399,49 +413,6 @@ namespace Ultrarogue
 
             ApplyPlayerChanges();
             ApplyWeaponSpeeds();
-        }
-
-        void SpawnEnemiesTest(int SpawnCredits)
-        {
-            SpawnCredits = Mathf.RoundToInt((float)SpawnCredits * RogueDifficultyManager.Instance.Difficulty);
-            Logger.LogInfo($"Spawncredits: {SpawnCredits}, Difficulty: {RogueDifficultyManager.Instance.Difficulty}");
-            if (SpawnCredits == 0) return;
-            while (SpawnCredits > 0)
-            {
-                EnemyType randomEnemy = (EnemyType)Random.Range(0, System.Enum.GetValues(typeof(EnemyType)).Length);
-                int Cost = RogueDifficultyManager.Instance.GetCost(randomEnemy);
-                if (SpawnCredits - Cost < 0) continue;
-
-                // Check how many we can spawn.
-                int amountCanSpawn = Mathf.FloorToInt(SpawnCredits / Cost);
-                int amountToSpawn = (int)Random.Range((int)1, (int)amountCanSpawn + 1);
-                SpawnCredits -= amountToSpawn * Cost;
-                // How many do we radiance
-                int amountBeforeRadiance = RogueDifficultyManager.Instance.GetCountBeforeRadiance(randomEnemy);
-                int amountRadiance = 0;
-                if (amountToSpawn >= amountBeforeRadiance)
-                {
-                    amountRadiance = Mathf.FloorToInt((float)amountToSpawn / (float)amountBeforeRadiance);
-                    // The amount we radiance we remove that amount from how much we spawn
-                    // so for example we spawn 15 filth, 1 filth will be radiance and 5 filth will spawn normally
-                    amountToSpawn -= amountRadiance * amountBeforeRadiance;
-                    amountToSpawn += amountRadiance;
-                }
-                Logger.LogInfo($"We spawn {amountToSpawn} of {randomEnemy.ToString()} and {amountRadiance} will be radianced");
-                for (int i = 0; i < amountToSpawn; i++)
-                {
-                    GameObject enemy = DefaultReferenceManager.Instance.GetEnemyPrefab(randomEnemy);
-                    if (enemy == null) continue;
-                    Transform randomSpawnPoint = NewMovement.Instance.transform;
-                    GameObject inst = Instantiate(enemy, randomSpawnPoint.position, enemy.transform.rotation);
-                    // when we need to radiance an enemy, we radiance them, and remove the amount of enemies we need to radiance
-                    if (amountRadiance != 0)
-                    {
-                        inst.GetComponent<EnemyIdentifier>().BuffAll();
-                        amountRadiance--;
-                    }
-                }
-            }
         }
 
         void ApplyWeaponSpeeds()
@@ -512,7 +483,10 @@ namespace Ultrarogue
 
         public static void AddWeapon(AWeapon weapon)
         {
+            weapons.RemoveAll(w => w.weapon == weapon.weapon && w.variant == weapon.variant);
+
             weapons.Add(weapon);
+
             if (weapon.weapon == Weapon.Arm)
             {
                 FistControl.Instance.ResetFists();
@@ -527,6 +501,7 @@ namespace Ultrarogue
 
             Instance.StartCoroutine(SwitchToNewWeapon(weapon));
         }
+
 
         private static IEnumerator SwitchToNewWeapon(AWeapon weapon)
         {
@@ -574,9 +549,9 @@ namespace Ultrarogue
         }
 
 
-        public static Rarity getRarityBasedOnDropTable(DropTable table)
+        public static Rarity getRarityBasedOnDropTable(DropTable table, System.Random rng)
         {
-            float chance = Random.value;
+            float chance = (float)rng.NextDouble();
             float cumulative = 0f;
 
             foreach (var entry in table.weights)
@@ -591,10 +566,12 @@ namespace Ultrarogue
             return table.weights.Keys.Last();
         }
 
-        public static BaseItem GiveRandomItem()
+        public static BaseItem GiveRandomItem(System.Random rng = null)
         {
-            List<BaseItem> tiems = getRarityItems(getRarityBasedOnDropTable(testTable));
-            return tiems[Random.Range(0, tiems.Count)];
+            if (rng == null)
+                rng = RogueDifficultyManager.ItemRNG;
+            List<BaseItem> tiems = getRarityItems(getRarityBasedOnDropTable(testTable, rng));
+            return tiems[rng.Next(0, tiems.Count)];
         }
 
         public static void GiveItem(BaseItem item)
@@ -878,42 +855,55 @@ namespace Ultrarogue
         public bool Alternate;
         public static AWeapon GenerateWeapon()
         {
-            if (SelectedChar.GetType() == typeof(Ultrarogue.Characters.Streetcleaner))
+            for (int attempt = 0; attempt < 50; attempt++)
             {
-                int choice = Random.Range(0, 5);
-                Plugin.Logger.LogInfo($"Weapon choice: {choice}");
-                switch (choice)
+                AWeapon generated;
+
+                if (SelectedChar.GetType() == typeof(Ultrarogue.Characters.Streetcleaner))
                 {
-                    case 0:
-                        return new AWeapon(Weapon.Arm, Variant.Red, false);
-
-                    case 1:
-                        return new AWeapon(Weapon.Nailgun, Variant.Green, false);
-
-                    case 2:
-                        return new AWeapon(
-                            Weapon.Shotgun,
-                            Variant.Blue,
-                            Random.value <= 0.5f
-                        );
-
-                    case 3:
-                        return new AWeapon(Weapon.RocketLauncher, Variant.Red, false);
-
-                    case 4:
-                        return new AWeapon(Weapon.Railcannon, Variant.Red, false);
+                    int choice = RogueDifficultyManager.RoomRNG.Next(0, 5);
+                    Plugin.Logger.LogInfo($"Weapon choice: {choice}");
+                    switch (choice)
+                    {
+                        case 0: generated = new AWeapon(Weapon.Arm, Variant.Red, false); break;
+                        case 1: generated = new AWeapon(Weapon.Nailgun, Variant.Green, false); break;
+                        case 2:
+                            generated = new AWeapon(
+                                Weapon.Shotgun,
+                                Variant.Blue,
+                                (float)RogueDifficultyManager.ItemRNG.NextDouble() <= 0.5f
+                            );
+                            break;
+                        case 3: generated = new AWeapon(Weapon.RocketLauncher, Variant.Red, false); break;
+                        default: generated = new AWeapon(Weapon.Railcannon, Variant.Red, false); break;
+                    }
                 }
+                else
+                {
+                    Weapon weaponEnum = (Weapon)RogueDifficultyManager.RoomRNG.Next(0, System.Enum.GetValues(typeof(Weapon)).Length);
+                    Variant variantEnum = (Variant)RogueDifficultyManager.RoomRNG.Next(0, System.Enum.GetValues(typeof(Variant)).Length);
+
+                    bool alt = false;
+                    if (CanBeAlternate(weaponEnum))
+                        alt = (float)RogueDifficultyManager.ItemRNG.NextDouble() <= 0.5f;
+
+                    generated = new AWeapon(weaponEnum, variantEnum, alt);
+                }
+
+                bool alreadyOwned = Plugin.weapons.Any(w =>
+                    w.weapon == generated.weapon &&
+                    w.variant == generated.variant &&
+                    w.Alternate == generated.Alternate
+                );
+
+                if (!alreadyOwned)
+                    return generated;
             }
 
-            Weapon weaponEnum = (Weapon)Random.Range(0, System.Enum.GetValues(typeof(Weapon)).Length);
-            Variant variantEnum = (Variant)Random.Range(0, System.Enum.GetValues(typeof(Variant)).Length);
-
-            bool alt = false;
-            if (CanBeAlternate(weaponEnum))
-                alt = Random.value <= 0.5f;
-
-            return new AWeapon(weaponEnum, variantEnum, alt);
+            Plugin.Logger.LogWarning("All weapon variants owned, returning random duplicate.");
+            return new AWeapon(Weapon.Revolver, Variant.Blue);
         }
+
 
 
         public static bool CanBeAlternate(Plugin.Weapon wp)
@@ -1104,7 +1094,8 @@ namespace Ultrarogue
         [HarmonyPrefix]
         public static bool DontHealIfV2Parry(NewMovement __instance, EnemyIdentifier eid = null, string customParryText = "")
         {
-            if (!Plugin.isInRogueScene()) return true;
+            Plugin.Logger.LogInfo($"Parrying as {SelectedChar.Name} and we are in the rogue mode {isInRogueMode()}");
+            if (!Plugin.isInRogueMode()) return true;
             MonoSingleton<TimeController>.Instance.ParryFlash();
             __instance.exploded = false;
             if (SelectedChar.GetType() == typeof(Ultrarogue.Characters.V1))
@@ -1122,7 +1113,7 @@ namespace Ultrarogue
                 __instance.shud.AddPoints(100, (customParryText != "") ? ("<color=green>" + customParryText + "</color>") : "ultrakill.parry", null, null, -1, "", "");
             }
             
-            return true;
+            return false;
         }
         [HarmonyPatch(typeof(NewMovement), nameof(NewMovement.GetHealth))]
         [HarmonyPrefix]
@@ -1209,7 +1200,35 @@ namespace Ultrarogue
                 return cooldownReduction.CalculateChanges(amount);
             }
         }
+        [HarmonyPatch(typeof(Revolver), nameof(Revolver.Shoot))]
+        public static class Revolver_Shoot_V2_Patch
+        {
+            private static bool _isExtraShot = false;
 
+            [HarmonyPostfix]
+            public static void TripleShot(Revolver __instance, int shotType)
+            {
+                if (_isExtraShot) return;
+                if (shotType != 1) return;
+                if (SelectedChar?.GetType() != typeof(Ultrarogue.Characters.V2)) return;
+
+                __instance.StartCoroutine(ExtraShots(__instance));
+            }
+
+            private static IEnumerator ExtraShots(Revolver __instance)
+            {
+                for (int i = 0; i < 2; i++)
+                {
+                    yield return new WaitForSeconds(AttackSpeed.CalculateChanges(__instance.altVersion ? 0.5f : 0.2f));
+                    if (__instance == null || !__instance.gameObject.activeInHierarchy)
+                        yield break;
+                    if (!__instance.inman.InputSource.Fire1.IsPressed) yield break;
+                    _isExtraShot = true;
+                    __instance.Shoot(1);
+                    _isExtraShot = false;
+                }
+            }
+        }
         [HarmonyPatch(typeof(Nailgun), nameof(Nailgun.Update))]
         public static class Nailgun_Update_Patch
         {
@@ -1426,6 +1445,20 @@ namespace Ultrarogue
         }
     }
 
+    [HarmonyPatch(typeof(EnemyIdentifier), nameof(EnemyIdentifier.StartBurning))]
+    public static class BurningHeal
+    {
+        static void Postfix(EnemyIdentifier __instance)
+        {
+            if (!Plugin.isInRogueMode()) return;
+
+            if(SelectedChar.GetType() == typeof(Ultrarogue.Characters.Streetcleaner))
+            {
+                NewMovement.Instance.GetHealth(1, false);
+            }
+        }
+    }
+
     [HarmonyPatch(typeof(DiscordController), nameof(DiscordController.SendActivity))]
     public class ReplaceActivity
     {
@@ -1477,6 +1510,8 @@ namespace Ultrarogue
         {
             this.itemName = itemName;
             this.damageModifier = damageModifier;
+
+            Plugin.dmgModifiers.Add(this);
         }
     }
 

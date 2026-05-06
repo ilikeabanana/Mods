@@ -26,6 +26,8 @@ public class AssetsManager
     public static bool IsReady { get; private set; } = false;
 
     public static GameObject napalmProj;
+    public static GameObject mindflayerBeam;
+    public static GameObject funnyPowerIntroSpawn;
 
     public static void Init()
     {
@@ -44,10 +46,22 @@ public class AssetsManager
                     "Assets/Prefabs/Enemies/SwordsMachine Agony.prefab")
                 .WaitForCompletion();
 
+        if (funnyPowerIntroSpawn == null)
+            funnyPowerIntroSpawn = Addressables
+                .LoadAssetAsync<EndlessEnemy>(
+                    "Assets/Data/Cyber Grind Patterns/Data/PowerEndlessData.asset")
+                .WaitForCompletion().prefab;
+
         if (Tundra == null)
             Tundra = Addressables
                 .LoadAssetAsync<GameObject>(
                     "Assets/Prefabs/Enemies/SwordsMachine Tundra.prefab")
+                .WaitForCompletion();
+
+        if (mindflayerBeam == null)
+            mindflayerBeam = Addressables
+                .LoadAssetAsync<GameObject>(
+                    "Assets/Prefabs/Attacks and Projectiles/Hitscan Beams/Mindflayer Beam.prefab")
                 .WaitForCompletion();
 
     }

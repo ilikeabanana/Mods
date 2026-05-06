@@ -110,13 +110,26 @@ namespace Ultrachaos.Randomizers
 
             foreach (var location in allLocations)
             {
-                var loadHandle = Addressables.LoadAssetAsync<AudioClip>(location);
+                AsyncOperationHandle<AudioClip> loadHandle = default;
+                try
+                {
+                    loadHandle = Addressables.LoadAssetAsync<AudioClip>(location);
+                }
+                catch (System.Exception ex)
+                {
+                    continue;
+                }
+
                 yield return loadHandle;
 
-                if (loadHandle.Status == AsyncOperationStatus.Succeeded)
-                    AddToPool(loadHandle.Result);
-
-
+                if (loadHandle.IsValid())
+                {
+                    if (loadHandle.Status == AsyncOperationStatus.Succeeded)
+                        AddToPool(loadHandle.Result);
+                    // else: silently skip — Unity already logged the failure internally
+                    //       but we avoid the spam by releasing cleanly
+                    Addressables.Release(loadHandle);
+                }
             }
         }
 
