@@ -952,6 +952,31 @@ namespace Ultrarogue
         }
     }
 
+    [HarmonyPatch(typeof(StockMapInfo), nameof(StockMapInfo.Awake))]
+    internal static class StockMapInfoPatch
+    {
+        [HarmonyPostfix]
+        public static void Postfix()
+        {
+            StatsManager sman = GameObject.FindObjectOfType<StatsManager>();
+            if (sman != null)
+                sman.levelNumber = -1;
+
+            string currentPath = SceneManager.GetActiveScene().path;
+            foreach (ExecuteOnSceneLoadRogue obj in Resources.FindObjectsOfTypeAll<ExecuteOnSceneLoadRogue>().Where(o => o.gameObject.scene.path == currentPath).OrderBy(exe => exe.relativeExecutionOrder))
+            {
+                try
+                {
+                    obj.Execute();
+                }
+                catch (Exception e)
+                {
+                    Plugin.Logger.LogError($"Error while executing OnSceneLoad script for {obj.gameObject.name}: {e}");
+                }
+            }
+        }
+    }
+
     [HarmonyPatch]
     public class PlayerPatches
     {
