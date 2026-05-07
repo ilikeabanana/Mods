@@ -260,6 +260,7 @@ namespace Ultrarogue
                 foreach (var tiem in items)
                 {
                     tiem.Key.OnGotten(0, false);
+                    tiem.Key.OnUpdate(0);
                 }
                 items.Clear();
                 weapons.Clear();
@@ -371,7 +372,7 @@ namespace Ultrarogue
 
             if (Input.GetKeyDown(KeyCode.X))
             {
-                Plugin.GiveItem("Prime Head");
+                Plugin.GiveItem("Cerberus Head");
             }
             #if RUNTIME_ROOMS
             if (Input.GetKeyDown(KeyCode.F5))
@@ -1366,22 +1367,23 @@ namespace Ultrarogue
 
         }
 
-        [HarmonyPatch(typeof(EnemyIdentifier), nameof(EnemyIdentifier.DeliverDamage))]
+        [HarmonyPatch(typeof(Enemy), nameof(Enemy.GetHurt))]
         [HarmonyPrefix]
-        public static void ActivateHitEffects(ref float multiplier, EnemyIdentifier __instance)
+        public static void ActivateHitEffects(ref float multiplier, Enemy __instance)
         {
             if (!Plugin.isInRogueMode()) return;
-            if (__instance.dead) return;
-
-            Weapon weaponUsed = Plugin.HitterToWeapon(__instance.hitter);
+            if (__instance.eid.dead) return;
+            Plugin.Logger.LogInfo($"Damage taken: {multiplier}");
+            Weapon weaponUsed = Plugin.HitterToWeapon(__instance.eid.hitter);
             if (Plugin.damageMultipliers.ContainsKey(weaponUsed))
                 multiplier = Plugin.damageMultipliers[weaponUsed].CalculateChanges(multiplier);
-
+            Plugin.Logger.LogInfo($"Hitter Mult added: {multiplier}");
             multiplier = Plugin.globalDamageMult.CalculateChanges(multiplier);
-
+            Plugin.Logger.LogInfo($"Global Mult added: {multiplier}");
             foreach (var mod in Plugin.dmgModifiers)
             {
-                float mult = mod.damageModifier(__instance);
+                float mult = mod.damageModifier(__instance.eid);
+                Plugin.Logger.LogInfo($"Mult added: {mult}");
                 multiplier *= mult;
             }
 
@@ -1391,8 +1393,9 @@ namespace Ultrarogue
                 {
                     continue;
                 }
-                hitEffect.effect.Invoke(__instance, multiplier);
+                hitEffect.effect.Invoke(__instance.eid, multiplier);
             }
+            Plugin.Logger.LogInfo($"Damage taken after everything: {multiplier}");
         }
     }
 

@@ -24,7 +24,6 @@ namespace Ultrarogue.SceneStuff
                     if (!canPickup.Invoke()) return;
                 }
                 pickedUp = true;
-                HudMessageReceiver.Instance?.SendHudMessage(weapon.ToString());
                 Plugin.AddWeapon(weapon);
                 Destroy(gameObject);
             }
