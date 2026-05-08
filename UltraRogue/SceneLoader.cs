@@ -140,6 +140,45 @@ public static class SceneLoader
         MonoSingleton<FistControl>.Instance.YesFist();
         MonoSingleton<StatsManager>.Instance.StartTimer();
         NewMovement.Instance.hp = Plugin.MaxHealth;
+        yield return new WaitForSeconds(3f);
+        Disable();
+    }
+
+    static void Disable()
+    {
+        
+        GameObject canvas = GameObject.FindObjectOfType<OptionsMenuToManager>(true).gameObject;
+
+        if (canvas == null)
+        {
+            Plugin.Logger.LogInfo("Canvas not found");
+            return;
+        }
+        Plugin.Logger.LogInfo("Waiting for LevelStats...");
+
+        Plugin.Logger.LogInfo("LevelStats found!");
+
+        Transform stats = canvas.GetComponentInChildren<LevelStats>(true).transform;
+        Plugin.Logger.LogInfo("Found stats object: " + stats.name);
+        if (stats == null)
+        {
+            Plugin.Logger.LogInfo("Level Stats (1) not found");
+            return;
+        }
+        foreach (var item in canvas.GetComponentsInChildren<LevelStats>(true))
+        {
+            foreach (Transform child in item.GetComponentsInChildren<Transform>(true))
+            {
+                if (child != item)
+                {
+                    Plugin.Logger.LogInfo("Disabling: " + child.name);
+                    child.gameObject.SetActive(false);
+                }
+            }
+            Object.Destroy(item.gameObject);
+        }
+        
+        
     }
 
     /// <summary> Patches <see cref="SceneHelper.LoadSceneCoroutine(string, bool)"/> to make it use our loader if it's trying to load our scene :3 </summary>
@@ -149,6 +188,19 @@ public static class SceneLoader
         if (sceneName == SceneName)
         {
             __result = LoadLevelAsync(noSplash);
+            return false;
+        }
+
+        return true;
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(LevelStats), nameof(LevelStats.Start))]
+    public static bool STOPPPSPAWNINGGGGG(LevelStats __instance)
+    {
+        if (Plugin.isInRogueScene())
+        {
+            Object.Destroy(__instance.gameObject);
             return false;
         }
 
