@@ -122,6 +122,7 @@ namespace Ultrarogue.Items
             {
                 int c = Plugin.GetItemCount(this);
                 if (c == 0) return 1;
+                if (!eid.sandified) return 1f;
                 return 1f + (0.35f * c);
             });
         }

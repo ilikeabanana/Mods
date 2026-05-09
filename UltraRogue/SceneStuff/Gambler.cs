@@ -70,7 +70,7 @@ public class Gambler : MonoBehaviour
         if (RogueDifficultyManager.GambleItemRNG.NextDouble() <= 0.35f)
         {
             HudMessageReceiver.Instance?.SendHudMessage("You won!");
-            ItemPickup.CreatePickup(Plugin.GiveRandomItem(RogueDifficultyManager.GambleItemRNG), itemPlacementThing);
+            ItemPickup.CreatePickup(Plugin.GiveRandomItem(RogueDifficultyManager.GambleItemRNG), itemPlacementThing, 5);
         }
         else
         {
