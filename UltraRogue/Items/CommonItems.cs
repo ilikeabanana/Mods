@@ -15,7 +15,7 @@ namespace Ultrarogue.Items
         public override string itemDescription => "Increase firerate by 15%";
         Change atkSpeedChange;
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
-        
+
         public override void OnStart()
         {
             atkSpeedChange = new Change(percentage: 0);
@@ -25,6 +25,11 @@ namespace Ultrarogue.Items
         public override void OnUpdate(int count)
         {
             atkSpeedChange.percentage = 0.15f * count;
+        }
+
+        public override void OnRemoval()
+        {
+            atkSpeedChange.percentage = 0;
         }
     }
 
@@ -49,6 +54,11 @@ namespace Ultrarogue.Items
             damageChange.damageChange.percentage = 0.10f * (float)count;
         }
 
+        public override void OnRemoval()
+        {
+            damageChange.damageChange.percentage = 0;
+        }
+
         [HarmonyPatch(typeof(Projectile), nameof(Projectile.Awake))]
         public static void Prefix(Projectile __instance)
         {
@@ -58,6 +68,9 @@ namespace Ultrarogue.Items
             }
         }
     }
+
+    // Gasoline and SandWorm use DeathEffect/DamageModifier that already gate on
+    // GetItemCount, so no OnRemoval is needed for them.
 
     public class Gasoline : BaseItem
     {
@@ -87,10 +100,9 @@ namespace Ultrarogue.Items
             );
 
             Rigidbody rb = obj.GetComponent<Rigidbody>();
-            // Generate a random upward direction
             Vector3 randomDir = new Vector3(
                 Random.Range(-1f, 1f),
-                Random.Range(0.5f, 1f), // ensures it's upward
+                Random.Range(0.5f, 1f),
                 Random.Range(-1f, 1f)
             ).normalized;
 
@@ -102,18 +114,15 @@ namespace Ultrarogue.Items
     {
         public override string ItemName => "Sand Worm";
         public override string itemDescription => "Sanded enemies take +35% more damage";
-        public override List<ItemTag> itemTags => new List<ItemTag>() {  ItemTag.Damage };
+        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
 
         public override void OnStart()
         {
             new DamageModifier(ItemName, (eid) =>
             {
                 int c = Plugin.GetItemCount(this);
-
                 if (c == 0) return 1;
-
                 return 1f + (0.35f * c);
-
             });
         }
     }
@@ -135,6 +144,11 @@ namespace Ultrarogue.Items
         {
             damageChange.damageChange.percentage = 0.15f * count;
         }
+
+        public override void OnRemoval()
+        {
+            damageChange.damageChange.percentage = 0;
+        }
     }
 
     public class SpeedLoader : BaseItem
@@ -154,7 +168,13 @@ namespace Ultrarogue.Items
         {
             damageChange.damageChange.percentage = 0.12f * count;
         }
+
+        public override void OnRemoval()
+        {
+            damageChange.damageChange.percentage = 0;
+        }
     }
+
     public class RunningShoes : BaseItem
     {
         public override string ItemName => "Running Shoes";
@@ -171,6 +191,11 @@ namespace Ultrarogue.Items
         public override void OnUpdate(int count)
         {
             moveChange.percentage = 0.08f * count;
+        }
+
+        public override void OnRemoval()
+        {
+            moveChange.percentage = 0;
         }
     }
 
@@ -191,6 +216,11 @@ namespace Ultrarogue.Items
         {
             damageChange.damageChange.percentage = 0.15f * count;
         }
+
+        public override void OnRemoval()
+        {
+            damageChange.damageChange.percentage = 0;
+        }
     }
 
     public class LooseNails : BaseItem
@@ -210,7 +240,13 @@ namespace Ultrarogue.Items
         {
             damageChange.damageChange.percentage = 0.10f * count;
         }
+
+        public override void OnRemoval()
+        {
+            damageChange.damageChange.percentage = 0;
+        }
     }
+
     public class PogoStick : BaseItem
     {
         public override string ItemName => "Pogo Stick";
@@ -227,6 +263,11 @@ namespace Ultrarogue.Items
         public override void OnUpdate(int count)
         {
             jumpChange.percentage = 0.15f * count;
+        }
+
+        public override void OnRemoval()
+        {
+            jumpChange.percentage = 0;
         }
     }
 
@@ -247,6 +288,11 @@ namespace Ultrarogue.Items
         {
             dmgChange.percentage = 0.06f * count;
         }
+
+        public override void OnRemoval()
+        {
+            dmgChange.percentage = 0;
+        }
     }
 
     public class GuttertankHand : BaseItem
@@ -265,6 +311,11 @@ namespace Ultrarogue.Items
         public override void OnUpdate(int count)
         {
             damageChange.damageChange.percentage = 0.12f * count;
+        }
+
+        public override void OnRemoval()
+        {
+            damageChange.damageChange.percentage = 0;
         }
     }
 }

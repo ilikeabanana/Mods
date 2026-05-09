@@ -6,6 +6,11 @@ using UnityEngine;
 
 namespace Ultrarogue.Items
 {
+    // All uncommon items either:
+    //   a) use DamageModifier / DeathEffect / HitEffect which already gate on GetItemCount > 0, or
+    //   b) have no persistent state that survives item removal.
+    // None require an OnRemoval override.
+
     public class IgnitionTank : BaseItem
     {
         public override string ItemName => "Ignition Tank";
@@ -26,6 +31,7 @@ namespace Ultrarogue.Items
             });
         }
     }
+
     public class Executioner : BaseItem
     {
         public override string ItemName => "Executioner";
@@ -121,11 +127,11 @@ namespace Ultrarogue.Items
             if (__instance.hasBeenRicocheter) return;
             if (__instance.beamType == BeamType.Enemy) return;
             if (__instance.beamType == BeamType.MaliciousFace) return;
-            float baseChance = 25f + (15f * (count -1));
+            float baseChance = 25f + (15f * (count - 1));
 
             float chance = baseChance;
 
-            while(Plugin.canExecute(chance, ""))
+            while (Plugin.canExecute(chance, ""))
             {
                 __instance.ricochetAmount++;
                 if (__instance.hitAmount < 2) __instance.hitAmount = 2;
@@ -171,7 +177,6 @@ namespace Ultrarogue.Items
                 int count = Plugin.GetItemCount(this);
                 if (count <= 0) return;
 
-                // Only proc on nailgun kills
                 List<string> nailHitters = Plugin.WeaponToHitter(Plugin.Weapon.Nailgun);
                 if (!nailHitters.Contains(eid.hitter)) return;
 
@@ -232,8 +237,7 @@ namespace Ultrarogue.Items
             {
                 int count = Plugin.GetItemCount(this);
                 if (count <= 0) return;
-                if(!Plugin.canExecute(10, eid.hitter)) return; 
-
+                if (!Plugin.canExecute(10, eid.hitter)) return;
 
                 float damage = (3 * count);
                 GameObject missle = GameObject.CreatePrimitive(PrimitiveType.Sphere);
@@ -242,7 +246,7 @@ namespace Ultrarogue.Items
                 Missle proj = missle.AddComponent<Missle>();
                 proj.damage = damage;
                 proj.enemyThatGotHit = eid;
-                missle.transform.position = CameraController.Instance.GetDefaultPos() + Vector3.up * 3.5f; 
+                missle.transform.position = CameraController.Instance.GetDefaultPos() + Vector3.up * 3.5f;
             });
         }
     }

@@ -18,6 +18,11 @@ namespace Ultrarogue.Items
         {
             Plugin.luck = count;
         }
+
+        public override void OnRemoval()
+        {
+            Plugin.luck = 0;
+        }
     }
 
     public class PrimeHead : BaseItem
@@ -37,6 +42,11 @@ namespace Ultrarogue.Items
         {
             change.percentage = 0.50f * count;
         }
+
+        public override void OnRemoval()
+        {
+            change.percentage = 0;
+        }
     }
 
     public class VinnyPimpHat : BaseItem
@@ -49,11 +59,12 @@ namespace Ultrarogue.Items
         bool wasPreviouslyFighting = false;
 
         GameObject sawPrefab = null;
+
         public override void OnUpdate(int count)
         {
             if (count <= 0) return;
 
-            if(wasPreviouslyFighting && !Room.isFighting)
+            if (wasPreviouslyFighting && !Room.isFighting)
             {
                 Nail[] allNails = GameObject.FindObjectsOfType<Nail>();
                 foreach (var nail in allNails)
@@ -70,9 +81,8 @@ namespace Ultrarogue.Items
             {
                 t += Time.deltaTime;
 
-                if(t >= 5)
+                if (t >= 5)
                 {
-                    // FIRE THE SAW!!!
                     if (sawPrefab == null)
                         sawPrefab = Addressables.LoadAssetAsync<GameObject>("Assets/Modding/RogueMode/SawVinny.prefab").WaitForCompletion();
 
@@ -81,6 +91,24 @@ namespace Ultrarogue.Items
                 }
             }
             wasPreviouslyFighting = Room.isFighting;
+        }
+
+        public override void OnRemoval()
+        {
+            // Reset the timer so no saw fires immediately if the item is re-acquired
+            t = 0;
+            wasPreviouslyFighting = false;
+
+            // Destroy any saws that are still alive in the world
+            Nail[] allNails = GameObject.FindObjectsOfType<Nail>();
+            foreach (var nail in allNails)
+            {
+                if (!nail.sawblade) continue;
+                if (nail.gameObject.name.Contains("SawVinny"))
+                {
+                    Object.Destroy(nail.gameObject);
+                }
+            }
         }
 
         void FireSaw(float damage)
@@ -102,6 +130,7 @@ namespace Ultrarogue.Items
             }
         }
     }
+
     public class AgonizedMask : BaseItem
     {
         public override Rarity Rarity => Rarity.Legendary;
@@ -109,6 +138,7 @@ namespace Ultrarogue.Items
         public override string itemDescription => "Have a 25% (+10% per stack) for an enemy to spawn as a puppet (does NOT include bosses)";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Utility };
     }
+
     [HarmonyPatch]
     public class ResidualCannon : BaseItem
     {
@@ -117,6 +147,9 @@ namespace Ultrarogue.Items
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         public override Rarity Rarity => Rarity.Legendary;
         public override List<Plugin.Weapon> WeaponRequirements => new List<Plugin.Weapon>() { Plugin.Weapon.Revolver };
+
+        // No OnRemoval needed — the patch already gates on GetItemCount("Residual Cannon") > 0.
+
         [HarmonyPatch(typeof(RevolverBeam), nameof(RevolverBeam.Start))]
         public static void Postfix(RevolverBeam __instance)
         {
@@ -126,14 +159,14 @@ namespace Ultrarogue.Items
             if (__instance.beamType == BeamType.MaliciousFace) return;
 
             GameObject beam = Object.Instantiate(AssetsManager.mindflayerBeam, __instance.transform.position, __instance.transform.rotation);
-            if(beam.TryGetComponent<ContinuousBeam>(out ContinuousBeam bem))
+            if (beam.TryGetComponent<ContinuousBeam>(out ContinuousBeam bem))
             {
                 bem.damage = __instance.damage * 10f;
                 bem.canHitPlayer = false;
                 bem.canHitEnemy = true;
             }
 
-            if(beam.TryGetComponent<LineRenderer>(out LineRenderer lr))
+            if (beam.TryGetComponent<LineRenderer>(out LineRenderer lr))
             {
                 lr.startColor = __instance.lr.startColor;
                 lr.endColor = __instance.lr.endColor;
@@ -142,6 +175,7 @@ namespace Ultrarogue.Items
             Object.Destroy(beam, 0.5f * count);
         }
     }
+
     public class Soulcatcher : BaseItem
     {
         public override string ItemName => "Soulcatcher";
@@ -169,6 +203,13 @@ namespace Ultrarogue.Items
         {
             dmgChange.percentage = killBonus;
         }
+
+        public override void OnRemoval()
+        {
+            // Reset the accumulated kill bonus so it doesn't carry over if re-acquired
+            killBonus = 0f;
+            dmgChange.percentage = 0;
+        }
     }
 
     public class CerberusHead : BaseItem
@@ -189,7 +230,13 @@ namespace Ultrarogue.Items
         {
             dmgChange.percentage = 0.60f * count;
         }
+
+        public override void OnRemoval()
+        {
+            dmgChange.percentage = 0;
+        }
     }
+
     public class WarMachine : BaseItem
     {
         public override string ItemName => "War Machine";
@@ -211,8 +258,13 @@ namespace Ultrarogue.Items
             atkChange.percentage = 0.45f * count;
             moveChange.percentage = 0.20f * count;
         }
-    }
 
+        public override void OnRemoval()
+        {
+            atkChange.percentage = 0;
+            moveChange.percentage = 0;
+        }
+    }
 
     public class HellsFire : BaseItem
     {
@@ -220,6 +272,8 @@ namespace Ultrarogue.Items
         public override string itemDescription => "All hits ignite enemies, enemies on fire take +100% more damage";
         public override Rarity Rarity => Rarity.Legendary;
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
+
+        // No OnRemoval needed — HitEffect and DamageModifier both gate on GetItemCount > 0.
 
         public override void OnStart()
         {
@@ -264,6 +318,7 @@ namespace Ultrarogue.Items
         Dictionary<EnemyIdentifier, int> hits = new Dictionary<EnemyIdentifier, int>();
         public override Rarity Rarity => Rarity.Legendary;
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
+
         public override void OnStart()
         {
             new DamageModifier(ItemName, (eid) =>
@@ -272,15 +327,20 @@ namespace Ultrarogue.Items
                 if (c == 0) return 1f;
 
                 int hit = 0;
-                if(!hits.TryGetValue(eid, out hit))
+                if (!hits.TryGetValue(eid, out hit))
                 {
                     hits.Add(eid, hit = 1);
                     hit = 1;
                 }
                 hits[eid]++;
-                return 1 + ((0.005f*c) * hit);
-
+                return 1 + ((0.005f * c) * hit);
             });
+        }
+
+        public override void OnRemoval()
+        {
+            // Clear tracked hit counts so stale data doesn't persist into future runs
+            hits.Clear();
         }
     }
 }

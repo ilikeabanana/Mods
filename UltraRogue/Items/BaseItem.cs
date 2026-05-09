@@ -29,6 +29,10 @@ namespace Ultrarogue.Items
         {
 
         }
+        public virtual void OnRemoval()
+        {
+
+        }
         public void StartCoroutine(IEnumerator routine)
         {
             Plugin.Instance.StartCoroutine(routine);

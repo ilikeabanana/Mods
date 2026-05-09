@@ -257,13 +257,7 @@ namespace Ultrarogue
                     Logger.LogError("[Play] SelectedChar is null!");
                     return;
                 }
-                foreach (var tiem in items)
-                {
-                    tiem.Key.OnGotten(0, false);
-                    tiem.Key.OnUpdate(0);
-                }
-                items.Clear();
-                weapons.Clear();
+
                 if (string.IsNullOrEmpty(seedField.text))
                     GameSeed = GenerateRandomString(6);
                 else
@@ -340,6 +334,14 @@ namespace Ultrarogue
 
         private void SceneManager_sceneLoaded(Scene arg0, LoadSceneMode arg1)
         {
+            foreach (var tiem in items)
+            {
+                tiem.Key.OnGotten(0, false);
+                tiem.Key.OnUpdate(0);
+                tiem.Key.OnRemoval();
+            }
+            items.Clear();
+            weapons.Clear();
             if (FindObjectOfType<RogueDifficultyManager>())
                 RogueMode = true;
             else
