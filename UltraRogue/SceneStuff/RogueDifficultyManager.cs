@@ -32,7 +32,8 @@ public class RogueDifficultyManager : MonoBehaviour
     public static System.Random GambleItemRNG;
     public static System.Random RoomRNG;
     public static System.Random BossRNG;
-
+    bool keepOpen;
+    float doubleTap;
     void Awake()
     {
         ItemRNG = new System.Random(Plugin.GameSeed.GetHashCode());
@@ -151,15 +152,45 @@ public class RogueDifficultyManager : MonoBehaviour
 
     void Update()
     {
-        if (InputManager.Instance.InputSource.Stats.IsPressed)
+        if (!this.keepOpen)
         {
-            itemsUI.SetActive(true);
-            statDamageText.transform.parent.parent.gameObject.SetActive(true);
+            if (MonoSingleton<InputManager>.Instance.InputSource.Stats.WasPerformedThisFrame)
+            {
+                if (!this.keepOpen)
+                {
+                    if (this.doubleTap > 0f)
+                    {
+                        this.keepOpen = true;
+                    }
+                    else
+                    {
+                        this.doubleTap = 0.5f;
+                    }
+                }
+                itemsUI.SetActive(true);
+                statDamageText.transform.parent.parent.gameObject.SetActive(true);
+                if(MinimapUI.Instance != null)
+                    MinimapUI.Instance.minimapPanel.gameObject.SetActive(true);
+            }
+            else if (MonoSingleton<InputManager>.Instance.InputSource.Stats.WasCanceledThisFrame)
+            {
+                itemsUI.SetActive(false);
+                statDamageText.transform.parent.parent.gameObject.SetActive(false);
+                if (MinimapUI.Instance != null)
+                    MinimapUI.Instance.minimapPanel.gameObject.SetActive(false);
+            }
         }
-        else
+        else if (MonoSingleton<InputManager>.Instance.InputSource.Stats.WasPerformedThisFrame)
         {
+            this.keepOpen = false;
             itemsUI.SetActive(false);
             statDamageText.transform.parent.parent.gameObject.SetActive(false);
+            if (MinimapUI.Instance != null)
+                MinimapUI.Instance.minimapPanel.gameObject.SetActive(false);
+        }
+        if (this.doubleTap > 0f)
+        {
+            this.doubleTap = Mathf.MoveTowards(this.doubleTap, 0f, Time.deltaTime);
         }
 
         Difficulty += (Time.deltaTime / 180) * difficultyScaleMult;

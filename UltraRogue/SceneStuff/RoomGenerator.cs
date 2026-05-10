@@ -1,4 +1,5 @@
-﻿using System;
+﻿using BepInEx.Bootstrap;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using ULTRAKILL.Portal;
@@ -77,7 +78,6 @@ public class RoomGenerator : MonoBehaviour
 
         StartCoroutine(GenerateRooms(false));
     }
-
     IEnumerator GenerateRooms(bool firstTime = true)
     {
         yield return new WaitUntil(() => DefaultReferenceManager.Instance != null);

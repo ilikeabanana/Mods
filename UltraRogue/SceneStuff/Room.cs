@@ -95,20 +95,32 @@ public class Room : MonoBehaviour
             int amountToSpawn = enemyRando.Next(1, amountCanSpawn + 1);
             SpawnCredits -= amountToSpawn * cost;
 
+            // Build tier thresholds upward until they exceed amountToSpawn
             int baseC = RogueDifficultyManager.Instance.GetCountBeforeRadiance(randomEnemy);
             var radianceBuffCounts = new List<int>();
-            int threshold = baseC;
-            int remaining = amountToSpawn;
-            int tierLevel = 1;
 
-            while (remaining >= threshold)
+            List<int> thresholds = new List<int>();
+            float t = baseC;
+            while (true)
             {
-                radianceBuffCounts.Add(tierLevel);
-                remaining -= threshold;
-                float fThreshold = (float)threshold * Mathf.Sqrt(baseC);
-                threshold = Mathf.RoundToInt(fThreshold);
-                tierLevel++;
+                int rounded = Mathf.RoundToInt(t);
+                if (rounded > amountToSpawn) break;
+                thresholds.Add(rounded);
+                float next = t * Mathf.Sqrt(t);
+                if (next <= t) break; // guard: prevent infinite loop if baseC is 1
+                t = next;
             }
+
+            // Work top-down: highest tier first, consuming from remaining
+            int remaining = amountToSpawn;
+            for (int tier = thresholds.Count - 1; tier >= 0; tier--)
+            {
+                int count = remaining / thresholds[tier];
+                remaining %= thresholds[tier];
+                for (int i = 0; i < count; i++)
+                    radianceBuffCounts.Add(tier + 1); // tier 0 = 1 buff, tier 1 = 2 buffs, etc.
+            }
+
             amountToSpawn = remaining + radianceBuffCounts.Count;
 
             GameObject enemyPrefab = DefaultReferenceManager.Instance.GetEnemyPrefab(randomEnemy);

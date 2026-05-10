@@ -30,6 +30,10 @@ public class AssetsManager
     public static GameObject funnyPowerIntroSpawn;
     public static AudioClip StalkerWarning;
 
+    public static Sprite ArmFeedbacker;
+    public static Sprite ArmKnuckleBlaster;
+    public static Sprite ArmWhiplash;
+
     public static void Init()
     {
         Plugin.Instance.StartCoroutine(GetAllSpawnables());
@@ -69,6 +73,24 @@ public class AssetsManager
             StalkerWarning = Addressables
                 .LoadAssetAsync<AudioClip>(
                     "Assets/Sounds/Enemies/StalkerWarning.wav")
+                .WaitForCompletion();
+
+        if (ArmFeedbacker == null)
+            ArmFeedbacker = Addressables
+                .LoadAssetAsync<Sprite>(
+                    "Assets/Textures/UI/ArmFeedbacker.png")
+                .WaitForCompletion();
+
+        if (ArmKnuckleBlaster == null)
+            ArmKnuckleBlaster = Addressables
+                .LoadAssetAsync<Sprite>(
+                    "Assets/Textures/UI/ArmKnuckleblaster.png")
+                .WaitForCompletion();
+
+        if (ArmWhiplash == null)
+            ArmWhiplash = Addressables
+                .LoadAssetAsync<Sprite>(
+                    "Assets/Textures/UI/ArmWhiplash.png")
                 .WaitForCompletion();
 
     }
@@ -192,7 +214,7 @@ public class AssetsManager
     }
 
     // ── Weapon lookup (unchanged) ─────────────────────────────────────────────
-    public static WeaponDescriptor prefToDescriptor(string pref, bool alternate)
+    public static Sprite prefToDescriptor(string pref, bool alternate)
     {
         if (!IsReady)
         {
@@ -208,43 +230,48 @@ public class AssetsManager
         {
             pool = descriptors.Where(x => x.weaponName.StartsWith(
                 !alternate ? "Revolver" : "Alternative Revolver"));
-            if (variant == '0') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Pierce"));
-            if (variant == '1') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Twirl"));
-            if (variant == '2') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Ricochet"));
+            if (variant == '0') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Pierce")).icon;
+            if (variant == '1') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Twirl")).icon;
+            if (variant == '2') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Ricochet")).icon;
         }
         else if (pref.Contains("sho"))
         {
             pool = descriptors.Where(x => x.weaponName.StartsWith(
                 !alternate ? "Shotgun" : "Hammer"));
-            if (variant == '0') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Grenade"));
-            if (variant == '1') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Pump"));
-            if (variant == '2') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Saw"));
+            if (variant == '0') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Grenade")).icon;
+            if (variant == '1') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Pump")).icon;
+            if (variant == '2') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Saw")).icon;
         }
         else if (pref.Contains("nai"))
         {
             pool = descriptors.Where(x => x.weaponName.StartsWith(
                 !alternate ? "Nailgun" : "Sawblade Launcher"));
-            if (variant == '0') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Magnet"));
-            if (variant == '1') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Overheat"));
-            if (variant == '2') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Jumpstart"));
+            if (variant == '0') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Magnet")).icon;
+            if (variant == '1') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Overheat")).icon;
+            if (variant == '2') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Jumpstart")).icon;
         }
         else if (pref.Contains("rai"))
         {
             pool = descriptors.Where(x => x.weaponName.StartsWith("Railcannon"));
-            if (variant == '0') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Electric"));
-            if (variant == '1') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Harpoon"));
-            if (variant == '2') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Malicious"));
+            if (variant == '0') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Electric")).icon;
+            if (variant == '1') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Harpoon")).icon;
+            if (variant == '2') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Malicious")).icon;
         }
         else if (pref.Contains("rock"))
         {
             pool = descriptors.Where(x => x.weaponName.StartsWith("Rocket Launcher"));
-            if (variant == '0') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Freeze"));
-            if (variant == '1') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Cannonball"));
-            if (variant == '2') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Napalm"));
+            if (variant == '0') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Freeze")).icon;
+            if (variant == '1') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Cannonball")).icon;
+            if (variant == '2') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Napalm")).icon;
+        } else if (pref.Contains("arm"))
+        {
+            if (variant == '0') return ArmFeedbacker;
+            if (variant == '1') return ArmKnuckleBlaster;
+            if (variant == '2') return ArmWhiplash;
         }
 
         Plugin.Logger.LogWarning($"prefToDescriptor: no match for pref='{pref}'");
-        return descriptors.Find(x => x.weaponName == "UNKNOWN");
+        return descriptors.Find(x => x.weaponName == "UNKNOWN").icon;
     }
 
     // ── Convenience: get all enemies of a specific type ──────────────────────

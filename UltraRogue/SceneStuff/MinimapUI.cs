@@ -112,6 +112,7 @@ public class MinimapUI : MonoBehaviour
 
     void Update()
     {
+        /*
         if(minimapPanel.gameObject != null)
         {
             if (InputManager.Instance.InputSource.Stats.IsPressed)
@@ -122,7 +123,7 @@ public class MinimapUI : MonoBehaviour
             {
                 minimapPanel.gameObject.SetActive(false);
             }
-        }
+        }*/
         if (_placedRooms == null || RoomGenerator.Instance == null) return;
 
         var player = NewMovement.Instance;

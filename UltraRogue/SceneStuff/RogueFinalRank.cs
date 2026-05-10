@@ -73,6 +73,9 @@ public class RogueFinalRank : MonoBehaviour
             this.bestKillsText.text = (this.previousBest.BestRun.Kills.ToString() ?? "");
             this.bestStyleText.text = (this.previousBest.BestRun.ItemsGotten.ToString() ?? "");
 
+            transform.Find("Panel/SeedInfo/Text (1)").GetComponent<TMP_Text>().text = Plugin.GameSeed;
+            transform.Find("Panel/DifficultyInfo/Text (1)").GetComponent<TMP_Text>().text = Plugin.CurrentDifficulty == 1 ? "Easy" : "Hard";
+
             // FIX 2: Loop must start from previousBest time, not 0
             int num = 0;
             float num2;

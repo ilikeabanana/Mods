@@ -34,18 +34,24 @@ public static class SceneLoader
         BundleLoader.Load();
 
     }
-
+     
     static string[] messages = new string[]
     {
-        "The higher the game difficulty, the more rooms, and enemies spawn",
+        "The higher the you set the difficulty, the more rooms, and enemies spawn",
         "Although items can greatly help survivability, getting your arsenal is a bigger priority",
         "Difficulty gets increased over time, causing more enemies to spawn, and sometimes make them radiant",
-        "Each room has a chance to give nothing, gold, or keys!"
+        "Each room has a chance to give nothing, gold, or keys!",
+        "Some items are better for specific classes",
+        "Pressing tab shows a minimap, your stats, and your items."
     };
+
+    static bool LoadingScene = false;
 
     /// <summary> Asynchronously loads the Empty level. </summary>
     public static IEnumerator LoadLevelAsync(bool noSplash)
     {
+        if (LoadingScene) yield break;
+        LoadingScene = true;
         // show loading subtext and loading blocker
         logger.LogInfo("Loading Empty Scene...");
         SceneHelper.PendingScene = SceneName;
@@ -86,7 +92,7 @@ public static class SceneLoader
         //new GameObject("generator").AddComponent<RoomGenerator>();
         new GameObject("NavMesh").AddComponent<NavMeshSurface>();
         Plugin.Instance.StartCoroutine(PlayPixelAnimation());
-        
+        LoadingScene = false;
     }
 
     static IEnumerator PlayPixelAnimation()
@@ -187,7 +193,7 @@ public static class SceneLoader
     {
         if (sceneName == SceneName)
         {
-            __result = LoadLevelAsync(noSplash);
+            Plugin.LoadLevel("");
             return false;
         }
 
@@ -195,10 +201,10 @@ public static class SceneLoader
     }
 
     [HarmonyPrefix]
-    [HarmonyPatch(typeof(LevelStats), nameof(LevelStats.Start))]
+    [HarmonyPatch(typeof(LevelStats), nameof(LevelStats.Update))]
     public static bool STOPPPSPAWNINGGGGG(LevelStats __instance)
     {
-        if (Plugin.isInRogueScene())
+        if (Object.FindObjectOfType<RogueDifficultyManager>() != null)
         {
             Object.Destroy(__instance.gameObject);
             return false;

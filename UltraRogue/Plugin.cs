@@ -1,4 +1,5 @@
 ﻿using BepInEx;
+using BepInEx.Bootstrap;
 using BepInEx.Logging;
 using HarmonyLib;
 using Newtonsoft.Json;
@@ -224,14 +225,58 @@ namespace Ultrarogue
                 .ToArray();
             return new string(chars).ToUpper();
         }
+
+        public static void LoadLevel(string seed)
+        {
+            foreach (var tiem in items)
+            {
+                tiem.Key.OnGotten(0, false);
+                tiem.Key.OnUpdate(0);
+                tiem.Key.OnRemoval();
+            }
+            items.Clear();
+            weapons.Clear();
+            if (string.IsNullOrEmpty(seed))
+                GameSeed = GenerateRandomString(6);
+            else
+                GameSeed = seed;
+            if (SelectedChar.StartingWeapons == null || SelectedChar.StartingWeapons.Count == 0)
+            {
+                Logger.LogWarning($"[Play] {SelectedChar.Name} has no StartingWeapons — falling back to defaults.");
+                weapons.Add(new AWeapon(Weapon.Revolver, Variant.Blue));
+                weapons.Add(new AWeapon(Weapon.Arm, Variant.Blue));
+
+
+            }
+            else
+            {
+                weapons.AddRange(SelectedChar.StartingWeapons);
+            }
+            Logger.LogInfo($"Item count: " + SelectedChar.StartingItems.Count);
+            if (SelectedChar.StartingItems.Count != 0)
+            {
+                foreach (var item in SelectedChar.StartingItems)
+                {
+                    Logger.LogInfo($"Giving item: " + item);
+                    Plugin.GiveItem(item);
+                }
+            }
+
+            Plugin.Instance.StartCoroutine(SceneLoader.LoadLevelAsync(false));
+        }
+        public static bool IsOtherModLoaded()
+        {
+            return Chainloader.PluginInfos.ContainsKey("duviz.ultrakill.ultraeditor");
+        }
         IEnumerator SpawnThings()
         {
+            yield return new WaitForSeconds(2f); // idk why 24 but lmao
             CurrentDifficulty = 1;
             yield return null;
             AsyncOperationHandle<GameObject> RogueButtonPref = Addressables.LoadAssetAsync<GameObject>("Assets/Modding/RogueMode/RogueMode.prefab");
             yield return new WaitUntil(() => RogueButtonPref.IsDone);
             GameObject parent = GameObject.FindObjectsByType<GameObject>(FindObjectsInactive.Include, FindObjectsSortMode.None)
-                .FirstOrDefault((x) => x.name.Contains("Chapters"));
+                .FirstOrDefault((x) => x.name.Contains(!IsOtherModLoaded() ? "Chapters" : "TopRightChapterSelect"));
 
             if (parent == null)
             {
@@ -257,41 +302,7 @@ namespace Ultrarogue
                     Logger.LogError("[Play] SelectedChar is null!");
                     return;
                 }
-                foreach (var tiem in items)
-                {
-                    tiem.Key.OnGotten(0, false);
-                    tiem.Key.OnUpdate(0);
-                    tiem.Key.OnRemoval();
-                }
-                items.Clear();
-                weapons.Clear();
-                if (string.IsNullOrEmpty(seedField.text))
-                    GameSeed = GenerateRandomString(6);
-                else
-                    GameSeed = seedField.text;
-                if (SelectedChar.StartingWeapons == null || SelectedChar.StartingWeapons.Count == 0)
-                {
-                    Logger.LogWarning($"[Play] {SelectedChar.Name} has no StartingWeapons — falling back to defaults.");
-                    weapons.Add(new AWeapon(Weapon.Revolver, Variant.Blue));
-                    weapons.Add(new AWeapon(Weapon.Arm, Variant.Blue));
-
-                    
-                }
-                else
-                {
-                    weapons.AddRange(SelectedChar.StartingWeapons);
-                }
-                Logger.LogInfo($"Item count: " + SelectedChar.StartingItems.Count);
-                if (SelectedChar.StartingItems.Count != 0)
-                {
-                    foreach (var item in SelectedChar.StartingItems)
-                    {
-                        Logger.LogInfo($"Giving item: " + item);
-                        Plugin.GiveItem(item);
-                    }
-                }
-
-                StartCoroutine(SceneLoader.LoadLevelAsync(false));
+                LoadLevel(seedField.text);
             });
 
             TMP_Text info = men.transform.Find("Info/InfoText").GetComponent<TMP_Text>();
@@ -371,11 +382,6 @@ namespace Ultrarogue
 
         void Update()
         {
-
-            if (Input.GetKeyDown(KeyCode.X))
-            {
-                Plugin.GiveItem("Cerberus Head");
-            }
             #if RUNTIME_ROOMS
             if (Input.GetKeyDown(KeyCode.F5))
             {

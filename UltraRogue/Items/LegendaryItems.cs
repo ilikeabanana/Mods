@@ -280,7 +280,7 @@ namespace Ultrarogue.Items
             new HitEffect(ItemName, (eid, dmg) =>
             {
                 int count = Plugin.GetItemCount(this);
-                if (count <= 0 || eid.dead) return;
+                if (count <= 0 || eid.dead || eid.hitter == "fire") return;
 
                 float burnDuration = 1.5f + (0.5f * (count - 1));
 
