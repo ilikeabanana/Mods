@@ -28,7 +28,7 @@ public class ItemPickup : MonoBehaviour
             Destroy(gameObject);
         }
     }
-    public static void CreatePickup(BaseItem item, Transform position)
+    public static void CreatePickup(BaseItem item, Transform position, float offset = 3)
     {
         GameObject pickup = GameObject.CreatePrimitive(PrimitiveType.Quad);
         pickup.GetComponent<Collider>().enabled = false;
@@ -36,11 +36,11 @@ public class ItemPickup : MonoBehaviour
         Material mat = new Material(AssetsManager.weaponMat);
         mat.mainTexture = item.ItemTexture;
         pickup.GetComponent<MeshRenderer>().material = mat;
-        pickup.transform.position = position.position + Vector3.up * 3;
+        pickup.transform.position = position.position + Vector3.up * offset;
         pickup.transform.parent = position;
         pickup.transform.localScale *= 3;
     }
-    public static void CreatePickupConditional(BaseItem item, Transform position, Func<bool> pickupCon)
+    public static void CreatePickupConditional(BaseItem item, Transform position, Func<bool> pickupCon, float offset = 3)
     {
         GameObject pickup = GameObject.CreatePrimitive(PrimitiveType.Quad);
         pickup.GetComponent<Collider>().enabled = false;
@@ -49,7 +49,7 @@ public class ItemPickup : MonoBehaviour
         Material mat = new Material(AssetsManager.weaponMat);
         mat.mainTexture = item.ItemTexture;
         pickup.GetComponent<MeshRenderer>().material = mat;
-        pickup.transform.position = position.position + Vector3.up * 3;
+        pickup.transform.position = position.position + Vector3.up * offset;
         pickup.transform.localScale *= 3;
         pickup.transform.parent = position;
     }

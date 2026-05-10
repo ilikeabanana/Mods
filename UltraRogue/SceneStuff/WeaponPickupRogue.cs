@@ -39,7 +39,33 @@ namespace Ultrarogue.SceneStuff
             mat.SetInt("_CullMode", 0); // Off
             mat.EnableKeyword("BILLBOARD");
 
-            mat.mainTexture = AssetsManager.prefToDescriptor(weapon.ToString(), weapon.Alternate).icon.texture;
+            Sprite icon = AssetsManager.prefToDescriptor(weapon.ToString(), weapon.Alternate).icon;
+            Rect rect = icon.textureRect;
+            Texture2D atlas = icon.texture;
+
+            // Extract sprite region into a RenderTexture
+            RenderTexture rt = new RenderTexture((int)rect.width, (int)rect.height, 0);
+            Graphics.Blit(atlas, rt,
+                new Vector2(rect.width / atlas.width, rect.height / atlas.height),
+                new Vector2(rect.x / atlas.width, rect.y / atlas.height));
+
+            // Read it into a CPU-readable Texture2D
+            RenderTexture.active = rt;
+            Texture2D tex = new Texture2D((int)rect.width, (int)rect.height);
+            tex.ReadPixels(new Rect(0, 0, rect.width, rect.height), 0, 0);
+            tex.Apply();
+            RenderTexture.active = null;
+            rt.Release();
+
+            // Invert RGB (black -> white), preserve alpha
+            Color[] pixels = tex.GetPixels();
+            for (int i = 0; i < pixels.Length; i++)
+                pixels[i] = new Color(1 - pixels[i].r, 1 - pixels[i].g, 1 - pixels[i].b, pixels[i].a);
+            tex.SetPixels(pixels);
+            tex.Apply();
+
+            mat.mainTexture = tex;
+
             pickup.GetComponent<MeshRenderer>().material = mat;
 
             pickup.AddComponent<WeaponPickupRogue>().weapon = weapon;
@@ -53,7 +79,7 @@ namespace Ultrarogue.SceneStuff
             );
         }
 
-        public static void CreatePickupConditional(Transform position, Func<bool> pickupCon)
+        public static void CreatePickupConditional(Transform position, Func<bool> pickupCon, float offset = 2)
         {
             GameObject pickup = GameObject.CreatePrimitive(PrimitiveType.Quad);
             pickup.GetComponent<Collider>().enabled = false;
@@ -63,12 +89,37 @@ namespace Ultrarogue.SceneStuff
             mat.SetInt("_CullMode", 0); // Off
             mat.EnableKeyword("BILLBOARD");
 
-            mat.mainTexture = AssetsManager.prefToDescriptor(weapon.ToString(), weapon.Alternate).icon.texture;
+            Sprite icon = AssetsManager.prefToDescriptor(weapon.ToString(), weapon.Alternate).icon;
+            Rect rect = icon.textureRect;
+            Texture2D atlas = icon.texture;
+
+            // Extract sprite region into a RenderTexture
+            RenderTexture rt = new RenderTexture((int)rect.width, (int)rect.height, 0);
+            Graphics.Blit(atlas, rt,
+                new Vector2(rect.width / atlas.width, rect.height / atlas.height),
+                new Vector2(rect.x / atlas.width, rect.y / atlas.height));
+
+            // Read it into a CPU-readable Texture2D
+            RenderTexture.active = rt;
+            Texture2D tex = new Texture2D((int)rect.width, (int)rect.height);
+            tex.ReadPixels(new Rect(0, 0, rect.width, rect.height), 0, 0);
+            tex.Apply();
+            RenderTexture.active = null;
+            rt.Release();
+
+            // Invert RGB (black -> white), preserve alpha
+            Color[] pixels = tex.GetPixels();
+            for (int i = 0; i < pixels.Length; i++)
+                pixels[i] = new Color(1 - pixels[i].r, 1 - pixels[i].g, 1 - pixels[i].b, pixels[i].a);
+            tex.SetPixels(pixels);
+            tex.Apply();
+
+            mat.mainTexture = tex;
             pickup.GetComponent<MeshRenderer>().material = mat;
             WeaponPickupRogue pickup_component = pickup.AddComponent<WeaponPickupRogue>();
             pickup_component.weapon = weapon;
             pickup_component.canPickup = pickupCon;
-            pickup.transform.position = position.position + Vector3.up * 2;
+            pickup.transform.position = position.position + Vector3.up * offset;
             pickup.transform.parent = position;
             pickup.transform.localScale *= 2;
             pickup.transform.localScale = new Vector3(

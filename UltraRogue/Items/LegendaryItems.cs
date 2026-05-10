@@ -280,7 +280,7 @@ namespace Ultrarogue.Items
             new HitEffect(ItemName, (eid, dmg) =>
             {
                 int count = Plugin.GetItemCount(this);
-                if (count <= 0 || eid.dead || eid.hitter == "fire") return;
+                if (count <= 0 || eid.dead) return;
 
                 float burnDuration = 1.5f + (0.5f * (count - 1));
 
@@ -292,9 +292,14 @@ namespace Ultrarogue.Items
                 {
                     Flammable f = eid.GetComponentInChildren<Flammable>();
                     if (f != null) f.Burn(burnDuration, false);
+                    else if(f == null)
+                    {
+                        eid.AddFlammable(10);
+                        eid.StartBurning(burnDuration);
+                    }
                 }
             });
-
+            
             new DamageModifier(ItemName, (eid) =>
             {
                 int count = Plugin.GetItemCount(this);
