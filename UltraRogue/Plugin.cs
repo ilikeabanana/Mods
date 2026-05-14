@@ -264,6 +264,21 @@ namespace Ultrarogue
 
             Plugin.Instance.StartCoroutine(SceneLoader.LoadLevelAsync(false));
         }
+        static List<string> inComMods = new List<string>()
+        {
+            "billy.spawnerarmextras"
+        };
+        public static bool userHasIncomaptibleMods()
+        {
+            foreach (var key in Chainloader.PluginInfos.Keys)
+                Logger.LogInfo($"Loaded plugin GUID: {key}");
+            foreach (string inmod in inComMods)
+            {
+                Logger.LogInfo($"Checking mod: {inmod}");
+                if (Chainloader.PluginInfos.ContainsKey(inmod)) return true;
+            }
+            return false;
+        }
         public static bool IsOtherModLoaded()
         {
             return Chainloader.PluginInfos.ContainsKey("duviz.ultrakill.ultraeditor");
@@ -347,6 +362,11 @@ namespace Ultrarogue
             {
                 CurrentDifficulty = i + 1;
             });
+            if (userHasIncomaptibleMods())
+            {
+                Logger.LogInfo("AAAAAAAAA INCOMPATIBLE MOD DETECTEDDD");
+                men.transform.Find("IncomModsMessage").gameObject.SetActive(true);
+            }
         }
 
 
