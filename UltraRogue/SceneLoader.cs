@@ -199,14 +199,14 @@ public static class SceneLoader
 
         return true;
     }
+    
 
     [HarmonyPrefix]
-    [HarmonyPatch(typeof(LevelStats), nameof(LevelStats.Update))]
-    public static bool STOPPPSPAWNINGGGGG(LevelStats __instance)
+    [HarmonyPatch(typeof(LevelStatsEnabler), nameof(LevelStatsEnabler.Update))]
+    public static bool STOPPPSPAWNINGGGGG(LevelStatsEnabler __instance)
     {
         if (Object.FindObjectOfType<RogueDifficultyManager>() != null)
         {
-            Object.Destroy(__instance.gameObject);
             return false;
         }
 

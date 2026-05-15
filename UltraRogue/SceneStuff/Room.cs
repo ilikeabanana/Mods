@@ -9,7 +9,7 @@ using Ultrarogue.Characters;
 using Ultrarogue.Items;
 using Ultrarogue.SceneStuff;
 using UnityEngine;
-using Random=UnityEngine.Random;
+using Random = UnityEngine.Random;
 
 public enum RoomType
 {
@@ -50,6 +50,11 @@ public class Room : MonoBehaviour
     private bool hasSpawnedEnemies = false;
     private bool rewardGiven = false;
 
+    [Tooltip("Enemy that will activate the object instead of itself (default to wicked for nothing)")]
+    public EnemyType ReplacerType = EnemyType.Wicked;
+    [Tooltip("The objects that will be activated, will pick a random one in the list each time and will remove that one from the list once chosen. If none are left, it will just spawn the enemy like normal")]
+    public List<GameObject> allObjectActivators = new List<GameObject>();
+
     public static bool isFighting = false;
     public void OnRoomEnter()
     {
@@ -60,7 +65,48 @@ public class Room : MonoBehaviour
                 break;
 
             case RoomType.Normal:
-
+                int c = Plugin.GetItemCount("Dual Gun");
+                if(c > 0)
+                    if (Plugin.canExecute(Plugin.LogarithmicChance(c - 1, 0.15f, 0.25f, 0.9f) * 100, ""))
+                    {
+                        MonoSingleton<CameraController>.Instance.CameraShake(0.35f);
+                        if (MonoSingleton<PlayerTracker>.Instance.playerType == PlayerType.Platformer)
+                        {
+                            MonoSingleton<PlatformerMovement>.Instance.AddExtraHit(3);
+                            return;
+                        }
+                        GameObject gameObject = new GameObject();
+                        gameObject.transform.SetParent(MonoSingleton<GunControl>.Instance.transform, true);
+                        gameObject.transform.localRotation = Quaternion.identity;
+                        DualWield[] componentsInChildren = MonoSingleton<GunControl>.Instance.GetComponentsInChildren<DualWield>();
+                        if (componentsInChildren != null && componentsInChildren.Length % 2 == 0)
+                        {
+                            gameObject.transform.localScale = new Vector3(-1f, 1f, 1f);
+                        }
+                        else
+                        {
+                            gameObject.transform.localScale = Vector3.one;
+                        }
+                        if (componentsInChildren == null || componentsInChildren.Length == 0)
+                        {
+                            gameObject.transform.localPosition = Vector3.zero;
+                        }
+                        else if (componentsInChildren.Length % 2 == 0)
+                        {
+                            gameObject.transform.localPosition = new Vector3((float)(componentsInChildren.Length / 2) * -1.5f, 0f, 0f);
+                        }
+                        else
+                        {
+                            gameObject.transform.localPosition = new Vector3((float)((componentsInChildren.Length + 1) / 2) * 1.5f, 0f, 0f);
+                        }
+                        DualWield dualWield = gameObject.AddComponent<DualWield>();
+                        dualWield.delay = 0.05f;
+                        dualWield.juiceAmount = 30f;
+                        if (componentsInChildren != null && componentsInChildren.Length != 0)
+                        {
+                            dualWield.delay += (float)componentsInChildren.Length / 20f;
+                        }
+                    }
                 StartCoroutine(SpawnEnemies());
                 break;
 
@@ -72,7 +118,23 @@ public class Room : MonoBehaviour
                 break;
         }
     }
+
+    
+
     private int playerHealthAtFightStart = -1;
+
+    // Represents a single planned enemy spawn: its type and how many radiance buffs it gets.
+    private readonly struct PlannedSpawn
+    {
+        public readonly EnemyType type;
+        public readonly int radianceBuffs;
+        public PlannedSpawn(EnemyType type, int radianceBuffs)
+        {
+            this.type = type;
+            this.radianceBuffs = radianceBuffs;
+        }
+    }
+
     IEnumerator SpawnEnemies()
     {
         if (SpawnCredits == 0) yield break;
@@ -83,99 +145,144 @@ public class Room : MonoBehaviour
         Plugin.Logger.LogInfo($"Room has {SpawnCredits} spawn credits because difficulty is {RogueDifficultyManager.Instance.Difficulty}");
         isFighting = true;
 
-        int spawnedEnemies = 0;
+        // ── Phase 1a: Spend credits, accumulate total counts per enemy type ─────
+        var enemyCounts = new Dictionary<EnemyType, int>();
+
         while (SpawnCredits > 0)
         {
             EnemyType randomEnemy = (EnemyType)enemyRando.Next(0, System.Enum.GetValues(typeof(EnemyType)).Length);
             if (!RogueDifficultyManager.Instance.CanSpawn(randomEnemy)) continue;
+
             int cost = RogueDifficultyManager.Instance.GetCost(randomEnemy);
             if (SpawnCredits - cost < 0) continue;
 
             int amountCanSpawn = Mathf.FloorToInt(SpawnCredits / cost);
-            int amountToSpawn = enemyRando.Next(1, amountCanSpawn + 1);
+            int amountToSpawn = enemyRando.Next(1, Mathf.Max(1, (amountCanSpawn + 1) / 2));
             SpawnCredits -= amountToSpawn * cost;
 
-            // Build tier thresholds upward until they exceed amountToSpawn
-            int baseC = RogueDifficultyManager.Instance.GetCountBeforeRadiance(randomEnemy);
-            var radianceBuffCounts = new List<int>();
+            if (!enemyCounts.ContainsKey(randomEnemy))
+                enemyCounts[randomEnemy] = 0;
+            enemyCounts[randomEnemy] += amountToSpawn;
+        }
 
+        // ── Phase 1b: Resolve radiance using TOTAL count per type, build spawn list
+        var spawnPlan = new List<PlannedSpawn>();
+
+        foreach (var kvp in enemyCounts)
+        {
+            EnemyType enemyType = kvp.Key;
+            int totalCount = kvp.Value;
+
+            // Build radiance tier thresholds against the full count for this type.
+            int baseC = RogueDifficultyManager.Instance.GetCountBeforeRadiance(enemyType);
             List<int> thresholds = new List<int>();
             float t = baseC;
             while (true)
             {
                 int rounded = Mathf.RoundToInt(t);
-                if (rounded > amountToSpawn) break;
+                if (rounded > totalCount) break;
                 thresholds.Add(rounded);
                 float next = t * Mathf.Sqrt(t);
-                if (next <= t) break; // guard: prevent infinite loop if baseC is 1
+                if (next <= t) break; // guard against infinite loop when baseC == 1
                 t = next;
             }
 
-            // Work top-down: highest tier first, consuming from remaining
-            int remaining = amountToSpawn;
+            // Work top-down: highest tier first, consuming from remaining count.
+            var radianceBuffCounts = new List<int>();
+            int remaining = totalCount;
             for (int tier = thresholds.Count - 1; tier >= 0; tier--)
             {
                 int count = remaining / thresholds[tier];
                 remaining %= thresholds[tier];
                 for (int i = 0; i < count; i++)
-                    radianceBuffCounts.Add(tier + 1); // tier 0 = 1 buff, tier 1 = 2 buffs, etc.
+                    radianceBuffCounts.Add(tier + 1); // tier 0 → 1 buff, tier 1 → 2 buffs, etc.
             }
 
-            amountToSpawn = remaining + radianceBuffCounts.Count;
+            // Plain (unbuffed) enemies first, then buffed ones.
+            for (int i = 0; i < remaining; i++)
+                spawnPlan.Add(new PlannedSpawn(enemyType, 0));
+            foreach (int buffs in radianceBuffCounts)
+                spawnPlan.Add(new PlannedSpawn(enemyType, buffs));
+        }
 
-            GameObject enemyPrefab = DefaultReferenceManager.Instance.GetEnemyPrefab(randomEnemy);
-            if (randomEnemy == EnemyType.Power)
+        Plugin.Logger.LogInfo($"[Room] Spawn plan built: {spawnPlan.Count} enemies total.");
+
+        // ── Phase 2: Spawn every planned enemy ───────────────────────────────────
+        BaseItem mask = Plugin.getItem("Agonized Mask");
+        int maskCount = Plugin.GetItemCount(mask);
+
+        for (int spawnedEnemies = 0; spawnedEnemies < spawnPlan.Count; spawnedEnemies++)
+        {
+            // First 100 enemies stagger in; everything beyond spawns instantly.
+            if (spawnedEnemies < 100)
+            {
+                float delay = spawnedEnemies < 25
+                    ? 0.05f
+                    : 0.05f / (spawnedEnemies - 24);
+                yield return new WaitForSeconds(delay);
+            }
+
+            PlannedSpawn planned = spawnPlan[spawnedEnemies];
+
+            GameObject enemyPrefab = DefaultReferenceManager.Instance.GetEnemyPrefab(planned.type);
+            if (planned.type == EnemyType.Power)
                 enemyPrefab = AssetsManager.funnyPowerIntroSpawn;
+            if (planned.type == EnemyType.MirrorReaper)
+                enemyPrefab = AssetsManager.GetEnemiesOfType(EnemyType.MirrorReaper).FirstOrDefault().gameObject;
             if (enemyPrefab == null) continue;
 
-            for (int i = 0; i < amountToSpawn; i++)
+            Transform spawnPt = spawnPoints[enemyRando.Next(0, spawnPoints.Count)];
+            if (spawnPt == null)
             {
-                spawnedEnemies++;
-                if (spawnedEnemies <= 25)
-                    yield return new WaitForSeconds(0.05f);
-                else
-                    yield return new WaitForSeconds(0.05f / (spawnedEnemies - 24));
+                Debug.LogWarning($"[Room] No fitting spawn point for {planned.type} — skipping this unit.");
+                continue;
+            }
 
-                Transform spawnPt = spawnPoints[enemyRando.Next(0, spawnPoints.Count)];
+            Vector3 pos;
+            do
+            {
+                pos = spawnPt.position + new Vector3(
+                    (float)((enemyRando.NextDouble() * 4.0) - 2.0), 0,
+                    (float)((enemyRando.NextDouble() * 4.0) - 2.0));
+            } while (IsOutOfBounds(pos));
 
-                if (spawnPt == null)
+            if (isFlying(planned.type)) pos += Vector3.up * 3f;
+
+            if(planned.type == ReplacerType && allObjectActivators.Count > 0)
+            {
+                GameObject objectToEnable = allObjectActivators[Random.Range(0, allObjectActivators.Count)];
+                objectToEnable.SetActive(true);
+                allObjectActivators.Remove(objectToEnable);
+                yield break;
+            }
+
+            GameObject inst = Instantiate(enemyPrefab, pos, enemyPrefab.transform.rotation);
+            inst.transform.parent = transform;
+
+            if (planned.radianceBuffs > 0)
+            {
+                EnemyIdentifier eid = inst.GetComponent<EnemyIdentifier>()
+                                   ?? inst.GetComponentInChildren<EnemyIdentifier>();
+                if (eid != null)
                 {
-                    Debug.LogWarning($"[Room] No fitting spawn point for {randomEnemy} — skipping this unit.");
-                    continue;
-                }
-
-                Vector3 pos = spawnPt.position;
-                if (isFlying(randomEnemy)) pos += Vector3.up * 3f;
-
-                pos += new Vector3((float)((enemyRando.NextDouble() * 4.0) - 2.0), 0, (float)((enemyRando.NextDouble() * 4.0) - 2.0));
-
-                GameObject inst = Instantiate(enemyPrefab, pos, enemyPrefab.transform.rotation);
-                inst.transform.parent = transform;
-
-                if (radianceBuffCounts.Count > 0)
-                {
-                    EnemyIdentifier eid = inst.GetComponent<EnemyIdentifier>();
-                    if (eid == null) eid = inst.GetComponentInChildren<EnemyIdentifier>();
-                    int buffCount = radianceBuffCounts[0];
-                    radianceBuffCounts.RemoveAt(0);
-                    for (int b = 0; b < buffCount; b++)
+                    for (int b = 0; b < planned.radianceBuffs; b++)
                         eid.BuffAll();
 
-                    BaseItem mask = Plugin.getItem("Agonized Mask");
-                    int c = Plugin.GetItemCount(mask);
-
-                    if(c > 0)
-                    {
-                        if(Random.value <= (0.25f + (0.10f * c)))
-                        {
-                            eid.puppet = true;
-                        }
-                    }
+                    if (maskCount > 0 && Random.value <= (0.25f + (0.10f * maskCount)))
+                        eid.puppet = true;
                 }
             }
         }
 
         hasSpawnedEnemies = true;
+    }
+
+    bool IsOutOfBounds(Vector3 worldPosition)
+    {
+        Vector3 localPos = transform.InverseTransformPoint(worldPosition);
+
+        return localPos.x < -60 || localPos.x > 60 ||
+               localPos.z < -30 || localPos.z > 30;
     }
 
     IEnumerator SpawnBoss()
@@ -199,7 +306,7 @@ public class Room : MonoBehaviour
             {
                 if (bossEntry.prefab == null) continue;
 
-                
+
 
                 Vector3 spawnPos = transform.position + Vector3.up * 1f + new Vector3(UnityEngine.Random.Range(-4f, 4f), 0f, UnityEngine.Random.Range(-4f, 4f));
                 GameObject bossInst = Instantiate(bossEntry.prefab, spawnPos, bossEntry.prefab.transform.rotation);
@@ -222,7 +329,7 @@ public class Room : MonoBehaviour
                     bossEnemyType.onSpawn?.Invoke(eid);
                     if (eid.gameObject.GetComponent<BossHealthBar>() == null)
                         eid.gameObject.AddComponent<BossHealthBar>();
-                    if(eid.enemyType == EnemyType.Gabriel || eid.enemyType == EnemyType.GabrielSecond)
+                    if (eid.enemyType == EnemyType.Gabriel || eid.enemyType == EnemyType.GabrielSecond)
                     {
                         eid.onDeath.AddListener(() =>
                         {
@@ -231,7 +338,7 @@ public class Room : MonoBehaviour
                     }
                 }
 
-                
+
             }
 
             bool waveAlive = true;
@@ -380,6 +487,7 @@ public class Room : MonoBehaviour
                 plc.transform.position = itemPos;
                 ItemPickup.CreatePickup(Plugin.GiveRandomItem(), plc.transform);
                 Debug.Log("[Room] Bonus item dropped on room clear.");
+                Instantiate(AssetsManager.spawnEffect, itemPos, Quaternion.identity);
             }
             else
             {
@@ -413,13 +521,11 @@ public class Room : MonoBehaviour
                 Random.Range(-2f, 2f), 1f, Random.Range(-2f, 2f));
             GameObject plc = new GameObject("aaaaaaaaaaaa");
             plc.transform.position = spawnPos;
-            ItemPickup.CreatePickupConditional(Plugin.GiveRandomItem(), plc.transform, () =>
-            {
-                CreatePortal();
-                return true;
-            });
+            plc.transform.parent = transform;
+            ItemPickup.CreatePickup(Plugin.GiveRandomItem(), plc.transform);
+            Instantiate(AssetsManager.spawnEffect, spawnPos, Quaternion.identity);
             NewMovement.Instance.FullHeal();
-            
+            StartCoroutine(SpawnPortalWhenClear());
         }
 
         foreach (var door in FindObjectsByType<Door>(FindObjectsInactive.Include, FindObjectsSortMode.None))
@@ -430,6 +536,40 @@ public class Room : MonoBehaviour
                     continue;
             }
             door.Unlock();
+        }
+    }
+    IEnumerator SpawnPortalWhenClear()
+    {
+        GameObject portalPlace = GameObject.Find("PortalPlace");
+        if (portalPlace == null) yield break;
+
+        // The portal quad is 10x10, rotated flat on XZ — half-extent is 5 units per axis.
+        const float halfExtent = 5f;
+        // How far above the portal plane we consider the player "on top of it".
+        const float aboveThreshold = 4f;
+
+        Vector3 portalPos = portalPlace.transform.position;
+
+        while (true)
+        {
+            Vector3 playerPos = NewMovement.Instance.transform.position;
+
+            float dx = Mathf.Abs(playerPos.x - portalPos.x);
+            float dz = Mathf.Abs(playerPos.z - portalPos.z);
+            float dy = playerPos.y - portalPos.y;
+
+            bool playerIsAbovePortal =
+                dx <= halfExtent &&
+                dz <= halfExtent &&
+                dy >= 0f && dy <= aboveThreshold;
+
+            if (!playerIsAbovePortal)
+            {
+                CreatePortal();
+                yield break;
+            }
+
+            yield return new WaitForSeconds(0.1f);
         }
     }
 

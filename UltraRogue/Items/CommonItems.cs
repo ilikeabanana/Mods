@@ -1,6 +1,7 @@
 ﻿using HarmonyLib;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using ULTRAKILL.Portal;
@@ -69,6 +70,65 @@ namespace Ultrarogue.Items
         }
     }
 
+    public class Improvement : BaseItem
+    {
+        public override string ItemName => "Improvement";
+        public override string itemDescription => "+10% to your lowest stat";
+        PlayerChange plrChanges;
+        public override void OnStart()
+        {
+            plrChanges = new PlayerChange();
+        }
+        public override void OnGotten(int count, bool firstPickup)
+        {
+            if (NewMovement.Instance == null) return;
+
+            // Movement speed
+            float speed = NewMovement.Instance.walkSpeed;
+            float baseSpeed = Plugin.Instance.normalMoveSpeed;
+
+            float speedMult = speed / baseSpeed;
+
+            // Attack speed
+            float atkSpeed = Plugin.AttackSpeed.CalculateChanges(1f);
+
+            // Damage
+            float dmg = Plugin.globalDamageMult.CalculateChanges(1f);
+
+            // Cooldown
+            float cd = Plugin.cooldownReduction.CalculateChanges(1f);
+
+            var stats = new[]
+            {
+                ("MS", speedMult),
+                ("AS", atkSpeed),
+                ("D", dmg),
+                ("C", cd)
+            };
+
+            var lowest = stats.OrderBy(x => x.Item2).First();
+
+            if (lowest.Item1 == "MS")
+                plrChanges.moveSpeed.percentage += 0.10f * count;
+            else if (lowest.Item1 == "AS")
+                plrChanges.attackSpeed.percentage += 0.10f * count;
+            else if (lowest.Item1 == "D")
+                plrChanges.globalDamageMult.percentage += 0.10f * count;
+            else if (lowest.Item1 == "C")
+                plrChanges.cooldownRed.percentage += 0.10f * count;
+        }
+
+        public override void OnRemoval()
+        {
+            plrChanges.moveSpeed = new Change();
+            plrChanges.attackSpeed = new Change();
+            plrChanges.globalDamageMult = new Change();
+            plrChanges.cooldownRed = new Change();
+        }
+
+
+    }
+
     // Gasoline and SandWorm use DeathEffect/DamageModifier that already gate on
     // GetItemCount, so no OnRemoval is needed for them.
 
@@ -110,6 +170,24 @@ namespace Ultrarogue.Items
         }
     }
 
+    public class SmallKit : BaseItem
+    {
+        public override string ItemName => "Small Kit";
+        public override string itemDescription => "Get +5 hp";
+        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Healing };
+
+        Change hpChange;
+        public override void OnStart()
+        {
+            hpChange = new Change();
+            new PlayerChange(maxHealth: hpChange);
+        }
+
+        public override void OnUpdate(int count)
+        {
+            hpChange.addition = 10 * count;
+        }
+    }
     public class SandWorm : BaseItem
     {
         public override string ItemName => "Sand Worm";
@@ -149,12 +227,12 @@ namespace Ultrarogue.Items
         public override void OnRemoval()
         {
             damageChange.damageChange.percentage = 0;
-        }
+        } 
     }
 
     public class SpeedLoader : BaseItem
     {
-        public override string ItemName => "Speed Loader";
+        public override string ItemName => "Heavy Loader";
         public override string itemDescription => "Revolver damage +12%";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         DamageChange damageChange;

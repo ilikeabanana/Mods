@@ -8,6 +8,7 @@ namespace Ultrarogue.Characters
     {
         public virtual List<AWeapon> StartingWeapons => new List<AWeapon>();
         public virtual List<string> StartingItems => new List<string>();
+        public virtual List<Passive> Passives => new List<Passive>();
         public virtual string Name => "idk";
 
         public virtual string Description => "idk";
@@ -16,6 +17,17 @@ namespace Ultrarogue.Characters
         {
 
         }
-
+        public virtual void OnRunStart() { }
+        public bool HasPassive(Passive p) => Passives.Contains(p);
     }
+
+    public enum Passive
+    {
+        HealFromBlood,
+        NoFireDamage,
+        TripleShot,
+        GasolineFire,
+        HealSetOnFire,
+    }
+
 }

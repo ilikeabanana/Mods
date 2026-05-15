@@ -14,6 +14,9 @@ public class AssetsManager
 
     public static GameObject Agony;
     public static GameObject Tundra;
+    public static GameObject MirrorReaper;
+
+    public static GameObject VirtueBeam;
 
     // Enemies grouped by their EnemyType enum
     public static Dictionary<EnemyType, List<SpawnableObject>> enemiesByType
@@ -28,6 +31,8 @@ public class AssetsManager
     public static GameObject napalmProj;
     public static GameObject mindflayerBeam;
     public static GameObject funnyPowerIntroSpawn;
+    public static GameObject zapThingy;
+    public static GameObject spawnEffect;
     public static AudioClip StalkerWarning;
 
     public static Sprite ArmFeedbacker;
@@ -43,6 +48,12 @@ public class AssetsManager
             napalmProj = Addressables
                 .LoadAssetAsync<GameObject>(
                     "Assets/Prefabs/Attacks and Projectiles/GasolineProjectile.prefab")
+                .WaitForCompletion();
+
+        if (VirtueBeam == null)
+            VirtueBeam = Addressables
+                .LoadAssetAsync<GameObject>(
+                    "Virtue Insignia")
                 .WaitForCompletion();
 
         if (Agony == null)
@@ -61,6 +72,18 @@ public class AssetsManager
             Tundra = Addressables
                 .LoadAssetAsync<GameObject>(
                     "Assets/Prefabs/Enemies/SwordsMachine Tundra.prefab")
+                .WaitForCompletion();
+
+        if (zapThingy == null)
+            zapThingy = Addressables
+                .LoadAssetAsync<GameObject>(
+                    "Assets/Particles/HitSparkElectricity.prefab")
+                .WaitForCompletion();
+
+        if (spawnEffect == null)
+            spawnEffect = Addressables
+                .LoadAssetAsync<GameObject>(
+                    "Assets/Particles/Spawn Effects/SpawnEffect Melee Hard.prefab")
                 .WaitForCompletion();
 
         if (mindflayerBeam == null)

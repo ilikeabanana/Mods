@@ -56,6 +56,13 @@ public class RogueDifficultyManager : MonoBehaviour
         statDamageText = stats.Find("StatDamage/Stt").GetComponent<TMP_Text>();
         statAtkSpeedText = stats.Find("StatAtkSpeed/Stt").GetComponent<TMP_Text>();
         statCooldownText = stats.Find("StatCooldown/Stt").GetComponent<TMP_Text>();
+        statFloorText = stats.Find("StatFloor/Stt").GetComponent<TMP_Text>();
+
+        // Show the starting items
+        foreach (var item in Plugin.items)
+        {
+            AddItem(item.Key);
+        }
     }
 
     void UpdateStatsUI()
@@ -82,6 +89,7 @@ public class RogueDifficultyManager : MonoBehaviour
         statDamageText.text = $"x{dmg:F2}";
         statAtkSpeedText.text = $"x{atkSpeed:F2}";
         statCooldownText.text = $"x{cd:F2}";
+        statFloorText.text = $"{floor}";
     }
 
     public void AddItem(BaseItem item)
@@ -149,6 +157,7 @@ public class RogueDifficultyManager : MonoBehaviour
     private TMP_Text statDamageText;
     private TMP_Text statAtkSpeedText;
     private TMP_Text statCooldownText;
+    private TMP_Text statFloorText;
 
     void Update()
     {
@@ -223,6 +232,7 @@ public class RogueDifficultyManager : MonoBehaviour
             case EnemyType.Schism:
             case EnemyType.Streetcleaner:
             case EnemyType.Drone:
+            case EnemyType.Soldier:
                 return 5;
             case EnemyType.Idol:
             case EnemyType.Deathcatcher:

@@ -13,5 +13,7 @@ namespace Ultrarogue.Characters
             new AWeapon(Plugin.Weapon.Revolver, Plugin.Variant.Blue),
             new AWeapon(Plugin.Weapon.Arm, Plugin.Variant.Blue),
         };
+
+        public override List<Passive> Passives => new List<Passive>() { Passive.HealFromBlood };
     }
 }

@@ -55,6 +55,71 @@ namespace Ultrarogue.Items
         }
     }
 
+    public class JumperCable : BaseItem
+    {
+        public override string ItemName => "Jumper Cable";
+        public override string itemDescription => "Enemies have a 10% chance to be shocked when a saw blade hits them. (+5% per stack)";
+        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
+
+        public override Rarity Rarity => Rarity.Uncommon;
+        public override void OnStart()
+        {
+            new HitEffect(ItemName, (eid, dmg) =>
+            {
+                int c = Plugin.GetItemCount(this);
+                if (c <= 0 && eid.hitter != "sawblade") return;
+
+                float chance = Plugin.LogarithmicChance(c - 1, 0.05f, 0.10f, 0.20f) * 100;
+                if(Plugin.canExecute(chance, "", false))
+                {
+                    eid.hitter = "zapper";
+                    eid.hitterAttributes.Add(HitterAttribute.Electricity);
+                    eid.DeliverDamage(eid.gameObject, Vector3.up * 1000f, eid.transform.position, 10f, true, 0f, null, false, false);
+                    foreach (EnemyIdentifierIdentifier enemyIdentifierIdentifier in eid.GetComponentsInChildren<EnemyIdentifierIdentifier>())
+                    {
+                        Object.Instantiate<GameObject>(AssetsManager.zapThingy, enemyIdentifierIdentifier.transform.position, Quaternion.identity).transform.localScale *= 0.5f;
+                    }
+                }
+            });
+        }
+    }
+
+    public class Fusion : BaseItem
+    {
+        public override string ItemName => "Fusion";
+        public override string itemDescription => "Each kill permanently increases your max hp by 1 with a max of 50 (+50 per stack)";
+        public override Rarity Rarity => Ultrarogue.Rarity.Uncommon;
+        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
+        Change hpChange;
+        float killBonus = 0f;
+
+        public override void OnStart()
+        {
+            hpChange = new Change(addition: 0);
+            new PlayerChange(maxHealth: hpChange);
+
+            new DeathEffect(ItemName, (eid) =>
+            {
+                int count = Plugin.GetItemCount(this);
+                if (count <= 0) return;
+                if (killBonus >= 50 * count) return;
+                killBonus += 1;
+            });
+        }
+
+        public override void OnUpdate(int count)
+        {
+            hpChange.addition = killBonus;
+        }
+
+        public override void OnRemoval()
+        {
+            // Reset the accumulated kill bonus so it doesn't carry over if re-acquired
+            killBonus = 0f;
+            hpChange.addition = 0;
+        }
+    }
+
     public class Combatblood : BaseItem
     {
         public override string ItemName => "Combat blood";

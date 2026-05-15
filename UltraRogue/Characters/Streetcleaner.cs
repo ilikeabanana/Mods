@@ -13,5 +13,10 @@ namespace Ultrarogue.Characters
             new AWeapon(Plugin.Weapon.RocketLauncher, Plugin.Variant.Red)
         };
         public override List<string> StartingItems => new List<string>() { "Gasoline" };
+
+        public override List<Passive> Passives => new List<Passive>() 
+        { 
+            Passive.GasolineFire, Passive.NoFireDamage, Passive.HealSetOnFire
+        };
     }
 }

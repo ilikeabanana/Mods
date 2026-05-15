@@ -1,7 +1,6 @@
 ﻿using HarmonyLib;
 using System.Collections;
 using System.Collections.Generic;
-using System.Numerics;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 
@@ -137,6 +136,41 @@ namespace Ultrarogue.Items
         public override string ItemName => "Agonized Mask";
         public override string itemDescription => "Have a 25% (+10% per stack) for an enemy to spawn as a puppet (does NOT include bosses)";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Utility };
+    }
+
+    public class DualGun : BaseItem
+    {
+        public override Rarity Rarity => Rarity.Legendary;
+        public override string ItemName => "Dual Gun";
+        public override string itemDescription => "Have a 20% (+15% per stack) to get a dual wield";
+        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Utility };
+    }
+    public class EyeOfGod : BaseItem
+    {
+        public override Rarity Rarity => Rarity.Legendary;
+        public override string ItemName => "Eye of God";
+        public override string itemDescription => "20% chance to call down a virtue beam dealing 350% (+100% per stack) TOTAL damage";
+        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Utility };
+
+        public override void OnStart()
+        {
+            new HitEffect(ItemName, (eid, dmg) =>
+            {
+                int count = Plugin.GetItemCount(this);
+                if (count <= 0) return;
+                if (eid.hitter == "fire") return;
+                if(Plugin.canExecute(20, eid.hitter))
+                {
+                    GameObject virtueBeam = Object.Instantiate(AssetsManager.VirtueBeam, eid.transform.position, Quaternion.identity);
+
+                    if(virtueBeam.TryGetComponent<VirtueInsignia>(out var insig))
+                    {
+                        insig.target = new EnemyTarget(eid);
+                        insig.damage = Mathf.RoundToInt(dmg * (2.5f + (1 * count)));
+                    }
+                }
+            });
+        }
     }
 
     [HarmonyPatch]

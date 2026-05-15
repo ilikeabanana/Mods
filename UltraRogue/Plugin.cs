@@ -155,6 +155,7 @@ namespace Ultrarogue
             characters.Add(new V1());
             characters.Add(new Ultrarogue.Characters.V2());
             characters.Add(new Ultrarogue.Characters.Streetcleaner());
+            characters.Add(new Ultrarogue.Characters.RandomCharacter());
 
 #if RUNTIME_ROOMS
             var genObj = new GameObject("DebugRoomGenerator");
@@ -228,6 +229,11 @@ namespace Ultrarogue
 
         public static void LoadLevel(string seed)
         {
+            if (string.IsNullOrEmpty(seed))
+                GameSeed = GenerateRandomString(6);
+            else
+                GameSeed = seed;
+            SelectedChar.OnRunStart();
             foreach (var tiem in items)
             {
                 tiem.Key.OnGotten(0, false);
@@ -236,10 +242,7 @@ namespace Ultrarogue
             }
             items.Clear();
             weapons.Clear();
-            if (string.IsNullOrEmpty(seed))
-                GameSeed = GenerateRandomString(6);
-            else
-                GameSeed = seed;
+
             if (SelectedChar.StartingWeapons == null || SelectedChar.StartingWeapons.Count == 0)
             {
                 Logger.LogWarning($"[Play] {SelectedChar.Name} has no StartingWeapons — falling back to defaults.");
@@ -402,7 +405,45 @@ namespace Ultrarogue
 
         void Update()
         {
-            #if RUNTIME_ROOMS
+            if (Input.GetKeyDown(KeyCode.X))
+            {
+                Transform cam = CameraController.Instance.transform;
+
+                Vector3 initPos = NewMovement.Instance.transform.position;
+
+                // Base position 3 units in front of the camera
+                Vector3 forwardOffset = cam.forward * 3f;
+
+                // Right offset spacing
+                Vector3 rightOffset = cam.right * 3f;
+
+                // List of items to spawn
+                List<BaseItem> items = new List<BaseItem>
+                {
+                    Plugin.getItem("Eye of God"),
+                    Plugin.getItem("Small Kit"),
+                    Plugin.getItem("Fusion"),
+                    Plugin.getItem("Improvement"),
+                    Plugin.getItem("Dual Gun"),
+                    Plugin.getItem("Jumper Cable")
+                };
+
+                for (int i = 0; i < items.Count; i++)
+                {
+                    GameObject obj = new GameObject($"Pickup{i + 1}");
+
+                    // Center the lineup around the middle item
+                    float offsetIndex = i - (items.Count - 1) / 2f;
+
+                    obj.transform.position =
+                        initPos +
+                        forwardOffset +
+                        (rightOffset * offsetIndex);
+
+                    ItemPickup.CreatePickup(items[i], obj.transform);
+                }
+            }
+#if RUNTIME_ROOMS
             if (Input.GetKeyDown(KeyCode.F5))
             {
                 // Make sure RogueDifficultyManager exists
@@ -508,7 +549,14 @@ namespace Ultrarogue
             {Rarity.Uncommon, 0.15f },
             {Rarity.Legendary, 0.05f }
         });
+        public static float LogarithmicChance(int stacks, float scaling, float startValue, float maxValue)
+        {
+            // scaling = how fast the curve rises
+            // startValue = minimum/base value at 0 stacks
+            // maxValue = maximum cap
 
+            return startValue + (maxValue - startValue) * (1f - Mathf.Exp(-scaling * stacks));
+        }
         public static void AddWeapon(AWeapon weapon)
         {
             weapons.RemoveAll(w => w.weapon == weapon.weapon && w.variant == weapon.variant);
@@ -565,8 +613,12 @@ namespace Ultrarogue
         {
             return possibleItems.Where(x =>
                 x.Rarity == rarity &&
-                (SelectedChar != characters[0] ||
-                 !x.itemTags.Contains(ItemTag.Healing)) &&
+                (!SelectedChar.HasPassive(Passive.HealFromBlood) || !x.itemTags.Contains(ItemTag.Healing)) &&
+                (
+                    x.ItemName != "Gasoline" ||
+                    SelectedChar.GetType() == typeof(Ultrarogue.Characters.Streetcleaner)
+                ) &&
+
                 (
                     x.WeaponRequirements.Count == 0 ||
                     x.WeaponRequirements.Any(req =>
@@ -887,7 +939,7 @@ namespace Ultrarogue
             {
                 AWeapon generated;
 
-                if (SelectedChar.GetType() == typeof(Ultrarogue.Characters.Streetcleaner))
+                if (SelectedChar != null && SelectedChar.GetType() == typeof(Ultrarogue.Characters.Streetcleaner))
                 {
                     int choice = RogueDifficultyManager.RoomRNG.Next(0, 5);
                     Plugin.Logger.LogInfo($"Weapon choice: {choice}");
@@ -987,6 +1039,7 @@ namespace Ultrarogue
         [HarmonyPostfix]
         public static void Postfix()
         {
+            if (!isInRogueScene()) return;
             StatsManager sman = GameObject.FindObjectOfType<StatsManager>();
             if (sman != null)
                 sman.levelNumber = -1;
@@ -1009,6 +1062,7 @@ namespace Ultrarogue
     [HarmonyPatch]
     public class PlayerPatches
     {
+
         [HarmonyPatch(typeof(HealthBar), nameof(HealthBar.Update))]
         [HarmonyPrefix]
         public static void DisplayCorrectMaxHP(HealthBar __instance)
@@ -1021,6 +1075,7 @@ namespace Ultrarogue
                     {
                         if (slider.maxValue != Plugin.MaxHealth * 2)
                         {
+                            Plugin.Logger.LogInfo($"Applying thing to {slider.gameObject.name} that has max of {slider.maxValue}");
                             slider.maxValue = Plugin.MaxHealth * 2;
                             slider.minValue = Plugin.MaxHealth;
                         }
@@ -1029,6 +1084,7 @@ namespace Ultrarogue
                     {
                         if (slider.maxValue != Plugin.MaxHealth)
                         {
+                            Plugin.Logger.LogInfo($"Applying thing to {slider.gameObject.name} that has max of {slider.maxValue}");
                             slider.maxValue = Plugin.MaxHealth;
                         }
                     }
@@ -1084,7 +1140,7 @@ namespace Ultrarogue
         [HarmonyPostfix]
         public static void Stret(GasolineStain __instance)
         {
-            if (SelectedChar.GetType() != typeof(Ultrarogue.Characters.Streetcleaner)) return;
+            if (!SelectedChar.HasPassive(Passive.GasolineFire)) return;
 
             StainVoxelManager instance = MonoSingleton<StainVoxelManager>.Instance;
             Vector3 forward = __instance.transform.forward;
@@ -1098,7 +1154,7 @@ namespace Ultrarogue
         [HarmonyPrefix]
         public static bool doNotDamage(FireZone __instance, Collider other)
         {
-            if (SelectedChar.GetType() != typeof(Ultrarogue.Characters.Streetcleaner)) return true;
+            if (!SelectedChar.HasPassive(Passive.NoFireDamage)) return true;
             if (other.CompareTag("Player"))
             {
                 return false;
@@ -1123,7 +1179,7 @@ namespace Ultrarogue
                     bloodFiller.FillBloodSlider((float)__instance.hpAmount, __instance.transform.position, __instance.eidID);
                     return false;
                 }
-                if (SelectedChar.GetType() != typeof(Ultrarogue.Characters.V1)) return false;
+                if (!SelectedChar.HasPassive(Passive.HealFromBlood)) return false;
                 if (__instance.canCollide && other.gameObject.CompareTag("Player"))
                 {
                     MonoSingleton<NewMovement>.Instance.GetHealth(__instance.hpAmount, false, __instance.fromExplosion, true);
@@ -1137,10 +1193,8 @@ namespace Ultrarogue
         public static bool DontHealIfV2Create(Bloodsplatter __instance)
         {
             if (!Plugin.isInRogueScene()) return true;
-            if (SelectedChar.GetType() == typeof(Ultrarogue.Characters.V2))
-            {
+            if (!SelectedChar.HasPassive(Passive.HealFromBlood))
                 __instance.hpOnParticleCollision = false;
-            }
             return true;
         }
         [HarmonyPatch(typeof(NewMovement), nameof(NewMovement.Parry))]
@@ -1151,11 +1205,9 @@ namespace Ultrarogue
             if (!Plugin.isInRogueMode()) return true;
             MonoSingleton<TimeController>.Instance.ParryFlash();
             __instance.exploded = false;
-            if (SelectedChar.GetType() == typeof(Ultrarogue.Characters.V1))
-            {
+            if (SelectedChar.HasPassive(Passive.HealFromBlood))
                 __instance.GetHealth(999, false, false, true);
-            }
-            
+
             __instance.FullStamina();
             if (__instance.shud == null)
             {
@@ -1263,7 +1315,7 @@ namespace Ultrarogue
             {
                 if (_isExtraShot) return;
                 if (shotType != 1) return;
-                if (SelectedChar?.GetType() != typeof(Ultrarogue.Characters.V2)) return;
+                if (SelectedChar?.HasPassive(Passive.TripleShot) != true) return;
 
                 __instance.StartCoroutine(ExtraShots(__instance));
             }
@@ -1306,7 +1358,7 @@ namespace Ultrarogue
 
             public static float ModifyDelta(float maxDelta)
             {
-                return AttackSpeed.CalculateChanges(maxDelta);
+                return cooldownReduction.CalculateChanges(maxDelta);
             }
         }
         [HarmonyPatch(typeof(RocketLauncher), nameof(RocketLauncher.Update))]
@@ -1333,7 +1385,7 @@ namespace Ultrarogue
 
             public static float ModifyDelta(float maxDelta)
             {
-                return cooldownReduction.CalculateChanges(maxDelta);
+                return AttackSpeed.CalculateChanges(maxDelta);
             }
         }
 
@@ -1507,10 +1559,8 @@ namespace Ultrarogue
         {
             if (!Plugin.isInRogueMode()) return;
 
-            if(SelectedChar.GetType() == typeof(Ultrarogue.Characters.Streetcleaner))
-            {
-                NewMovement.Instance.GetHealth(1, false);
-            }
+            if (SelectedChar.HasPassive(Passive.NoFireDamage))
+                NewMovement.Instance.GetHealth(5, false);
         }
     }
 

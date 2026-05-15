@@ -152,7 +152,8 @@ public class MinimapUI : MonoBehaviour
     /// Called by RoomGenerator after FinalizeConnections().
     /// Destroys any previous minimap and builds a fresh one.
     /// </summary>
-    public void BuildMinimap(Dictionary<Vector2Int, Room> placedRooms)
+    public void BuildMinimap(Dictionary<Vector2Int, Room> placedRooms,
+                          HashSet<(Vector2Int, Vector2Int)> validConnections)
     {
         DestroyChildren();
         _cells.Clear();
@@ -191,12 +192,13 @@ public class MinimapUI : MonoBehaviour
         // ── Corridor connectors (drawn first so cells sit on top) ─────────
         foreach (var kvp in placedRooms)
         {
-            Vector2Int pos  = kvp.Key;
-            Vector2    pxPos = GridToPx(pos, step) + originOffset;
+            Vector2Int pos = kvp.Key;
+            Vector2 pxPos = GridToPx(pos, step) + originOffset;
 
             foreach (var dir in new[] { Vector2Int.right, Vector2Int.up })
             {
-                if (!placedRooms.ContainsKey(pos + dir)) continue;
+                // ← NEW: only draw a connector when the connection is actually open
+                if (!validConnections.Contains((pos, dir))) continue;
 
                 bool horizontal = dir == Vector2Int.right;
                 float cw = horizontal ? corridorLength : corridorThickness;
@@ -206,7 +208,7 @@ public class MinimapUI : MonoBehaviour
 
                 Image corridor = MakeImage($"Corr_{pos}_{dir}", minimapPanel,
                     pxPos + new Vector2(cx, cy), new Vector2(cw, ch));
-                corridor.color = Color.clear;  // hidden until both sides are revealed
+                corridor.color = Color.clear;
                 _corridors[(pos, dir)] = corridor;
             }
         }

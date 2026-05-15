@@ -78,6 +78,7 @@ public class RoomGenerator : MonoBehaviour
 
         StartCoroutine(GenerateRooms(false));
     }
+
     IEnumerator GenerateRooms(bool firstTime = true)
     {
         yield return new WaitUntil(() => DefaultReferenceManager.Instance != null);
@@ -107,7 +108,14 @@ public class RoomGenerator : MonoBehaviour
                 Vector2Int next = current + dir;
                 if (placedRooms.ContainsKey(next)) break;
 
-                PlaceRoom(next);
+                // The room we're expanding from must have an exit facing this direction.
+                if (!RoomHasExit(placedRooms[current], dir)) break;
+
+                // At least one normal prefab must have a return exit (facing back toward current).
+                List<Room> compatible = CompatiblePrefabs(-dir);
+                if (compatible.Count == 0) break;
+
+                PlaceRoom(next, prefabPool: compatible);
                 current = next;
                 placed++;
             }
@@ -120,7 +128,6 @@ public class RoomGenerator : MonoBehaviour
         PlaceSpecialRooms();
         FinalizeConnections();
         BuildNavMesh();
-
 
         int special = 3;
         Debug.Log($"[RoomGenerator] Spawned {placed} combat rooms + {special} special rooms + 1 boss room.");
@@ -155,7 +162,7 @@ public class RoomGenerator : MonoBehaviour
             portal1.onExitTravel = new UnityEventPortalTravel();
             portal1.onExitTravel.AddListener((IP, D) =>
             {
-                if(IP.travellerType == PortalTravellerType.PLAYER)
+                if (IP.travellerType == PortalTravellerType.PLAYER)
                 {
                     StartCoroutine(StartThingggg(quad1, quad2));
                 }
@@ -164,6 +171,7 @@ public class RoomGenerator : MonoBehaviour
             StartCoroutine(StartThingggg(quad1, quad2));
         }
     }
+
     IEnumerator StartThingggg(GameObject quad1, GameObject quad2)
     {
         yield return new WaitForSeconds(0.5f);
@@ -189,8 +197,8 @@ public class RoomGenerator : MonoBehaviour
         PlayerActivator.lastActivatedPosition = MonoSingleton<NewMovement>.Instance.transform.position;
         MonoSingleton<FistControl>.Instance.YesFist();
 
-        quad1.transform.position = Vector3.one * 9999; // moving it fucking far away because idk why it doesnt want to remove the portal :(
-        quad2.transform.position = Vector3.one * 9999; // moving it fucking far away because idk why it doesnt want to remove the portal :(
+        quad1.transform.position = Vector3.one * 9999;
+        quad2.transform.position = Vector3.one * 9999;
 
         yield return new WaitForSeconds(0.5f);
         Destroy(quad2);
@@ -198,6 +206,8 @@ public class RoomGenerator : MonoBehaviour
         StatsManager.Instance.StartTimer();
         MusicManager.Instance.StartMusic();
     }
+
+    // ─── Exit helpers ────────────────────────────────────────────────────────
 
     Transform GetExitFacing(Room room, Vector2Int dir)
     {
@@ -208,6 +218,43 @@ public class RoomGenerator : MonoBehaviour
         return null;
     }
 
+    /// <summary>Returns true when the room (or prefab) has a non-null exit in <paramref name="dir"/>.</summary>
+    bool RoomHasExit(Room room, Vector2Int dir) => GetExitFacing(room, dir) != null;
+
+    /// <summary>
+    /// Returns the subset of <see cref="roomPrefabs"/> that have a non-null exit
+    /// in <paramref name="dir"/>. Used to guarantee a compatible prefab exists
+    /// before committing to a grid cell.
+    /// </summary>
+    List<Room> CompatiblePrefabs(Vector2Int dir) =>
+        roomPrefabs.FindAll(p => RoomHasExit(p, dir));
+
+    /// <summary>
+    /// Returns true when <paramref name="prefab"/> has exits in every direction
+    /// required by its already-placed neighbours at <paramref name="gridPos"/>.
+    /// </summary>
+    bool PrefabFitsNeighbours(Room prefab, Vector2Int gridPos)
+    {
+        foreach (var dir in directions)
+        {
+            if (!placedRooms.ContainsKey(gridPos + dir)) continue;
+
+            // The placed neighbour must have a return exit toward gridPos.
+            Room neighbour = placedRooms[gridPos + dir];
+            bool neighbourFacesUs = RoomHasExit(neighbour, -dir);
+
+            // The new prefab must also face the neighbour.
+            bool weFaceNeighbour = RoomHasExit(prefab, dir);
+
+            // Only block placement when BOTH sides want a connection but one is
+            // missing. If the neighbour has no exit toward us, a wall will be
+            // placed there regardless — no constraint on the new prefab.
+            if (neighbourFacesUs && !weFaceNeighbour) return false;
+        }
+        return true;
+    }
+
+    // ─── Room alignment ───────────────────────────────────────────────────────
 
     void AlignRoomToNeighborExit(Room room, Vector2Int gridPos)
     {
@@ -217,39 +264,69 @@ public class RoomGenerator : MonoBehaviour
             if (!placedRooms.TryGetValue(neighborPos, out Room neighbor)) continue;
 
             Transform neighborExit = GetExitFacing(neighbor, -dir);
-
             Transform myExit = GetExitFacing(room, dir);
 
             if (neighborExit == null || myExit == null) continue;
 
             float myExitLocalY = myExit.position.y - room.transform.position.y;
-
             float targetY = neighborExit.position.y - myExitLocalY;
 
             Vector3 p = room.transform.position;
             room.transform.position = new Vector3(p.x, targetY, p.z);
-
             return;
         }
-
     }
 
+    // ─── PlaceRoom ────────────────────────────────────────────────────────────
 
-    void PlaceRoom(Vector2Int gridPos, bool isStart = false)
+    /// <summary>
+    /// Places a room at <paramref name="gridPos"/>.
+    /// </summary>
+    /// <param name="gridPos">Target grid cell.</param>
+    /// <param name="isStart">If true, always uses the first prefab and gives 0 spawn credits.</param>
+    /// <param name="prefabPool">
+    ///   Optional filtered list of prefabs to draw from (e.g. those with a specific
+    ///   required exit). Falls back to <see cref="roomPrefabs"/> when null.
+    /// </param>
+    void PlaceRoom(Vector2Int gridPos, bool isStart = false, List<Room> prefabPool = null)
     {
-        Room prefab = isStart
-            ? roomPrefabs[0]
-            : roomPrefabs[RogueDifficultyManager.RoomRNG.Next(0, roomPrefabs.Count)];
+        Room prefab;
+
+        if (isStart)
+        {
+            prefab = roomPrefabs[0];
+        }
+        else
+        {
+            // Use the supplied pool (already filtered for exit compatibility).
+            // Apply a secondary filter: the chosen prefab must also face every
+            // other already-placed neighbour it will touch.
+            List<Room> pool = prefabPool ?? roomPrefabs;
+
+            // Further narrow to prefabs that satisfy all existing neighbours.
+            List<Room> fullyCompatible = pool.FindAll(p => PrefabFitsNeighbours(p, gridPos));
+
+            if (fullyCompatible.Count > 0)
+            {
+                prefab = fullyCompatible[RogueDifficultyManager.RoomRNG.Next(0, fullyCompatible.Count)];
+            }
+            else
+            {
+                // Fallback: use the broader pool (HandleExit will wall off mismatches).
+                Debug.LogWarning($"[RoomGenerator] No fully-compatible prefab found at {gridPos}; " +
+                                  "falling back to partially-compatible pool.");
+                prefab = pool[RogueDifficultyManager.RoomRNG.Next(0, pool.Count)];
+            }
+        }
 
         Vector3 worldPos = new Vector3(gridPos.x * roomWidth, 0f, gridPos.y * roomHeight);
 
         Room room = Instantiate(prefab, worldPos, Quaternion.identity);
         room.position = gridPos;
         room.roomType = RoomType.Normal;
-        if (isStart)
-            room.SpawnCredits = 0;
-        if (!isStart)
-            AlignRoomToNeighborExit(room, gridPos);
+        room.SpawnCredits = isStart ? 0 : 3;
+
+        if (!isStart) AlignRoomToNeighborExit(room, gridPos);
 
         placedRooms[gridPos] = room;
         path.Add(gridPos);
@@ -261,6 +338,8 @@ public class RoomGenerator : MonoBehaviour
                 player.transform.position = worldPos + Vector3.up * 2f;
         }
     }
+
+    // ─── Special rooms ────────────────────────────────────────────────────────
 
     void PlaceSpecialRooms()
     {
@@ -332,8 +411,64 @@ public class RoomGenerator : MonoBehaviour
                 }
             }
 
-            if (!adjacentToSpecial) { found = true; break; }
-            Debug.Log($"[RoomGenerator] Skipping {roomType} candidate {pos} — adjacent to a special room.");
+            if (adjacentToSpecial)
+            {
+                Debug.Log($"[RoomGenerator] Skipping {roomType} candidate {pos} — adjacent to a special room.");
+                continue;
+            }
+
+            // ── Exit compatibility check ──────────────────────────────────────
+            // The single neighbour that owns this dead-end slot must have an
+            // exit facing toward pos, AND the special prefab must have a return
+            // exit facing back.
+
+            Room specialPrefab = roomType switch
+            {
+                RoomType.Treasure => treasureRoomPrefab,
+                RoomType.Shop => shopRoomPrefab,
+                RoomType.Gambling => gamblingRoomPrefab,
+                _ => null,
+            };
+
+            bool exitCompatible = true;
+
+            foreach (var d in directions)
+            {
+                if (!placedRooms.TryGetValue(pos + d, out Room neighbour)) continue;
+
+                // Does the neighbour actually open toward us?
+                if (!RoomHasExit(neighbour, -d))
+                {
+                    // Neighbour has no exit facing pos — this slot is blocked.
+                    exitCompatible = false;
+                    Debug.Log($"[RoomGenerator] Skipping {roomType} candidate {pos} — " +
+                              $"neighbour at {pos + d} has no exit toward it.");
+                    break;
+                }
+
+                // If we have a dedicated prefab, make sure it faces the neighbour.
+                if (specialPrefab != null && !RoomHasExit(specialPrefab, d))
+                {
+                    exitCompatible = false;
+                    Debug.Log($"[RoomGenerator] Skipping {roomType} candidate {pos} — " +
+                              $"dedicated prefab has no exit in direction {d}.");
+                    break;
+                }
+
+                // If we're falling back to normal prefabs, make sure at least one works.
+                if (specialPrefab == null && CompatiblePrefabs(d).Count == 0)
+                {
+                    exitCompatible = false;
+                    Debug.Log($"[RoomGenerator] Skipping {roomType} candidate {pos} — " +
+                              $"no normal prefab has exit in direction {d}.");
+                    break;
+                }
+            }
+
+            if (!exitCompatible) continue;
+
+            found = true;
+            break;
         }
 
         if (!found)
@@ -342,21 +477,33 @@ public class RoomGenerator : MonoBehaviour
             return;
         }
 
+        // Resolve prefab (dedicated or random compatible normal prefab).
         Room prefab = roomType switch
         {
-            RoomType.Treasure => treasureRoomPrefab != null ? treasureRoomPrefab : roomPrefabs[RogueDifficultyManager.RoomRNG.Next(0, roomPrefabs.Count)],
-            RoomType.Shop => shopRoomPrefab != null ? shopRoomPrefab : roomPrefabs[RogueDifficultyManager.RoomRNG.Next(0, roomPrefabs.Count)],
-            RoomType.Gambling => gamblingRoomPrefab != null ? gamblingRoomPrefab : roomPrefabs[RogueDifficultyManager.RoomRNG.Next(0, roomPrefabs.Count)],
-            _ => roomPrefabs[RogueDifficultyManager.RoomRNG.Next(0, roomPrefabs.Count)],
+            RoomType.Treasure => treasureRoomPrefab != null
+                                    ? treasureRoomPrefab
+                                    : PickCompatibleNormalPrefab(pos),
+            RoomType.Shop => shopRoomPrefab != null
+                                    ? shopRoomPrefab
+                                    : PickCompatibleNormalPrefab(pos),
+            RoomType.Gambling => gamblingRoomPrefab != null
+                                    ? gamblingRoomPrefab
+                                    : PickCompatibleNormalPrefab(pos),
+            _ => PickCompatibleNormalPrefab(pos),
         };
+
+        if (prefab == null)
+        {
+            Debug.LogWarning($"[RoomGenerator] Could not resolve a prefab for {roomType} at {pos} — skipping.");
+            return;
+        }
 
         Vector3 worldPos = new Vector3(pos.x * roomWidth, 0f, pos.y * roomHeight);
 
         Room room = Instantiate(prefab, worldPos, Quaternion.identity);
         room.position = pos;
         room.roomType = roomType;
-        if(roomType != RoomType.Boss)
-            room.SpawnCredits = 0;
+        room.SpawnCredits = 0;
 
         AlignRoomToNeighborExit(room, pos);
 
@@ -364,6 +511,24 @@ public class RoomGenerator : MonoBehaviour
         Debug.Log($"[RoomGenerator] {roomType} room placed at grid {pos}.");
     }
 
+    /// <summary>
+    /// Picks a random normal prefab that is fully compatible with all neighbours
+    /// already placed around <paramref name="gridPos"/>.
+    /// </summary>
+    Room PickCompatibleNormalPrefab(Vector2Int gridPos)
+    {
+        List<Room> compatible = roomPrefabs.FindAll(p => PrefabFitsNeighbours(p, gridPos));
+
+        if (compatible.Count > 0)
+            return compatible[RogueDifficultyManager.RoomRNG.Next(0, compatible.Count)];
+
+        Debug.LogWarning($"[RoomGenerator] No fully-compatible normal prefab for {gridPos}; using any.");
+        return roomPrefabs.Count > 0
+            ? roomPrefabs[RogueDifficultyManager.RoomRNG.Next(0, roomPrefabs.Count)]
+            : null;
+    }
+
+    // ─── Boss room ────────────────────────────────────────────────────────────
 
     void DesignateBossRoom()
     {
@@ -394,6 +559,14 @@ public class RoomGenerator : MonoBehaviour
             }
             if (adjacentToSpecial) continue;
 
+            // Ensure the boss prefab has an exit toward its one neighbour.
+            if (bossRoomPrefab != null && !BossPrefabFitsPosition(kvp.Key))
+            {
+                Debug.Log($"[RoomGenerator] Skipping boss candidate {kvp.Key} — " +
+                           "boss prefab lacks a required exit toward its neighbour.");
+                continue;
+            }
+
             int manhattan = Mathf.Abs(kvp.Key.x) + Mathf.Abs(kvp.Key.y);
             if (manhattan > bestManhattan)
             {
@@ -402,7 +575,7 @@ public class RoomGenerator : MonoBehaviour
             }
         }
 
-
+        // Fallback: farthest normal room (no dead-end constraint).
         if (bestManhattan < 0)
         {
             Debug.LogWarning("[RoomGenerator] No dead-end normal room found for boss — falling back to farthest normal room.");
@@ -410,6 +583,8 @@ public class RoomGenerator : MonoBehaviour
             {
                 if (kvp.Key == Vector2Int.zero) continue;
                 if (kvp.Value.roomType != RoomType.Normal) continue;
+
+                if (bossRoomPrefab != null && !BossPrefabFitsPosition(kvp.Key)) continue;
 
                 int manhattan = Mathf.Abs(kvp.Key.x) + Mathf.Abs(kvp.Key.y);
                 if (manhattan > bestManhattan)
@@ -429,12 +604,11 @@ public class RoomGenerator : MonoBehaviour
         Room oldRoom = placedRooms[bossPos];
         Vector3 oldWorldPos = oldRoom.transform.position;
         Destroy(oldRoom.gameObject);
-
         placedRooms.Remove(bossPos);
 
         Room prefab = bossRoomPrefab != null
             ? bossRoomPrefab
-            : roomPrefabs[RogueDifficultyManager.RoomRNG.Next(0, roomPrefabs.Count)];
+            : PickCompatibleNormalPrefab(bossPos);
 
         Room bossRoom = Instantiate(prefab, new Vector3(oldWorldPos.x, 0f, oldWorldPos.z), Quaternion.identity);
         bossRoom.position = bossPos;
@@ -446,6 +620,27 @@ public class RoomGenerator : MonoBehaviour
         Debug.Log($"[RoomGenerator] Boss room at grid {bossPos} (Manhattan {bestManhattan}).");
     }
 
+    /// <summary>
+    /// Returns true when <see cref="bossRoomPrefab"/> has exits toward every
+    /// already-placed neighbour of <paramref name="gridPos"/> that opens toward it.
+    /// </summary>
+    bool BossPrefabFitsPosition(Vector2Int gridPos)
+    {
+        if (bossRoomPrefab == null) return true;
+
+        foreach (var dir in directions)
+        {
+            if (!placedRooms.TryGetValue(gridPos + dir, out Room neighbour)) continue;
+
+            // Only enforce if the neighbour actually has an exit facing us.
+            if (RoomHasExit(neighbour, -dir) && !RoomHasExit(bossRoomPrefab, dir))
+                return false;
+        }
+        return true;
+    }
+
+    // ─── NavMesh ──────────────────────────────────────────────────────────────
+
     void BuildNavMesh() => StartCoroutine(buildDaMesh());
 
     void NavmeshBuilt()
@@ -454,7 +649,7 @@ public class RoomGenerator : MonoBehaviour
         instance.navmeshBuilt = (UnityAction)Delegate.Remove(
             instance.navmeshBuilt, new UnityAction(NavmeshBuilt));
         _generationComplete = true;
-        UpdateRoomActivation(); 
+        UpdateRoomActivation();
     }
 
     IEnumerator buildDaMesh()
@@ -481,8 +676,35 @@ public class RoomGenerator : MonoBehaviour
         UpdateRoomActivation();
     }
 
+    // ─── Connection finalization ──────────────────────────────────────────────
+
     void FinalizeConnections()
     {
+        // Build the set of connections that are actually open (not walled off by a
+        // Y-level mismatch). Only Right/Up directions so each pair is stored once.
+        var validConnections = new HashSet<(Vector2Int pos, Vector2Int dir)>();
+
+        foreach (var kvp in placedRooms)
+        {
+            Vector2Int pos = kvp.Key;
+            Room room = kvp.Value;
+
+            foreach (var dir in new[] { Vector2Int.right, Vector2Int.up })
+            {
+                Vector2Int neighborPos = pos + dir;
+                if (!placedRooms.TryGetValue(neighborPos, out Room neighbor)) continue;
+
+                Transform myExit = GetExitFacing(room, dir);
+                Transform neighborExit = GetExitFacing(neighbor, -dir);
+
+                // Both exits must exist and be at the same Y level.
+                if (myExit == null || neighborExit == null) continue;
+                if (Mathf.Abs(myExit.position.y - neighborExit.position.y) <= 0.1f)
+                    validConnections.Add((pos, dir));
+            }
+        }
+
+        // Now do the usual door/wall finalization.
         foreach (var kvp in placedRooms)
         {
             Vector2Int pos = kvp.Key;
@@ -493,7 +715,9 @@ public class RoomGenerator : MonoBehaviour
             HandleExit(room, pos, Vector2Int.left, room.exitLeft);
             HandleExit(room, pos, Vector2Int.right, room.exitRight);
         }
-        if (MinimapUI.Instance != null) MinimapUI.Instance.BuildMinimap(placedRooms);
+
+        if (MinimapUI.Instance != null)
+            MinimapUI.Instance.BuildMinimap(placedRooms, validConnections);
     }
 
     void HandleExit(Room room, Vector2Int pos, Vector2Int dir, Transform exit)
@@ -518,11 +742,8 @@ public class RoomGenerator : MonoBehaviour
             if (yDiff > yTolerance)
             {
                 room.CreateWall(exit);
-
                 Debug.LogWarning(
-                    $"[RoomGenerator] Exit mismatch at {pos} → {neighborPos} (ΔY={yDiff:F2}) → wall placed."
-                );
-
+                    $"[RoomGenerator] Exit mismatch at {pos} → {neighborPos} (ΔY={yDiff:F2}) → wall placed.");
                 return;
             }
 
@@ -540,6 +761,9 @@ public class RoomGenerator : MonoBehaviour
             room.CreateWall(exit);
         }
     }
+
+    // ─── Update / activation ──────────────────────────────────────────────────
+
     void Update()
     {
         if (!_generationComplete) return;

@@ -16,6 +16,8 @@ namespace Ultrarogue.Characters
             new AWeapon(Plugin.Weapon.Arm, Plugin.Variant.Green, false)
         };
 
+        public override List<Passive> Passives => new List<Passive>() { Passive.TripleShot };
+
         Change HPChange = new Change(addition: 150);
 
         PlayerChange change;
