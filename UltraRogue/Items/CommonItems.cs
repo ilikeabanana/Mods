@@ -109,13 +109,13 @@ namespace Ultrarogue.Items
             var lowest = stats.OrderBy(x => x.Item2).First();
 
             if (lowest.Item1 == "MS")
-                plrChanges.moveSpeed.percentage += 0.10f * count;
+                plrChanges.moveSpeed.percentage += 0.10f;
             else if (lowest.Item1 == "AS")
-                plrChanges.attackSpeed.percentage += 0.10f * count;
+                plrChanges.attackSpeed.percentage += 0.10f;
             else if (lowest.Item1 == "D")
-                plrChanges.globalDamageMult.percentage += 0.10f * count;
+                plrChanges.globalDamageMult.percentage += 0.10f;
             else if (lowest.Item1 == "C")
-                plrChanges.cooldownRed.percentage += 0.10f * count;
+                plrChanges.cooldownRed.percentage += 0.10f;
         }
 
         public override void OnRemoval()

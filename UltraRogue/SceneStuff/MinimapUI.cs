@@ -2,104 +2,62 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-/// <summary>
-/// Binding-of-Isaac-style minimap.
-///
-/// ── REQUIRED CHANGES TO RoomGenerator.cs (2 lines) ──────────────────────────
-///
-///   1) Make placedRooms public:
-///      public Dictionary<Vector2Int, Room> PlacedRooms => placedRooms;
-///
-///   2) Make WorldToGrid public:
-///      public Vector2Int WorldToGrid(Vector3 worldPos) => ...   (remove the private keyword)
-///
-///   3) At the end of FinalizeConnections(), add:
-///      if (MinimapUI.Instance != null) MinimapUI.Instance.BuildMinimap(placedRooms);
-///
-///   4) At the start of RegenerateRooms(), before StartCoroutine, add:
-///      if (MinimapUI.Instance != null) MinimapUI.Instance.ClearAndReset();
-///
-/// ── EDITOR SETUP ─────────────────────────────────────────────────────────────
-///
-///   1. Create: GameObject → UI → Canvas
-///      - Canvas: Render Mode = Screen Space – Overlay
-///      - Add a CanvasScaler (UI Scale Mode: Scale With Screen Size, 1920×1080)
-///
-///   2. Inside the Canvas, create a child Panel (name it "MinimapPanel"):
-///      - Anchor: Top-Right corner
-///      - Pos X / Y: roughly (-130, -130) to push it away from the corner
-///      - Width / Height: 220 × 220  (adjust to taste)
-///      - Image → Color: (0, 0, 0, 0.55)   — semi-transparent black backing
-///      - Add a child Image as a thin border (optional cosmetic touch)
-///
-///   3. Create an empty GameObject in the scene, name it "MinimapManager".
-///      - Add this MinimapUI script to it.
-///      - Drag the "MinimapPanel" RectTransform into the minimapPanel field.
-///
-///   4. Hit Play — the minimap draws itself at runtime. No prefabs needed.
-///
-/// ── BEHAVIOUR OVERVIEW ───────────────────────────────────────────────────────
-///   • Rooms you've visited show their type colour (green=start, red=boss, etc.)
-///   • Rooms adjacent to visited ones appear as dark silhouettes (BoI-style scout)
-///   • Completely unknown rooms are invisible
-///   • Your current room pulses white
-///   • Corridor connectors appear between revealed rooms
-///   • The map centres itself inside the panel automatically
-/// </summary>
 public class MinimapUI : MonoBehaviour
 {
     public static MinimapUI Instance { get; private set; }
 
-    // ── Inspector fields ──────────────────────────────────────────────────────
-
     [Header("References")]
-    [Tooltip("The RectTransform of the panel that contains the minimap.")]
     public RectTransform minimapPanel;
 
     [Header("Layout")]
-    [Tooltip("Pixel size of each room cell.")]
     public float cellSize = 16f;
-    [Tooltip("Width of corridor connectors between cells, as a fraction of cellSize.")]
     [Range(0.2f, 0.6f)]
     public float corridorFraction = 0.40f;
 
     [Header("Room Colors")]
-    public Color colorNormal    = new Color(0.52f, 0.52f, 0.55f);
-    public Color colorStart     = new Color(0.28f, 0.82f, 0.38f);
-    public Color colorBoss      = new Color(0.88f, 0.14f, 0.14f);
-    public Color colorTreasure  = new Color(0.95f, 0.78f, 0.08f);
-    public Color colorShop      = new Color(0.22f, 0.52f, 0.95f);
-    public Color colorGambling  = new Color(0.72f, 0.22f, 0.92f);
+    public Color colorNormal = new Color(0.52f, 0.52f, 0.55f);
+    public Color colorStart = new Color(0.28f, 0.82f, 0.38f);
+    public Color colorBoss = new Color(0.88f, 0.14f, 0.14f);
+    public Color colorTreasure = new Color(0.95f, 0.78f, 0.08f);
+    public Color colorShop = new Color(0.22f, 0.52f, 0.95f);
+    public Color colorGambling = new Color(0.72f, 0.22f, 0.92f);
 
     [Header("UI Colors")]
-    [Tooltip("Colour of rooms adjacent to visited ones but not yet entered.")]
     public Color colorSilhouette = new Color(0.28f, 0.28f, 0.30f);
-    [Tooltip("Base colour flashed on the current room. It pulses between this and white.")]
     public Color colorCurrentBase = new Color(0.95f, 0.95f, 1.00f);
-    [Tooltip("Colour of corridor connectors between revealed cells.")]
     public Color colorCorridor = new Color(0.38f, 0.38f, 0.40f);
 
+    // ── NEW: arrow indicator ──────────────────────────────────────────────────
+    [Header("Direction Arrow")]
+    [Tooltip("Color of the direction arrow drawn on the current room.")]
+    public Color colorArrow = new Color(1f, 1f, 1f, 0.92f);
+    [Tooltip("Arrow size as a fraction of cellSize. 0.5 = half the cell.")]
+    [Range(0.3f, 0.9f)]
+    public float arrowFraction = 0.55f;
+    [Tooltip("Which Transform to read the look direction from. " +
+             "Leave null to fall back to NewMovement.Instance's camera.")]
+    public Transform lookTarget;   // drag your camera or player here in the Inspector
+
     [Header("Animation")]
-    [Tooltip("Speed of the current-room pulse. Higher = faster throb.")]
     public float pulseSpeed = 2.8f;
 
     // ── Private state ─────────────────────────────────────────────────────────
 
-    // One outer Image per room grid position (the coloured square).
     private readonly Dictionary<Vector2Int, Image> _cells = new();
-    // Corridor connectors; key = (lowerPos, direction) – Right or Up only to avoid duplicates.
     private readonly Dictionary<(Vector2Int, Vector2Int), Image> _corridors = new();
-
-    private readonly HashSet<Vector2Int> _visited  = new();   // entered at least once
-    private readonly HashSet<Vector2Int> _scouted  = new();   // adjacent to visited (silhouette)
+    private readonly HashSet<Vector2Int> _visited = new();
+    private readonly HashSet<Vector2Int> _scouted = new();
 
     private Vector2Int _currentPos = new(int.MinValue, 0);
     private float _pulseTimer;
 
+    // ── Arrow state (NEW) ─────────────────────────────────────────────────────
+    private RectTransform _arrowRT;   // the arrow RectTransform
+    private Image _arrowImg;  // …and its Image component
+
     private static readonly Vector2Int[] Dirs =
         { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right };
 
-    // We keep a local copy so Update() can refresh without needing it passed in.
     private Dictionary<Vector2Int, Room> _placedRooms;
 
     // ── Unity lifecycle ───────────────────────────────────────────────────────
@@ -112,24 +70,12 @@ public class MinimapUI : MonoBehaviour
 
     void Update()
     {
-        /*
-        if(minimapPanel.gameObject != null)
-        {
-            if (InputManager.Instance.InputSource.Stats.IsPressed)
-            {
-                minimapPanel.gameObject.SetActive(true);
-            }
-            else
-            {
-                minimapPanel.gameObject.SetActive(false);
-            }
-        }*/
         if (_placedRooms == null || RoomGenerator.Instance == null) return;
 
         var player = NewMovement.Instance;
         if (player == null) return;
 
-        // Detect when the player moves into a new grid cell.
+        // Detect room change.
         Vector2Int grid = RoomGenerator.Instance.WorldToGrid(player.transform.position);
         if (grid != _currentPos)
         {
@@ -137,23 +83,22 @@ public class MinimapUI : MonoBehaviour
             MarkVisited(grid);
         }
 
-        // Pulse the current cell.
+        // ── Pulse current cell ────────────────────────────────────────────
         _pulseTimer += Time.deltaTime * pulseSpeed;
         float t = 0.60f + 0.40f * Mathf.Sin(_pulseTimer);
         Color pulsed = Color.Lerp(colorCurrentBase * 0.7f, colorCurrentBase, t);
 
         if (_cells.TryGetValue(_currentPos, out var curImg))
             curImg.color = pulsed;
+
+        // ── Update arrow position & rotation (NEW) ────────────────────────
+        UpdateArrow();
     }
 
     // ── Public API ────────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Called by RoomGenerator after FinalizeConnections().
-    /// Destroys any previous minimap and builds a fresh one.
-    /// </summary>
     public void BuildMinimap(Dictionary<Vector2Int, Room> placedRooms,
-                          HashSet<(Vector2Int, Vector2Int)> validConnections)
+                             HashSet<(Vector2Int, Vector2Int)> validConnections)
     {
         DestroyChildren();
         _cells.Clear();
@@ -162,34 +107,33 @@ public class MinimapUI : MonoBehaviour
         _scouted.Clear();
         _currentPos = new Vector2Int(int.MinValue, 0);
         _placedRooms = placedRooms;
+        _arrowRT = null;   // reset arrow reference (NEW)
+        _arrowImg = null;
 
         if (minimapPanel == null)
         {
-            Debug.LogError("[MinimapUI] minimapPanel is not assigned — assign it in the Inspector.");
+            Debug.LogError("[MinimapUI] minimapPanel is not assigned.");
             return;
         }
 
-        // ── Compute bounding box so we can centre the map ─────────────────
         int minX = int.MaxValue, minY = int.MaxValue;
         int maxX = int.MinValue, maxY = int.MinValue;
         foreach (var pos in placedRooms.Keys)
         {
-            if (pos.x < minX) minX = pos.x;  if (pos.x > maxX) maxX = pos.x;
-            if (pos.y < minY) minY = pos.y;  if (pos.y > maxY) maxY = pos.y;
+            if (pos.x < minX) minX = pos.x; if (pos.x > maxX) maxX = pos.x;
+            if (pos.y < minY) minY = pos.y; if (pos.y > maxY) maxY = pos.y;
         }
 
-        // Step = cell + corridor connector gap
         float step = cellSize + cellSize * corridorFraction;
         float corridorThickness = cellSize * corridorFraction;
-        float corridorLength    = step - cellSize; // the gap between two cell edges
+        float corridorLength = step - cellSize;
 
-        // Offset that places grid origin (0,0) at panel centre.
         Vector2 originOffset = new Vector2(
             -((maxX + minX) / 2f) * step,
             -((maxY + minY) / 2f) * step
         );
 
-        // ── Corridor connectors (drawn first so cells sit on top) ─────────
+        // Corridors (behind cells).
         foreach (var kvp in placedRooms)
         {
             Vector2Int pos = kvp.Key;
@@ -197,7 +141,6 @@ public class MinimapUI : MonoBehaviour
 
             foreach (var dir in new[] { Vector2Int.right, Vector2Int.up })
             {
-                // ← NEW: only draw a connector when the connection is actually open
                 if (!validConnections.Contains((pos, dir))) continue;
 
                 bool horizontal = dir == Vector2Int.right;
@@ -213,23 +156,24 @@ public class MinimapUI : MonoBehaviour
             }
         }
 
-        // ── Room cells ────────────────────────────────────────────────────
+        // Room cells.
         foreach (var kvp in placedRooms)
         {
-            Vector2Int pos   = kvp.Key;
-            Vector2    pxPos = GridToPx(pos, step) + originOffset;
+            Vector2Int pos = kvp.Key;
+            Vector2 pxPos = GridToPx(pos, step) + originOffset;
 
             Image cell = MakeImage($"Room_{pos}", minimapPanel,
                 pxPos, new Vector2(cellSize, cellSize));
-            cell.color = Color.clear; // hidden until revealed
+            cell.color = Color.clear;
             _cells[pos] = cell;
         }
 
-        // Mark start room visited immediately.
+        // ── Create the arrow on top of everything (NEW) ───────────────────
+        CreateArrow();
+
         MarkVisited(Vector2Int.zero);
     }
 
-    /// <summary>Call this at the start of RoomGenerator.RegenerateRooms().</summary>
     public void ClearAndReset()
     {
         DestroyChildren();
@@ -239,78 +183,186 @@ public class MinimapUI : MonoBehaviour
         _scouted.Clear();
         _placedRooms = null;
         _currentPos = new Vector2Int(int.MinValue, 0);
+        _arrowRT = null;   // (NEW)
+        _arrowImg = null;
     }
 
-    // ── Internal helpers ──────────────────────────────────────────────────────
+    // ── Arrow helpers (NEW) ───────────────────────────────────────────────────
 
-    /// <summary>Mark a grid cell as visited and update the display.</summary>
+    /// <summary>
+    /// Builds a simple procedural arrow texture and attaches it as a UI Image
+    /// that always sits on top of the current-room cell.
+    /// </summary>
+    void CreateArrow()
+    {
+        float arrowSize = cellSize * arrowFraction;
+
+        // We re-use MakeImage for the GameObject boilerplate.
+        _arrowImg = MakeImage("PlayerArrow", minimapPanel, Vector2.zero,
+                              new Vector2(arrowSize, arrowSize));
+        _arrowImg.sprite = BuildArrowSprite();
+        _arrowImg.color = colorArrow;
+        _arrowImg.raycastTarget = false;
+
+        _arrowRT = _arrowImg.GetComponent<RectTransform>();
+        // Sit on top of all cells (Unity UI draws siblings in order).
+        _arrowRT.SetAsLastSibling();
+    }
+
+    /// <summary>
+    /// Snaps the arrow to the current cell's anchored position and
+    /// rotates it to match the horizontal look direction.
+    /// </summary>
+    void UpdateArrow()
+    {
+        if (_arrowRT == null) return;
+
+        // Position: copy from the current cell's anchored position.
+        if (_cells.TryGetValue(_currentPos, out var cellImg))
+        {
+            _arrowRT.anchoredPosition =
+                cellImg.GetComponent<RectTransform>().anchoredPosition;
+            _arrowRT.gameObject.SetActive(true);
+        }
+        else
+        {
+            _arrowRT.gameObject.SetActive(false);
+            return;
+        }
+
+        // Rotation: derive a top-down yaw angle from the look transform.
+        float yawDeg = GetLookYaw();
+        // Unity UI rotates counter-clockwise from "up", so we negate for
+        // standard compass behaviour (clockwise from north / +Y).
+        _arrowRT.localRotation = Quaternion.Euler(0f, 0f, -yawDeg);
+    }
+
+    /// <summary>
+    /// Returns the player's horizontal look direction as degrees clockwise from
+    /// world +Z (north on the minimap = up).
+    /// Priority: lookTarget field → camera child of player → player forward.
+    /// </summary>
+    float GetLookYaw()
+    {
+        Transform src = lookTarget;
+
+        if (src == null && NewMovement.Instance != null)
+        {
+            // Try to find a camera among the player's children.
+            var cam = NewMovement.Instance.GetComponentInChildren<Camera>();
+            if (cam != null) src = cam.transform;
+        }
+
+        if (src == null && NewMovement.Instance != null)
+            src = NewMovement.Instance.transform;
+
+        if (src == null) return 0f;
+
+        // Project forward onto the horizontal plane, then measure clockwise angle.
+        Vector3 flat = Vector3.ProjectOnPlane(src.forward, Vector3.up);
+        if (flat.sqrMagnitude < 0.001f) flat = Vector3.forward;
+        return Vector3.SignedAngle(Vector3.forward, flat, Vector3.up);
+    }
+
+    /// <summary>
+    /// Generates a small upward-pointing arrow sprite at runtime —
+    /// no texture asset required.
+    /// </summary>
+    static Sprite BuildArrowSprite()
+    {
+        const int S = 32;   // texture resolution in pixels
+        var tex = new Texture2D(S, S, TextureFormat.RGBA32, false);
+        tex.filterMode = FilterMode.Bilinear;
+
+        Color clear = Color.clear;
+        Color white = Color.white;
+
+        // Fill transparent.
+        for (int y = 0; y < S; y++)
+            for (int x = 0; x < S; x++)
+                tex.SetPixel(x, y, clear);
+
+        // Draw a filled upward-pointing triangle.
+        //   apex  at (S/2, S-2)
+        //   base  at y = S*0.22  from x = S*0.15 to x = S*0.85
+        for (int y = 0; y < S; y++)
+        {
+            float frac = Mathf.InverseLerp(S * 0.22f, S - 2f, y);
+            if (frac < 0f) continue;
+
+            // Linearly interpolate the half-width from full base to apex (0).
+            float halfW = Mathf.Lerp(S * 0.35f, 0f, frac);
+            int left = Mathf.RoundToInt(S * 0.5f - halfW);
+            int right = Mathf.RoundToInt(S * 0.5f + halfW);
+
+            for (int x = left; x <= right; x++)
+                tex.SetPixel(x, y, white);
+        }
+
+        // Small rectangular tail below the triangle for a classic arrow look.
+        int tailX0 = Mathf.RoundToInt(S * 0.36f);
+        int tailX1 = Mathf.RoundToInt(S * 0.64f);
+        int tailY0 = Mathf.RoundToInt(S * 0.04f);
+        int tailY1 = Mathf.RoundToInt(S * 0.28f);
+        for (int y = tailY0; y <= tailY1; y++)
+            for (int x = tailX0; x <= tailX1; x++)
+                tex.SetPixel(x, y, white);
+
+        tex.Apply();
+        return Sprite.Create(tex, new Rect(0, 0, S, S), new Vector2(0.5f, 0.5f));
+    }
+
+    // ── Existing helpers (unchanged) ──────────────────────────────────────────
+
     void MarkVisited(Vector2Int pos)
     {
         if (_placedRooms == null) return;
-
         _visited.Add(pos);
-
-        // Scout adjacent rooms.
         foreach (var dir in Dirs)
         {
             Vector2Int n = pos + dir;
-            if (_placedRooms.ContainsKey(n))
-                _scouted.Add(n);
+            if (_placedRooms.ContainsKey(n)) _scouted.Add(n);
         }
-
         RefreshAll();
     }
 
     void RefreshAll()
     {
-        // ── Room cells ────────────────────────────────────────────────────
         foreach (var kvp in _cells)
         {
-            Vector2Int pos  = kvp.Key;
-            Image      cell = kvp.Value;
+            Vector2Int pos = kvp.Key;
+            Image cell = kvp.Value;
 
             if (pos == _currentPos)
-            {
-                // Handled in Update() via pulse; set a base so the very first
-                // frame doesn't flash invisible.
                 cell.color = colorCurrentBase;
-            }
             else if (_visited.Contains(pos))
-            {
                 cell.color = RoomColor(_placedRooms[pos].roomType) * 0.90f;
-            }
             else if (_scouted.Contains(pos))
-            {
                 cell.color = colorSilhouette;
-            }
             else
-            {
                 cell.color = Color.clear;
-            }
         }
 
-        // ── Corridors — show when both adjacent cells are scouted/visited ─
         foreach (var kvp in _corridors)
         {
             Vector2Int pos = kvp.Key.Item1;
             Vector2Int dir = kvp.Key.Item2;
             Image corridor = kvp.Value;
 
-            bool aVisible = _visited.Contains(pos)       || _scouted.Contains(pos);
+            bool aVisible = _visited.Contains(pos) || _scouted.Contains(pos);
             bool bVisible = _visited.Contains(pos + dir) || _scouted.Contains(pos + dir);
-
             corridor.color = (aVisible && bVisible) ? colorCorridor : Color.clear;
         }
     }
 
     Color RoomColor(RoomType type) => type switch
     {
-        RoomType.Start    => colorStart,
-        RoomType.Boss     => colorBoss,
+        RoomType.Start => colorStart,
+        RoomType.Boss => colorBoss,
         RoomType.Treasure => colorTreasure,
-        RoomType.Shop     => colorShop,
+        RoomType.Shop => colorShop,
         RoomType.Gambling => colorGambling,
-        _                 => colorNormal,
+        _ => colorNormal,
     };
 
     static Vector2 GridToPx(Vector2Int grid, float step) =>
@@ -318,7 +370,7 @@ public class MinimapUI : MonoBehaviour
 
     Image MakeImage(string objName, RectTransform parent, Vector2 anchoredPos, Vector2 size)
     {
-        var go  = new GameObject(objName, typeof(RectTransform), typeof(Image));
+        var go = new GameObject(objName, typeof(RectTransform), typeof(Image));
         go.transform.SetParent(parent, false);
 
         var rt = go.GetComponent<RectTransform>();

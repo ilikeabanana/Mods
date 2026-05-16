@@ -149,8 +149,19 @@ namespace Ultrarogue.Items
     {
         public override Rarity Rarity => Rarity.Legendary;
         public override string ItemName => "Eye of God";
-        public override string itemDescription => "20% chance to call down a virtue beam dealing 350% (+100% per stack) TOTAL damage";
+        public override string itemDescription =>
+            "3% chance on hit to call down a virtue beam dealing 300% base damage. " +
+            "Every 100% damage dealt increases activation chance by 3% (+3% per stack) " +
+            "and beam damage by 100% (+50% per stack).";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Utility };
+
+        private const float BaseChance = 3f;
+        private const float ChancePerHundred = 3f;
+        private const float MaxChance = 75f;
+
+        private const float BaseDamage = 3f;   // 2000% expressed as a multiplier
+        private const float DamagePerHundred = 1f;  // 150% per 100% dmg
+        private const float MaxDamageMultiplier = 75f; // 7500% cap
 
         public override void OnStart()
         {
@@ -159,14 +170,55 @@ namespace Ultrarogue.Items
                 int count = Plugin.GetItemCount(this);
                 if (count <= 0) return;
                 if (eid.hitter == "fire") return;
-                if(Plugin.canExecute(20, eid.hitter))
-                {
-                    GameObject virtueBeam = Object.Instantiate(AssetsManager.VirtueBeam, eid.transform.position, Quaternion.identity);
 
-                    if(virtueBeam.TryGetComponent<VirtueInsignia>(out var insig))
+                float overspill = dmg;
+
+                float procChance = BaseChance + (overspill * ChancePerHundred * count);
+                procChance = Mathf.Min(procChance, MaxChance);
+
+                if (!Plugin.canExecute(procChance, eid.hitter)) return;
+
+                float damageMultiplier = BaseDamage + (overspill * DamagePerHundred * count);
+                damageMultiplier = Mathf.Min(damageMultiplier, MaxDamageMultiplier);
+
+                GameObject virtueBeam = Object.Instantiate(
+                    AssetsManager.VirtueBeam,
+                    eid.transform.position,
+                    Quaternion.identity
+                );
+
+                if (virtueBeam.TryGetComponent<VirtueInsignia>(out var insig))
+                {
+                    insig.target = new EnemyTarget(eid);
+                    insig.damage = Mathf.RoundToInt(damageMultiplier);
+                }
+            });
+        }
+    }
+
+    public class JumperCable : BaseItem
+    {
+        public override string ItemName => "Jumper Cable";
+        public override string itemDescription => "Enemies have a 10% chance to be shocked when a saw blade hits them. (+5% per stack)";
+        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
+
+        public override Rarity Rarity => Rarity.Legendary;
+        public override void OnStart()
+        {
+            new HitEffect(ItemName, (eid, dmg) =>
+            {
+                int c = Plugin.GetItemCount(this);
+                if (c <= 0 || eid.hitter != "sawblade") return;
+
+                float chance = Plugin.LogarithmicChance(c - 1, 0.05f, 0.10f, 0.20f) * 100;
+                if (Plugin.canExecute(chance, "", false))
+                {
+                    eid.hitter = "zapper";
+                    eid.hitterAttributes.Add(HitterAttribute.Electricity);
+                    eid.DeliverDamage(eid.gameObject, Vector3.up * 1000f, eid.transform.position, 10f, true, 0f, null, false, false);
+                    foreach (EnemyIdentifierIdentifier enemyIdentifierIdentifier in eid.GetComponentsInChildren<EnemyIdentifierIdentifier>())
                     {
-                        insig.target = new EnemyTarget(eid);
-                        insig.damage = Mathf.RoundToInt(dmg * (2.5f + (1 * count)));
+                        Object.Instantiate<GameObject>(AssetsManager.zapThingy, enemyIdentifierIdentifier.transform.position, Quaternion.identity).transform.localScale *= 0.5f;
                     }
                 }
             });

@@ -9,6 +9,7 @@ using Ultrarogue.Characters;
 using Ultrarogue.Items;
 using Ultrarogue.SceneStuff;
 using UnityEngine;
+using UnityEngine.AI;
 using Random = UnityEngine.Random;
 
 public enum RoomType
@@ -253,12 +254,13 @@ public class Room : MonoBehaviour
                 GameObject objectToEnable = allObjectActivators[Random.Range(0, allObjectActivators.Count)];
                 objectToEnable.SetActive(true);
                 allObjectActivators.Remove(objectToEnable);
-                yield break;
+                continue;
             }
 
             GameObject inst = Instantiate(enemyPrefab, pos, enemyPrefab.transform.rotation);
             inst.transform.parent = transform;
-
+            KeepInBoundsRoom kibr = inst.AddComponent<KeepInBoundsRoom>();
+            kibr.RoomInside = this;
             if (planned.radianceBuffs > 0)
             {
                 EnemyIdentifier eid = inst.GetComponent<EnemyIdentifier>()
@@ -270,6 +272,8 @@ public class Room : MonoBehaviour
 
                     if (maskCount > 0 && Random.value <= (0.25f + (0.10f * maskCount)))
                         eid.puppet = true;
+
+                    kibr.eid = eid;
                 }
             }
         }
@@ -394,14 +398,37 @@ public class Room : MonoBehaviour
     }
 
     public void DisableExit(Transform exit) => exit.gameObject.SetActive(false);
-
+    private readonly List<NavMeshObstacle> _exitObstacles = new();
     public void CloseOffRoom()
     {
-        foreach (var door in FindObjectsByType<Door>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        foreach (var door in FindObjectsByType<Door>(
+            FindObjectsInactive.Include, FindObjectsSortMode.None))
         {
-
             door.Lock();
         }
+        BlockExitsWithObstacles();
+    }
+
+    void BlockExitsWithObstacles()
+    {
+        Transform[] exits = { exitLeft, exitRight, exitTop, exitBottom };
+        foreach (var exit in exits)
+        {
+            if (exit == null) continue;
+            var obs = exit.gameObject.GetComponent<NavMeshObstacle>()
+                   ?? exit.gameObject.AddComponent<NavMeshObstacle>();
+            obs.carving = true;
+            obs.size = new Vector3(4f, 4f, 4f);
+            obs.enabled = true;
+            _exitObstacles.Add(obs);
+        }
+    }
+
+    void UnblockExits()
+    {
+        foreach (var obs in _exitObstacles)
+            if (obs != null) obs.enabled = false;
+        _exitObstacles.Clear();
     }
 
     void Awake()
@@ -419,6 +446,11 @@ public class Room : MonoBehaviour
 
     void Update()
     {
+        foreach (var zone in GetComponentsInChildren<DeathZone>())
+        {
+            if(zone.respawnTarget.y == 0)
+                zone.respawnTarget = spawnPoints[Random.Range(0, spawnPoints.Count)].position;
+        }
         if (tookNoDamage && hasSpawnedEnemies)
         {
             if (playerHealthAtFightStart < NewMovement.Instance.hp)
@@ -446,6 +478,7 @@ public class Room : MonoBehaviour
     bool tookNoDamage = true;
     void OnRoomCleared()
     {
+        UnblockExits();
         MonoSingleton<MusicManager>.Instance.ArenaMusicEnd();
         MonoSingleton<TimeController>.Instance.SlowDown(0.15f);
         MonoSingleton<StainVoxelManager>.Instance.ClearAll();
@@ -627,5 +660,53 @@ public class Room : MonoBehaviour
         float dist = Vector3.Distance(exit.position, transform.position);
         Vector3 dir = (exit.position - transform.position).normalized;
         return dir * dist;
+    }
+}
+
+public class KeepInBoundsRoom : MonoBehaviour
+{
+    public Room RoomInside;
+    public EnemyIdentifier eid;
+
+    private NavMeshAgent _agent;
+    private const float XLimit = 58f; // slightly inside wall
+    private const float ZLimit = 28f;
+    private int attempts = 0;
+    private const int MaxAttempts = 10;
+
+    void Start()
+    {
+        // Enemy prefabs often nest the agent on a child
+        _agent = GetComponent<NavMeshAgent>()
+              ?? GetComponentInChildren<NavMeshAgent>();
+    }
+
+    void Update()
+    {
+        if (RoomInside == null) return;
+
+        Vector3 local = RoomInside.transform.InverseTransformPoint(transform.position);
+
+        bool outOfBounds = local.x < -XLimit || local.x > XLimit ||
+                           local.z < -ZLimit || local.z > ZLimit;
+
+        if (!outOfBounds) { attempts = 0; return; }
+
+        attempts++;
+        if (attempts >= MaxAttempts)
+        {
+            if (eid != null) eid.InstaKill();
+            Destroy(this);
+            return;
+        }
+
+        local.x = Mathf.Clamp(local.x, -XLimit, XLimit);
+        local.z = Mathf.Clamp(local.z, -ZLimit, ZLimit);
+        Vector3 clamped = RoomInside.transform.TransformPoint(local);
+
+        if (_agent != null && _agent.isActiveAndEnabled && _agent.isOnNavMesh)
+            _agent.Warp(clamped);   // the correct way to relocate a NavMeshAgent
+        else
+            transform.position = clamped;
     }
 }

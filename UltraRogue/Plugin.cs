@@ -290,6 +290,7 @@ namespace Ultrarogue
         {
             yield return new WaitForSeconds(2f); // idk why 24 but lmao
             CurrentDifficulty = 1;
+            Logger.LogInfo($"I have reset difficulty to {CurrentDifficulty}");
             yield return null;
             AsyncOperationHandle<GameObject> RogueButtonPref = Addressables.LoadAssetAsync<GameObject>("Assets/Modding/RogueMode/RogueMode.prefab");
             yield return new WaitUntil(() => RogueButtonPref.IsDone);
@@ -364,6 +365,7 @@ namespace Ultrarogue
             drop.onValueChanged.AddListener((i) =>
             {
                 CurrentDifficulty = i + 1;
+                Logger.LogInfo($"Difficulty is {CurrentDifficulty}");
             });
             if (userHasIncomaptibleMods())
             {

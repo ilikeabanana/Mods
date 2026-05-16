@@ -17,6 +17,7 @@ public class AssetsManager
     public static GameObject MirrorReaper;
 
     public static GameObject VirtueBeam;
+    public static GameObject BreakParticle;
 
     // Enemies grouped by their EnemyType enum
     public static Dictionary<EnemyType, List<SpawnableObject>> enemiesByType
@@ -54,6 +55,12 @@ public class AssetsManager
             VirtueBeam = Addressables
                 .LoadAssetAsync<GameObject>(
                     "Virtue Insignia")
+                .WaitForCompletion();
+
+        if (BreakParticle == null)
+            BreakParticle = Addressables
+                .LoadAssetAsync<GameObject>(
+                    "Assets/Particles/Breaks/BreakParticle.prefab")
                 .WaitForCompletion();
 
         if (Agony == null)

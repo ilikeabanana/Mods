@@ -1,11 +1,13 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Text;
-using UnityEngine;
 using TMPro;
-using UnityEngine.UI;
 using Ultrarogue;
 using Ultrarogue.Items;
-using System;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.TextCore.Text;
+using UnityEngine.UI;
 
 
 // This is actually just the rogue manager... but eh, too lazy to change lol
@@ -36,6 +38,7 @@ public class RogueDifficultyManager : MonoBehaviour
     float doubleTap;
     void Awake()
     {
+
         ItemRNG = new System.Random(Plugin.GameSeed.GetHashCode());
         GambleItemRNG = new System.Random(Plugin.GameSeed.GetHashCode() * 2); // Considering you can infinitely gamble, it might cause rng issues.
         RoomRNG = new System.Random(Plugin.GameSeed.GetHashCode() / 2);
@@ -63,6 +66,10 @@ public class RogueDifficultyManager : MonoBehaviour
         {
             AddItem(item.Key);
         }
+
+        GameObject tooltipHost = new GameObject("ItemTooltip");
+        tooltipHost.transform.SetParent(GameObject.Find("Items").transform.root, false); // top of canvas
+        tooltipHost.AddComponent<ItemTooltip>();
     }
 
     void UpdateStatsUI()
@@ -132,7 +139,8 @@ public class RogueDifficultyManager : MonoBehaviour
                 icon.sprite = item.ItemIcon;
             else
                 Plugin.Logger.LogWarning($"Item '{itemKey}' has no icon!");
-
+            ItemHoverHandler hover = container.AddComponent<ItemHoverHandler>();
+            hover.Item = item;
             GameObject labelObj = new GameObject("CountLabel");
             labelObj.transform.SetParent(container.transform, false);
 
@@ -535,5 +543,119 @@ public class BossEntry
         this.healthMod = healthMod;
         this.healthPerFloorMod = healthPerFloorMod;
         this.startFloor = startFloor;
+    }
+}
+
+public class ItemTooltip : MonoBehaviour
+{
+    public static ItemTooltip Instance { get; private set; }
+
+    private GameObject panel;
+    private TMP_Text nameText;
+    private TMP_Text descText;
+    private RectTransform rectTransform;
+
+    void Awake()
+    {
+        Instance = this;
+
+        // Build the tooltip panel dynamically
+        panel = new GameObject("TooltipPanel");
+        panel.transform.SetParent(transform, false);
+
+        // Background image
+        Image bg = panel.AddComponent<Image>();
+        bg.color = new Color(0f, 0f, 0f, 0.85f);
+
+        // Layout
+        VerticalLayoutGroup layout = panel.AddComponent<VerticalLayoutGroup>();
+        layout.padding = new RectOffset(8, 8, 6, 6);
+        layout.spacing = 4f;
+        layout.childForceExpandWidth = true;
+        layout.childForceExpandHeight = false;
+
+        ContentSizeFitter fitter = panel.AddComponent<ContentSizeFitter>();
+        fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+        fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        rectTransform = panel.GetComponent<RectTransform>();
+        rectTransform.pivot = new Vector2(0f, 1f); // anchor top-left to cursor
+
+        // Item name label
+        GameObject nameObj = new GameObject("TooltipName");
+        nameObj.transform.SetParent(panel.transform, false);
+        nameText = nameObj.AddComponent<TextMeshProUGUI>();
+        nameText.fontSize = 16;
+        nameText.fontStyle = TMPro.FontStyles.Bold;
+        nameText.color = Color.yellow;
+
+        // Item description label
+        GameObject descObj = new GameObject("TooltipDesc");
+        descObj.transform.SetParent(panel.transform, false);
+        descText = descObj.AddComponent<TextMeshProUGUI>();
+        descText.fontSize = 13;
+        descText.color = Color.white;
+
+        // Clamp width so long descriptions wrap nicely
+        LayoutElement le = descObj.AddComponent<LayoutElement>();
+        le.preferredWidth = 220f;
+
+        Hide();
+    }
+
+    public void Show(string itemName, string description, Vector2 screenPos)
+    {
+        nameText.text = itemName;
+        descText.text = description;
+        panel.SetActive(true);
+        UpdatePosition(screenPos);
+    }
+
+    public void Hide()
+    {
+        panel.SetActive(false);
+    }
+
+    void Update()
+    {
+        if (panel.activeSelf)
+            UpdatePosition(Input.mousePosition);
+    }
+
+    void UpdatePosition(Vector2 screenPos)
+    {
+        // Convert screen pos to canvas local pos
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(
+            transform.parent.GetComponent<RectTransform>(), // assumes tooltip is on the HUD canvas
+            screenPos,
+            null,
+            out Vector2 localPoint
+        );
+
+        // Nudge so it doesn't sit right under the cursor
+        localPoint += new Vector2(12f, -8f);
+
+        rectTransform.anchoredPosition = localPoint;
+    }
+}
+
+public class ItemHoverHandler : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+{
+    public BaseItem Item { get; set; }
+
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        if (Item == null || ItemTooltip.Instance == null) return;
+
+        string desc = string.IsNullOrEmpty(Item.itemDescription)
+            ? "No description available."
+            : Item.itemDescription;
+
+        ItemTooltip.Instance.Show(Item.ItemName, desc, eventData.position);
+    }
+
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        ItemTooltip.Instance?.Hide();
     }
 }
