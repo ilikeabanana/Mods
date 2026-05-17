@@ -24,6 +24,9 @@ public class RoomGenerator : MonoBehaviour
     public Room shopRoomPrefab;
     public Room gamblingRoomPrefab;
     public Room bossRoomPrefab;
+    public Room startRoomPrefab;
+    [Tooltip("SECRET ROOOMMMS")]
+    public List<Room> SecretRoomPrefabs = new List<Room>();
 
     [Header("Boss Room Settings")]
     [Tooltip("EnemyType spawned in the boss room.")]
@@ -293,7 +296,7 @@ public class RoomGenerator : MonoBehaviour
 
         if (isStart)
         {
-            prefab = roomPrefabs[0];
+            prefab = startRoomPrefab;
         }
         else
         {

@@ -20,6 +20,7 @@ public enum RoomType
     Treasure,
     Shop,
     Gambling,
+    Secret
 }
 
 public class Room : MonoBehaviour

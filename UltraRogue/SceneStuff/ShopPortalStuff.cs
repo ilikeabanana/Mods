@@ -12,6 +12,8 @@ public class ShopPortalStuff : MonoBehaviour
     [Tooltip("If null, will just do GetComponent to get it")]
     [SerializeField] Portal PortalScript;
 
+    bool isOpen = false;
+
     void Awake()
     {
         if (PortalScript == null) PortalScript = GetComponent<Portal>();
@@ -23,9 +25,24 @@ public class ShopPortalStuff : MonoBehaviour
         }
 
         if (Plugin.GetItemCount("Ration Card") > 0)
+            Open();
+
+
+    }
+
+    void Open()
+    {
+        if (!isOpen)
+        {
+            isOpen = true;
             DoorToRunSimpleOpenOverrideOn.SimpleOpenOverride();
+        }
+    }
 
-
+    void Update()
+    {
+        if (Plugin.GetItemCount("Ration Card") > 0)
+            Open();
     }
 
 }
