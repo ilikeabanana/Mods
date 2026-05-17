@@ -10,6 +10,7 @@ namespace Ultrarogue.Items
 {
     public abstract class BaseItem
     {
+        public virtual bool CanOnlyHaveOne => false;
         public virtual string ItemName => "";
         public virtual string itemDescription => string.Empty;
         public virtual string ItemIconName => ItemName.Replace(" ", "_");

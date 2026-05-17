@@ -492,7 +492,7 @@ public class Room : MonoBehaviour
 
         if (!isBossRoom)
         {
-            if (Plugin.SelectedChar.GetType() != typeof(V1))
+            if (!Plugin.SelectedChar.HasPassive(Passive.HealFromBlood))
             {
                 int currentHp = MonoSingleton<NewMovement>.Instance.hp;
                 int maxHp = Plugin.MaxHealth;
@@ -504,7 +504,7 @@ public class Room : MonoBehaviour
 
                     if (Random.value <= healChance)
                     {
-                        int healAmt = Random.Range(5, 50);
+                        int healAmt = Random.Range(25, 50);
                         MonoSingleton<NewMovement>.Instance.GetHealth(healAmt, false);
                     }
                 }
@@ -518,33 +518,34 @@ public class Room : MonoBehaviour
                     Random.Range(-2f, 2f), 1f, Random.Range(-2f, 2f));
                 GameObject plc = new GameObject("ItemDropAnchor");
                 plc.transform.position = itemPos;
-                ItemPickup.CreatePickup(Plugin.GiveRandomItem(), plc.transform);
-                Debug.Log("[Room] Bonus item dropped on room clear.");
-                Instantiate(AssetsManager.spawnEffect, itemPos, Quaternion.identity);
+                StartCoroutine(spawnItem(plc.transform));
             }
             else
             {
                 float chanceVal = (float)enemyRando.NextDouble() + (tookNoDamage ? 0.20f : 0f);
 
-                float keyThreshold = Mathf.Min(0.75f + RogueDifficultyManager.Instance.Keys * 0.08f, 0.97f);
-
-                if (chanceVal <= 0.22f)
+                float keyThreshold = Mathf.Clamp(
+                    0.1f - RogueDifficultyManager.Instance.Keys * 0.008f,
+                    0.008f,
+                    0.1f   // was 0.2f
+                );
+                if (chanceVal <= 0.30f)
                 {
                     // Nothing
                 }
-                else if (chanceVal <= keyThreshold)
+                else if (chanceVal <= keyThreshold + 0.30f)
+                {
+                    RogueDifficultyManager.Instance.Keys++;
+                    if (tookNoDamage)
+                        Debug.Log("[Room] Flawless clear! Awarded a key.");
+                }
+                else
                 {
                     int goldAmount = enemyRando.Next(1, tookNoDamage ? 4 : 3);
                     for (int i = 0; i < goldAmount; i++)
                         RogueDifficultyManager.Instance.Gold++;
                     if (tookNoDamage)
                         Debug.Log($"[Room] Flawless clear! Awarded {goldAmount} gold.");
-                }
-                else
-                {
-                    RogueDifficultyManager.Instance.Keys++;
-                    if (tookNoDamage)
-                        Debug.Log("[Room] Flawless clear! Awarded a key.");
                 }
             }
         }
@@ -555,8 +556,7 @@ public class Room : MonoBehaviour
             GameObject plc = new GameObject("aaaaaaaaaaaa");
             plc.transform.position = spawnPos;
             plc.transform.parent = transform;
-            ItemPickup.CreatePickup(Plugin.GiveRandomItem(), plc.transform);
-            Instantiate(AssetsManager.spawnEffect, spawnPos, Quaternion.identity);
+            StartCoroutine(spawnItem(plc.transform));
             NewMovement.Instance.FullHeal();
             StartCoroutine(SpawnPortalWhenClear());
         }
@@ -570,6 +570,13 @@ public class Room : MonoBehaviour
             }
             door.Unlock();
         }
+    }
+
+    IEnumerator spawnItem(Transform plc)
+    {
+        yield return new WaitForSeconds(0.15f);
+        ItemPickup.CreatePickup(Plugin.GiveRandomItem(), plc);
+        Instantiate(AssetsManager.spawnEffect, plc.position, Quaternion.identity);
     }
     IEnumerator SpawnPortalWhenClear()
     {

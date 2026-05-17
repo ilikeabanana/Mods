@@ -31,7 +31,14 @@ namespace Ultrarogue.Items
             });
         }
     }
-
+    public class RationCard : BaseItem
+    {
+        public override string ItemName => "Ration Card";
+        public override string itemDescription => "Unlock a new area in the shop...";
+        public override Rarity Rarity => Rarity.Uncommon;
+        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Utility };
+        public override bool CanOnlyHaveOne => true;
+    }
     public class Executioner : BaseItem
     {
         public override string ItemName => "Executioner";

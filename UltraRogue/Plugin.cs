@@ -137,6 +137,7 @@ namespace Ultrarogue
 
         private void Awake()
         {
+            CurrentDifficulty = 1;
             // Plugin startup logic
             Instance = this;
             Logger = base.Logger;
@@ -217,7 +218,7 @@ namespace Ultrarogue
             return toReturn;
         }
 
-        public static int CurrentDifficulty = 1;
+        public static int CurrentDifficulty;
         public static string GenerateRandomString(int length)
         {
             const string pool = "abcdefghijklmnopqrstuvwxyz0123456789";
@@ -289,7 +290,6 @@ namespace Ultrarogue
         IEnumerator SpawnThings()
         {
             yield return new WaitForSeconds(2f); // idk why 24 but lmao
-            CurrentDifficulty = 1;
             Logger.LogInfo($"I have reset difficulty to {CurrentDifficulty}");
             yield return null;
             AsyncOperationHandle<GameObject> RogueButtonPref = Addressables.LoadAssetAsync<GameObject>("Assets/Modding/RogueMode/RogueMode.prefab");
@@ -367,6 +367,8 @@ namespace Ultrarogue
                 CurrentDifficulty = i + 1;
                 Logger.LogInfo($"Difficulty is {CurrentDifficulty}");
             });
+
+            CurrentDifficulty = 1;
             if (userHasIncomaptibleMods())
             {
                 Logger.LogInfo("AAAAAAAAA INCOMPATIBLE MOD DETECTEDDD");
@@ -427,7 +429,8 @@ namespace Ultrarogue
                     Plugin.getItem("Fusion"),
                     Plugin.getItem("Improvement"),
                     Plugin.getItem("Dual Gun"),
-                    Plugin.getItem("Jumper Cable")
+                    Plugin.getItem("Jumper Cable"),
+                    Plugin.getItem("Ration Card")
                 };
 
                 for (int i = 0; i < items.Count; i++)
@@ -626,6 +629,9 @@ namespace Ultrarogue
                     x.WeaponRequirements.Any(req =>
                         weapons.Any(w => w.weapon == req)
                     )
+                ) && (
+                    !x.CanOnlyHaveOne ||
+                    GetItemCount(x) <= 0
                 )
             ).ToList();
         }

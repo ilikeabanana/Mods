@@ -14,7 +14,7 @@ public class RoomGenerator : MonoBehaviour
 {
     [Header("Generation Settings")]
     int minRooms = 5;
-    int maxRooms = 12;
+    int maxRooms = 13;
     [Header("Room Prefabs")]
     [Tooltip("Normal combat room prefabs — one is chosen at random per room.")]
     public List<Room> roomPrefabs = new List<Room>();
@@ -89,8 +89,7 @@ public class RoomGenerator : MonoBehaviour
             yield break;
         }
 
-        int count = Mathf.RoundToInt((float)RogueDifficultyManager.RoomRNG.Next(minRooms, maxRooms)
-                      * Plugin.CurrentDifficulty);
+        int count = Mathf.RoundToInt(3.33f * RogueDifficultyManager.Instance.floor + RogueDifficultyManager.RoomRNG.Next(5, 6));
 
         Vector2Int current = Vector2Int.zero;
         PlaceRoom(current, isStart: true);
@@ -101,7 +100,7 @@ public class RoomGenerator : MonoBehaviour
         while (placed < count && safetyBreak++ < 1000)
         {
             Vector2Int dir = directions[RogueDifficultyManager.RoomRNG.Next(0, directions.Length)];
-            int steps = RogueDifficultyManager.RoomRNG.Next(1, 4);
+            int steps = RogueDifficultyManager.RoomRNG.Next(1, 2);
 
             for (int i = 0; i < steps && placed < count; i++)
             {
