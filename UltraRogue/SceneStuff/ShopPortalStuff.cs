@@ -29,9 +29,8 @@ public class ShopPortalStuff : MonoBehaviour
 
     void Open()
     {
-        if (!isOpen)
+        if (!DoorToRunSimpleOpenOverrideOn.open)
         {
-            isOpen = true;
             DoorToRunSimpleOpenOverrideOn.SimpleOpenOverride();
         }
     }

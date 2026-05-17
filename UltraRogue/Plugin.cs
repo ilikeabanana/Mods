@@ -656,8 +656,10 @@ namespace Ultrarogue
             return table.weights.Keys.Last();
         }
 
-        public static BaseItem GiveRandomItem(System.Random rng = null)
+        public static BaseItem GiveRandomItem(System.Random rng = null, DropTable table = null)
         {
+            if (table == null)
+                table = testTable;
             if (rng == null)
                 rng = RogueDifficultyManager.ItemRNG;
             List<BaseItem> tiems = getRarityItems(getRarityBasedOnDropTable(testTable, rng));

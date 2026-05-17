@@ -10,6 +10,7 @@ using Ultrarogue.Items;
 using Ultrarogue.SceneStuff;
 using UnityEngine;
 using UnityEngine.AI;
+using static Ultrarogue.Plugin;
 using Random = UnityEngine.Random;
 
 public enum RoomType
@@ -58,6 +59,18 @@ public class Room : MonoBehaviour
     public List<GameObject> allObjectActivators = new List<GameObject>();
 
     public static bool isFighting = false;
+
+    static bool HasAnyWeaponsThatCanBreakThroughGlass()
+    {
+        return Plugin.weapons.Any(w =>
+            (w.weapon == Weapon.Revolver && (w.variant == Variant.Blue || w.variant == Variant.Red)) ||
+            (w.weapon == Weapon.Shotgun && (w.variant == Variant.Blue || w.variant == Variant.Green)) ||
+            (w.weapon == Weapon.Railcannon && (w.variant == Variant.Blue || w.variant == Variant.Red)) ||
+            (w.weapon == Weapon.RocketLauncher) ||
+            (w.weapon == Weapon.Arm && w.variant == Variant.Red)
+        );
+    }
+
     public void OnRoomEnter()
     {
         switch (roomType)
@@ -118,6 +131,16 @@ public class Room : MonoBehaviour
             case RoomType.Start:
             default:
                 break;
+        }
+
+        if (!HasAnyWeaponsThatCanBreakThroughGlass())
+        {
+            Glass[] allGlass = gameObject.GetComponentsInChildren<Glass>();
+
+            foreach (var glass in allGlass)
+            {
+                glass.Shatter();
+            }
         }
     }
 

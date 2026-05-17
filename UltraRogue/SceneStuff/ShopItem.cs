@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using TMPro;
 using Ultrarogue;
 using Ultrarogue.Items;
@@ -29,12 +30,18 @@ public class ShopItem : MonoBehaviour
         }
         return 2;
     }
-
+    public static DropTable rationTable = new DropTable(new Dictionary<Rarity, float>()
+        {
+            {Rarity.Common, 0.25f },
+            {Rarity.Uncommon, 0.65f },
+            {Rarity.Legendary, 0.1f }
+        });
     void Start()
     {
         if((float)RogueDifficultyManager.ItemRNG.NextDouble() >= 0.5f)
         {
-            BaseItem item = Plugin.GiveRandomItem();
+
+            BaseItem item = Plugin.GiveRandomItem(table: gameObject.name.Contains("Ration") ? rationTable : null);
             cost = getCost(item.Rarity);
             price.text = $"${cost}";
             ItemPickup.CreatePickupConditional(item, transform, () =>

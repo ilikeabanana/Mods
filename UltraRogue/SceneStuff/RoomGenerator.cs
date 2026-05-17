@@ -57,6 +57,8 @@ public class RoomGenerator : MonoBehaviour
     private bool _generationComplete = false;
     private float _nextActivationCheck = 0f;
     private const float ActivationCheckInterval = 0.3f;
+    private int guaranteedCombatRoomsWithCredits;
+    private const int MinCombatRoomsWithCredits = 4;
 
     void Awake()
     {
@@ -87,6 +89,8 @@ public class RoomGenerator : MonoBehaviour
 
     IEnumerator GenerateRooms(bool firstTime = true)
     {
+        guaranteedCombatRoomsWithCredits = 0;
+
         yield return new WaitUntil(() => DefaultReferenceManager.Instance != null);
         if (!firstTime) yield return new WaitForSeconds(6f);
         if (roomPrefabs == null || roomPrefabs.Count == 0)
@@ -136,6 +140,7 @@ public class RoomGenerator : MonoBehaviour
 
         DesignateBossRoom();
         PlaceSpecialRooms();
+        EnforceEmptyRoomConnectivity();
         FinalizeConnections();
         BuildNavMesh();
 
@@ -341,7 +346,35 @@ public class RoomGenerator : MonoBehaviour
         Room room = Instantiate(prefab, worldPos, Quaternion.identity);
         room.position = gridPos;
         room.roomType = RoomType.Normal;
-        room.SpawnCredits = isStart ? 0 : 3;
+        if (isStart)
+        {
+            room.SpawnCredits = 0;
+        }
+        else
+        {
+            // Count how many normal combat rooms still haven't been placed yet.
+            int combatRoomsPlacedSoFar = path.Count - 1; // exclude start room
+            int totalCombatRoomsExpected = Mathf.Max(0, placedRooms.Count + 1); // rough safety fallback
+
+            // Remaining combat rooms after this one.
+            int remainingRooms = Mathf.Max(0, maxRooms - combatRoomsPlacedSoFar);
+
+            // How many more 3-credit rooms we MUST still place.
+            int requiredRemaining =
+                MinCombatRoomsWithCredits - guaranteedCombatRoomsWithCredits;
+
+            bool mustGiveCredits = remainingRooms <= requiredRemaining;
+
+            float chance = Plugin.CurrentDifficulty == 2 ? 0.15f : 0.35f;
+
+            // 35% chance to be empty unless we still need guaranteed rooms.
+            bool giveCredits = mustGiveCredits || RogueDifficultyManager.RoomRNG.NextDouble() > chance;
+
+            room.SpawnCredits = giveCredits ? 3 : 0;
+
+            if (giveCredits)
+                guaranteedCombatRoomsWithCredits++;
+        }
 
         if (!isStart) AlignRoomToNeighborExit(room, gridPos);
 
@@ -810,6 +843,26 @@ public class RoomGenerator : MonoBehaviour
         }
     }
 
+    void EnforceEmptyRoomConnectivity()
+    {
+        foreach (var kvp in placedRooms)
+        {
+            Room room = kvp.Value;
+            if (room.roomType != RoomType.Normal) continue;
+            if (room.SpawnCredits != 0) continue;          // only care about empty rooms
+
+            int neighbourCount = 0;
+            foreach (var dir in directions)
+                if (placedRooms.ContainsKey(kvp.Key + dir))
+                    neighbourCount++;
+
+            if (neighbourCount < 2)                        // dead end → give it credits
+            {
+                room.SpawnCredits = 3;
+                Debug.Log($"[RoomGenerator] Empty room at {kvp.Key} was a dead end — credits restored.");
+            }
+        }
+    }
     public Vector2Int WorldToGrid(Vector3 worldPos) => new Vector2Int(
         Mathf.RoundToInt(worldPos.x / roomWidth),
         Mathf.RoundToInt(worldPos.z / roomHeight)
