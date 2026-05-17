@@ -525,16 +525,11 @@ public class Room : MonoBehaviour
             {
                 float chanceVal = (float)enemyRando.NextDouble() + (tookNoDamage ? 0.20f : 0f);
 
-                float keyThreshold = Mathf.Clamp(
-                    0.1f - RogueDifficultyManager.Instance.Keys * 0.008f,
-                    0.008f,
-                    0.1f   // was 0.2f
-                );
-                if (chanceVal <= 0.30f)
+                if (chanceVal <= 0.22f)
                 {
                     // Nothing
                 }
-                else if (chanceVal <= keyThreshold + 0.30f)
+                else if (chanceVal <= 0.44f)
                 {
                     RogueDifficultyManager.Instance.Keys++;
                     if (tookNoDamage)
@@ -620,6 +615,7 @@ public class Room : MonoBehaviour
         GameObject quad1 = new GameObject("PortalEntry");
         quad1.transform.position = GameObject.Find("PortalPlace").transform.position;
         quad1.transform.Rotate(90, 0, 0);
+
         GameObject quad2 = new GameObject("PortalExit");
         quad2.transform.position = GameObject.Find("PortalPos").transform.position;
         quad2.transform.Rotate(-90, 0, 0);
@@ -638,6 +634,23 @@ public class Room : MonoBehaviour
         portal1.useFogExit = true;
         portal1.canSeePortalLayer = true;
 
+        // quad2 also needs a Portal component so the render system
+        // can resolve GetPortalObject() for the exit handle
+        Portal portal2 = quad2.AddComponent<Portal>();
+        portal2.shape = new PlaneShape { width = 10, height = 10 };
+        portal2.entry = quad1.transform;
+        portal2.exit = quad2.transform;
+        portal2.supportInfiniteRecursion = true;
+        portal2.appearsInRecursions = true;
+        portal2.canSeeItself = true;
+        portal2.clippingMethod = PortalClippingMethod.Default;
+        portal2.maxRecursions = 3;
+        portal2.renderSettings = PortalSideFlags.Enter | PortalSideFlags.Exit | PortalSideFlags.None;
+        portal2.useFogEnter = true;
+        portal2.useFogExit = true;
+        portal2.canSeePortalLayer = true;
+
+        // Keep PortalIdentifier on quad2 for traversal detection
         PortalIdentifier portalIdent = quad2.AddComponent<PortalIdentifier>();
         portalIdent.isTraversable = true;
 

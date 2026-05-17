@@ -1,6 +1,8 @@
 ﻿using BepInEx;
 using BepInEx.Bootstrap;
 using BepInEx.Logging;
+using GameConsole;
+using GameConsole.CommandTree;
 using HarmonyLib;
 using Newtonsoft.Json;
 using System;
@@ -1582,6 +1584,59 @@ namespace Ultrarogue
             __instance.cachedActivity.State = "ROGUE MODE";
 
             __instance.cachedActivity.Details = "Floor: " + RogueDifficultyManager.Instance.floor;
+        }
+    }
+
+    [HarmonyPatch(typeof(GameConsole.Console), nameof(GameConsole.Console.Awake))]
+    public class AddCommands
+    {
+        public static void Postfix(GameConsole.Console __instance)
+        {
+
+            __instance.RegisterCommand(new Ultrarogue(__instance));
+        }
+
+        public class Ultrarogue : CommandRoot, IConsoleLogger
+        {
+            public Ultrarogue(GameConsole.Console con) : base(con)
+            {
+            }
+
+            public override string Name => "ULTRAROGUE";
+
+            public override string Description => "Commands for ultrarogue";
+
+            public plog.Logger Log => new plog.Logger("Buffs");
+
+            public override Branch BuildTree(GameConsole.Console con)
+            {
+                string name = "ultrarogue";
+                Node[] array = new Node[1];
+                array[0] = CommandRoot.Branch("items", new Node[]
+                {
+                    CommandRoot.Leaf("add", delegate(string name)
+                    {
+                        name = name.Replace("_", " ");
+                        BaseItem item = getItem(name);
+                        if(item == null)
+                        {
+                            Log.Error($"No item found with name {name}");
+                        }
+
+                        Plugin.GiveItem(item);
+                        Log.Info($"Gave item {item.ItemName}");
+                    }, true),
+                    CommandRoot.Leaf("addall", delegate()
+                    {
+                        foreach (var item in Plugin.nameToItem)
+                        {
+                            Plugin.GiveItem(item.Value);
+                        }
+                        Log.Info($"Gave all the items, item count: {Plugin.nameToItem.Count}");
+                    }, true)
+                });
+                return CommandRoot.Branch(name, array);
+            }
         }
     }
 

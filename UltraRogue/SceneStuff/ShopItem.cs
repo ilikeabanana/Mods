@@ -1,3 +1,4 @@
+using TMPro;
 using Ultrarogue;
 using Ultrarogue.Items;
 using Ultrarogue.SceneStuff;
@@ -11,12 +12,32 @@ public class ShopItem : MonoBehaviour
     bool purchased = false;
     float messageCooldown = 0f;
 
+    TMP_Text price;
+
+    void Awake()
+    {
+        price = GetComponentInChildren<TMP_Text>();
+    }
+
+    int getCost(Rarity rar)
+    {
+        switch (rar)
+        {
+            case Rarity.Common: return 3;
+            case Rarity.Uncommon: return 5;
+            case Rarity.Legendary: return 8;
+        }
+        return 2;
+    }
+
     void Start()
     {
         if((float)RogueDifficultyManager.ItemRNG.NextDouble() >= 0.5f)
         {
-
-            ItemPickup.CreatePickupConditional(Plugin.GiveRandomItem(), transform, () =>
+            BaseItem item = Plugin.GiveRandomItem();
+            cost = getCost(item.Rarity);
+            price.text = $"${cost}";
+            ItemPickup.CreatePickupConditional(item, transform, () =>
             {
                 var mgr = RogueDifficultyManager.Instance;
                 if (mgr == null) return false;

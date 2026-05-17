@@ -16,6 +16,7 @@ public class ShopPortalStuff : MonoBehaviour
 
     void Awake()
     {
+        isOpen = false;
         if (PortalScript == null) PortalScript = GetComponent<Portal>();
 
 
@@ -23,10 +24,6 @@ public class ShopPortalStuff : MonoBehaviour
         {
             PortalScript.exit = GameObject.Find(PortalExitFinder).transform;
         }
-
-        if (Plugin.GetItemCount("Ration Card") > 0)
-            Open();
-
 
     }
 

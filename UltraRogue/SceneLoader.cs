@@ -34,7 +34,7 @@ public static class SceneLoader
         BundleLoader.Load();
 
     }
-     
+
     static string[] messages = new string[]
     {
         "The higher the you set the difficulty, the more rooms, and enemies spawn",
@@ -42,7 +42,8 @@ public static class SceneLoader
         "Difficulty gets increased over time, causing more enemies to spawn, and sometimes make them radiant",
         "Each room has a chance to give nothing, gold, or keys!",
         "Some items are better for specific classes",
-        "Pressing tab shows a minimap, your stats, and your items."
+        "Pressing tab shows a minimap, your stats, and your items.",
+        "Sometimes special rooms are locked and require a key to be opened"
     };
 
     static bool LoadingScene = false;

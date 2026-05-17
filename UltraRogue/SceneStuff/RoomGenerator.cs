@@ -41,6 +41,9 @@ public class RoomGenerator : MonoBehaviour
         Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right
     };
 
+    public List<AudioClip> CalmMusic = new List<AudioClip>();
+    public List<AudioClip> UnCalmMusic = new List<AudioClip>();
+
     public static RoomGenerator Instance { get; private set; }
 
     [Header("Room Size")]
@@ -92,7 +95,12 @@ public class RoomGenerator : MonoBehaviour
             yield break;
         }
 
-        int count = Mathf.RoundToInt(3.33f * RogueDifficultyManager.Instance.floor + RogueDifficultyManager.RoomRNG.Next(5, 6));
+        float floor = RogueDifficultyManager.Instance.floor;
+
+        int count = Mathf.RoundToInt(
+            9f + Mathf.Log(floor + 1f, 2f) * 4f
+            + RogueDifficultyManager.RoomRNG.Next(-1, 2)
+        );
 
         Vector2Int current = Vector2Int.zero;
         PlaceRoom(current, isStart: true);
@@ -206,6 +214,13 @@ public class RoomGenerator : MonoBehaviour
         Destroy(quad2);
         Destroy(quad1);
         StatsManager.Instance.StartTimer();
+
+        // choose random music
+        int index = Random.Range(0, CalmMusic.Count);
+        MusicManager.Instance.cleanTheme.clip = CalmMusic[index];
+        MusicManager.Instance.bossTheme.clip = UnCalmMusic[index];
+        MusicManager.Instance.cleanTheme.clip = UnCalmMusic[index];
+
         MusicManager.Instance.StartMusic();
     }
 
