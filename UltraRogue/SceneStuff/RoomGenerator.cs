@@ -219,7 +219,7 @@ public class RoomGenerator : MonoBehaviour
         int index = Random.Range(0, CalmMusic.Count);
         MusicManager.Instance.cleanTheme.clip = CalmMusic[index];
         MusicManager.Instance.bossTheme.clip = UnCalmMusic[index];
-        MusicManager.Instance.cleanTheme.clip = UnCalmMusic[index];
+        MusicManager.Instance.battleTheme.clip = UnCalmMusic[index];
 
         MusicManager.Instance.StartMusic();
     }
