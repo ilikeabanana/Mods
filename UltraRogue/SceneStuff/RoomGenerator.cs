@@ -83,7 +83,7 @@ public class RoomGenerator : MonoBehaviour
 
         _generationComplete = false;
         if (MinimapUI.Instance != null) MinimapUI.Instance.ClearAndReset();
-
+        RogueDifficultyManager.Instance.MoveStage();
         StartCoroutine(GenerateRooms(false));
     }
 
@@ -182,7 +182,7 @@ public class RoomGenerator : MonoBehaviour
                     StartCoroutine(StartThingggg(quad1, quad2));
                 }
             });
-            RogueDifficultyManager.Instance.MoveStage();
+
             StartCoroutine(StartThingggg(quad1, quad2));
         }
     }

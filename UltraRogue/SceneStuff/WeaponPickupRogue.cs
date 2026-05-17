@@ -79,12 +79,12 @@ namespace Ultrarogue.SceneStuff
             );
         }
 
-        public static void CreatePickupConditional(Transform position, Func<bool> pickupCon, float offset = 2)
+        public static void CreatePickupConditional(Transform position, Func<bool> pickupCon, float offset = 2, AWeapon weapon = null)
         {
             GameObject pickup = GameObject.CreatePrimitive(PrimitiveType.Quad);
             pickup.GetComponent<Collider>().enabled = false;
-
-            AWeapon weapon = AWeapon.GenerateWeapon();
+            if(weapon == null)
+                weapon = AWeapon.GenerateWeapon();
             Material mat = new Material(AssetsManager.weaponMat);
             mat.SetInt("_CullMode", 0); // Off
             mat.EnableKeyword("BILLBOARD");

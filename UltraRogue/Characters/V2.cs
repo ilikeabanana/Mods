@@ -29,7 +29,7 @@ namespace Ultrarogue.Characters
 
             if (selected)
             {
-                HPChange.addition = 150;
+                HPChange.addition = 200;
             }
             else
             {

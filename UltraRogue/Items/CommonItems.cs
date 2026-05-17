@@ -72,7 +72,7 @@ namespace Ultrarogue.Items
 
     public class Improvement : BaseItem
     {
-        public override string ItemName => "Improvement";
+        public override string ItemName => "Scrap Parts";
         public override string itemDescription => "+10% to your lowest stat";
         PlayerChange plrChanges;
         public override void OnStart()
@@ -182,7 +182,11 @@ namespace Ultrarogue.Items
             hpChange = new Change();
             new PlayerChange(maxHealth: hpChange);
         }
-
+        public override void OnGotten(int count, bool firstPickup)
+        {
+            if (count == 0) return;
+            NewMovement.Instance.GetHealth(10, true);
+        }
         public override void OnUpdate(int count)
         {
             hpChange.addition = 10 * count;

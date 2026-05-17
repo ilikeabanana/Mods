@@ -82,6 +82,7 @@ namespace Ultrarogue.Items
                 if (count <= 0) return;
                 if (killBonus >= 50 * count) return;
                 killBonus += 1;
+                NewMovement.Instance.GetHealth(1, true);
             });
         }
 

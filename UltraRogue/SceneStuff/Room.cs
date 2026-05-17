@@ -285,20 +285,19 @@ public class Room : MonoBehaviour
             inst.transform.parent = transform;
             KeepInBoundsRoom kibr = inst.AddComponent<KeepInBoundsRoom>();
             kibr.RoomInside = this;
-            if (planned.radianceBuffs > 0)
+
+            // Always grab eid, not just when buffing
+            EnemyIdentifier eid = inst.GetComponent<EnemyIdentifier>()
+                               ?? inst.GetComponentInChildren<EnemyIdentifier>();
+            kibr.eid = eid; // <-- moved outside the radianceBuffs block
+            if (maskCount > 0 && Random.value <= (0.25f + (0.10f * maskCount)))
+                eid.puppet = true;
+            if (planned.radianceBuffs > 0 && eid != null)
             {
-                EnemyIdentifier eid = inst.GetComponent<EnemyIdentifier>()
-                                   ?? inst.GetComponentInChildren<EnemyIdentifier>();
-                if (eid != null)
-                {
-                    for (int b = 0; b < planned.radianceBuffs; b++)
-                        eid.BuffAll();
+                for (int b = 0; b < planned.radianceBuffs; b++)
+                    eid.BuffAll();
 
-                    if (maskCount > 0 && Random.value <= (0.25f + (0.10f * maskCount)))
-                        eid.puppet = true;
-
-                    kibr.eid = eid;
-                }
+                
             }
         }
 
@@ -713,19 +712,27 @@ public class KeepInBoundsRoom : MonoBehaviour
     public EnemyIdentifier eid;
 
     private NavMeshAgent _agent;
-    private const float XLimit = 58f; // slightly inside wall
-    private const float ZLimit = 28f;
-    private int attempts = 0;
-    private const int MaxAttempts = 10;
+    private Rigidbody _rb;
+
+    // Slightly tighter than the room's actual wall (60/30) so the
+    // clamped position is always safely on the NavMesh bake.
+    private const float XLimit = 55f;
+    private const float ZLimit = 25f;
+
+    // We count *consecutive* frames out-of-bounds.
+    // Resetting on re-entry let enemies oscillate forever in the old code.
+    private int _consecutiveFramesOut;
+    private const int MaxFramesOut = 30;
 
     void Start()
     {
-        // Enemy prefabs often nest the agent on a child
-        _agent = GetComponent<NavMeshAgent>()
-              ?? GetComponentInChildren<NavMeshAgent>();
+        _agent = GetComponent<NavMeshAgent>() ?? GetComponentInChildren<NavMeshAgent>();
+        _rb = GetComponent<Rigidbody>() ?? GetComponentInChildren<Rigidbody>();
     }
 
-    void Update()
+    // LateUpdate runs AFTER all enemy AI Update() calls this frame,
+    // so we're correcting the final resting position, not an intermediate one.
+    void LateUpdate()
     {
         if (RoomInside == null) return;
 
@@ -734,23 +741,38 @@ public class KeepInBoundsRoom : MonoBehaviour
         bool outOfBounds = local.x < -XLimit || local.x > XLimit ||
                            local.z < -ZLimit || local.z > ZLimit;
 
-        if (!outOfBounds) { attempts = 0; return; }
-
-        attempts++;
-        if (attempts >= MaxAttempts)
+        if (!outOfBounds)
+        {
+            return;
+        }
+        _consecutiveFramesOut++;
+        if (_consecutiveFramesOut >= MaxFramesOut)
         {
             if (eid != null) eid.InstaKill();
             Destroy(this);
             return;
         }
 
+        // Clamp to safe zone.
         local.x = Mathf.Clamp(local.x, -XLimit, XLimit);
         local.z = Mathf.Clamp(local.z, -ZLimit, ZLimit);
-        Vector3 clamped = RoomInside.transform.TransformPoint(local);
+        Vector3 clamped = RoomInside.transform.position;
 
-        if (_agent != null && _agent.isActiveAndEnabled && _agent.isOnNavMesh)
-            _agent.Warp(clamped);   // the correct way to relocate a NavMeshAgent
+        // Kill any physics momentum that would immediately push them back out.
+        if (_rb != null)
+        {
+            _rb.velocity = Vector3.zero;
+            _rb.angularVelocity = Vector3.zero;
+        }
+
+        if (_agent != null && _agent.isActiveAndEnabled)
+        {
+            _agent.ResetPath();
+            _agent.Warp(clamped); // Warp works off-mesh too, drop the isOnNavMesh check
+        }
         else
+        {
             transform.position = clamped;
+        }
     }
 }

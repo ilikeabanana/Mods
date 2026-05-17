@@ -15,6 +15,80 @@ public class ShopItem : MonoBehaviour
 
     TMP_Text price;
 
+    // ── Per-floor reservation tracking ──────────────────────────────────────
+    static readonly HashSet<BaseItem> s_reservedItems = new HashSet<BaseItem>();
+    static readonly HashSet<string> s_reservedWeapons = new HashSet<string>();
+    static int s_trackedFloor = -1;
+
+    /// <summary>
+    /// Called once per floor (lazily, from Start) to wipe stale reservations.
+    /// </summary>
+    static void TryResetForFloor()
+    {
+        int currentFloor = RogueDifficultyManager.Instance != null
+            ? RogueDifficultyManager.Instance.floor
+            : 0;
+
+        if (currentFloor != s_trackedFloor)
+        {
+            s_reservedItems.Clear();
+            s_reservedWeapons.Clear();
+            s_trackedFloor = currentFloor;
+        }
+    }
+
+    // ── Item helper ─────────────────────────────────────────────────────────
+    /// <summary>
+    /// Picks a random item that no other shop slot on this floor has already reserved.
+    /// Falls back to any item after 30 failed attempts (e.g. tiny item pool).
+    /// </summary>
+    static BaseItem PickUniqueItem(DropTable table)
+    {
+        const int maxAttempts = 30;
+
+        for (int i = 0; i < maxAttempts; i++)
+        {
+            BaseItem candidate = Plugin.GiveRandomItem(table: table);
+            if (!s_reservedItems.Contains(candidate))
+            {
+                s_reservedItems.Add(candidate);
+                return candidate;
+            }
+        }
+
+        // Pool exhausted or very small — just return whatever
+        BaseItem fallback = Plugin.GiveRandomItem(table: table);
+        s_reservedItems.Add(fallback);
+        return fallback;
+    }
+
+    // ── Weapon helper ────────────────────────────────────────────────────────
+    /// <summary>
+    /// Generates a weapon that no other shop slot on this floor has already reserved.
+    /// </summary>
+    static AWeapon PickUniqueWeapon()
+    {
+        const int maxAttempts = 30;
+
+        for (int i = 0; i < maxAttempts; i++)
+        {
+            AWeapon candidate = AWeapon.GenerateWeapon();
+            string key = $"{candidate.weapon}_{candidate.variant}_{candidate.Alternate}";
+            if (!s_reservedWeapons.Contains(key))
+            {
+                s_reservedWeapons.Add(key);
+                return candidate;
+            }
+        }
+
+        // Fallback
+        AWeapon fallback = AWeapon.GenerateWeapon();
+        s_reservedWeapons.Add($"{fallback.weapon}_{fallback.variant}_{fallback.Alternate}");
+        return fallback;
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+
     void Awake()
     {
         price = GetComponentInChildren<TMP_Text>();
@@ -30,21 +104,27 @@ public class ShopItem : MonoBehaviour
         }
         return 2;
     }
+
     public static DropTable rationTable = new DropTable(new Dictionary<Rarity, float>()
-        {
-            {Rarity.Common, 0.25f },
-            {Rarity.Uncommon, 0.65f },
-            {Rarity.Legendary, 0.1f }
-        });
+    {
+        { Rarity.Common,    0.25f },
+        { Rarity.Uncommon,  0.65f },
+        { Rarity.Legendary, 0.1f  }
+    });
+
     void Start()
     {
-        if((float)RogueDifficultyManager.ItemRNG.NextDouble() >= 0.5f)
-        {
+        TryResetForFloor();
 
-            BaseItem item = Plugin.GiveRandomItem(table: gameObject.name.Contains("Ration") ? rationTable : null);
-            cost = getCost(item.Rarity);
+        if ((float)RogueDifficultyManager.ItemRNG.NextDouble() >= 0.5f)
+        {
+            DropTable table = gameObject.name.Contains("Ration") ? rationTable : null;
+            BaseItem chosenItem = PickUniqueItem(table);
+
+            cost = getCost(chosenItem.Rarity);
             price.text = $"${cost}";
-            ItemPickup.CreatePickupConditional(item, transform, () =>
+
+            ItemPickup.CreatePickupConditional(chosenItem, transform, () =>
             {
                 var mgr = RogueDifficultyManager.Instance;
                 if (mgr == null) return false;
@@ -53,7 +133,7 @@ public class ShopItem : MonoBehaviour
                 {
                     purchased = true;
                     mgr.Gold -= cost;
-                    HudMessageReceiver.Instance?.SendHudMessage($"Bought: {item}  (-{cost} gold)");
+                    HudMessageReceiver.Instance?.SendHudMessage($"Bought: {chosenItem}  (-{cost} gold)");
                     return true;
                 }
                 else if (messageCooldown <= 0f)
@@ -61,13 +141,14 @@ public class ShopItem : MonoBehaviour
                     HudMessageReceiver.Instance?.SendHudMessage(
                         $"Need {cost} gold  (you have {mgr.Gold})");
                     messageCooldown = 2f;
-                    return false;
                 }
                 return false;
             });
         }
         else
         {
+            AWeapon chosenWeapon = PickUniqueWeapon();
+
             WeaponPickupRogue.CreatePickupConditional(transform, () =>
             {
                 var mgr = RogueDifficultyManager.Instance;
@@ -77,7 +158,7 @@ public class ShopItem : MonoBehaviour
                 {
                     purchased = true;
                     mgr.Gold -= cost;
-                    HudMessageReceiver.Instance?.SendHudMessage($"Bought: {item}  (-{cost} gold)");
+                    HudMessageReceiver.Instance?.SendHudMessage($"Bought: {chosenWeapon}  (-{cost} gold)");
                     return true;
                 }
                 else if (messageCooldown <= 0f)
@@ -85,12 +166,10 @@ public class ShopItem : MonoBehaviour
                     HudMessageReceiver.Instance?.SendHudMessage(
                         $"Need {cost} gold  (you have {mgr.Gold})");
                     messageCooldown = 2f;
-                    return false;
                 }
                 return false;
-            });
+            }, weapon: chosenWeapon);
         }
-
     }
 
     void Update()
@@ -100,8 +179,6 @@ public class ShopItem : MonoBehaviour
 
         if (Vector3.Distance(NewMovement.Instance.transform.position, transform.position) > 2f)
             return;
-
-        
     }
 
     public static ShopItem CreateShopItem(BaseItem item, Vector3 position, int cost = 3)
@@ -111,7 +188,7 @@ public class ShopItem : MonoBehaviour
         go.GetComponent<Collider>().enabled = false;
         go.transform.position = position + Vector3.up * 2f;
         go.transform.localScale = Vector3.one * 0.55f;
-        ApplyMaterial(go, new Color(1f, 0.82f, 0.1f));   // Gold
+        ApplyMaterial(go, new Color(1f, 0.82f, 0.1f));
 
         var si = go.AddComponent<ShopItem>();
         si.item = item;
@@ -124,7 +201,7 @@ public class ShopItem : MonoBehaviour
             pip.name = $"PricePip_{i}";
             pip.transform.SetParent(go.transform);
             pip.transform.localPosition = new Vector3(0f, 1.4f + i * 0.35f, 0f);
-            pip.transform.localScale    = new Vector3(0.25f, 0.2f, 0.25f);
+            pip.transform.localScale = new Vector3(0.25f, 0.2f, 0.25f);
             pip.GetComponent<Collider>().enabled = false;
             ApplyMaterial(pip, new Color(0.9f, 0.15f, 0.1f));
         }
