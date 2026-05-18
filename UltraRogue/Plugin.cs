@@ -1765,10 +1765,10 @@ namespace Ultrarogue
         public float CalculateChanges(float normalVal)
         {
             float fullPercentage = percentage + 1;
-            float Val = normalVal + addition;
-
+            float Val = normalVal;
             Val *= fullPercentage;
             Val *= multiplier;
+            Val += addition;
             return Val;
         }
     }

@@ -352,28 +352,7 @@ public class RoomGenerator : MonoBehaviour
         }
         else
         {
-            // Count how many normal combat rooms still haven't been placed yet.
-            int combatRoomsPlacedSoFar = path.Count - 1; // exclude start room
-            int totalCombatRoomsExpected = Mathf.Max(0, placedRooms.Count + 1); // rough safety fallback
-
-            // Remaining combat rooms after this one.
-            int remainingRooms = Mathf.Max(0, maxRooms - combatRoomsPlacedSoFar);
-
-            // How many more 3-credit rooms we MUST still place.
-            int requiredRemaining =
-                MinCombatRoomsWithCredits - guaranteedCombatRoomsWithCredits;
-
-            bool mustGiveCredits = remainingRooms <= requiredRemaining;
-
-            float chance = Plugin.CurrentDifficulty == 2 ? 0.15f : 0.35f;
-
-            // 35% chance to be empty unless we still need guaranteed rooms.
-            bool giveCredits = mustGiveCredits || RogueDifficultyManager.RoomRNG.NextDouble() > chance;
-
-            room.SpawnCredits = giveCredits ? 3 : 0;
-
-            if (giveCredits)
-                guaranteedCombatRoomsWithCredits++;
+            room.SpawnCredits = 3;
         }
 
         if (!isStart) AlignRoomToNeighborExit(room, gridPos);

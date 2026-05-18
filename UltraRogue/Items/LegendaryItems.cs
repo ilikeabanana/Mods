@@ -51,7 +51,7 @@ namespace Ultrarogue.Items
     public class VinnyPimpHat : BaseItem
     {
         public override string ItemName => "Vinny's Pimp Hat";
-        public override string itemDescription => "Every 5 seconds fire a purple saw that deals 150% (+150% per stack) damage and stays until the room is cleared.";
+        public override string itemDescription => "Every 3 seconds fire a purple saw that deals 150% (+150% per stack) damage and stays until the room is cleared.";
 
         public override Rarity Rarity => Rarity.Legendary;
         float t = 0;
@@ -80,7 +80,7 @@ namespace Ultrarogue.Items
             {
                 t += Time.deltaTime;
 
-                if (t >= 5)
+                if (t >= 3)
                 {
                     if (sawPrefab == null)
                         sawPrefab = Addressables.LoadAssetAsync<GameObject>("Assets/Modding/RogueMode/SawVinny.prefab").WaitForCompletion();
@@ -301,7 +301,7 @@ namespace Ultrarogue.Items
     public class CerberusHead : BaseItem
     {
         public override string ItemName => "Cerberus Head";
-        public override string itemDescription => "All weapons deal +60% more damage";
+        public override string itemDescription => "All weapons deal +70% more damage";
         public override Rarity Rarity => Rarity.Legendary;
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         Change dmgChange;
@@ -314,7 +314,7 @@ namespace Ultrarogue.Items
 
         public override void OnUpdate(int count)
         {
-            dmgChange.percentage = 0.60f * count;
+            dmgChange.percentage = 0.70f * count;
         }
 
         public override void OnRemoval()
@@ -355,36 +355,14 @@ namespace Ultrarogue.Items
     public class HellsFire : BaseItem
     {
         public override string ItemName => "Hell's Fire";
-        public override string itemDescription => "All hits ignite enemies, enemies on fire take +100% more damage";
+        public override string itemDescription => "Enemies on fire take +100% more damage";
         public override Rarity Rarity => Rarity.Legendary;
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
-
+        public override List<Plugin.Weapon> WeaponRequirements => new List<Plugin.Weapon>() { Plugin.Weapon.RocketLauncher };
         // No OnRemoval needed — HitEffect and DamageModifier both gate on GetItemCount > 0.
 
         public override void OnStart()
         {
-            new HitEffect(ItemName, (eid, dmg) =>
-            {
-                int count = Plugin.GetItemCount(this);
-                if (count <= 0 || eid.dead || eid.hitter == "fire") return;
-
-                float burnDuration = 1.5f + (0.5f * (count - 1));
-
-                if (eid.flammables != null && eid.flammables.Count > 0)
-                {
-                    eid.StartBurning(burnDuration);
-                }
-                else
-                {
-                    Flammable f = eid.GetComponentInChildren<Flammable>();
-                    if (f != null) f.Burn(burnDuration, false);
-                    else if(f == null)
-                    {
-                        eid.AddFlammable(10);
-                        eid.StartBurning(burnDuration);
-                    }
-                }
-            });
             
             new DamageModifier(ItemName, (eid) =>
             {

@@ -372,6 +372,22 @@ public class RogueDifficultyManager : MonoBehaviour
                         new BossEntry(AssetsManager.funnyPowerIntroSpawn, 0) } // Wave 2
                 }));
                 break;
+            case 8:
+            case 9:
+                options.Add(new BossPick(new List<BossEntry>()
+                {
+                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.MinosPrime)[0].gameObject, 0, 25, 8),
+                }));
+                options.Add(new BossPick(new List<BossEntry>()
+                {
+                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.MirrorReaper)[0].gameObject, 0, 23, 8),
+                }));
+                options.Add(new BossPick(new List<BossEntry>()
+                {
+                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.MaliciousFace)[0].gameObject, 60, 45, 8),
+                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.MaliciousFace)[0].gameObject, 60, 45, 8),
+                }));
+                break;
             default:
                 options.Add(new BossPick(new List<BossEntry>()
                 {
@@ -430,6 +446,8 @@ public class RogueDifficultyManager : MonoBehaviour
             case EnemyType.V2Second:
             case EnemyType.HideousMass:
                 return false;
+            case EnemyType.MinosPrime:
+                return floor >= 8;
             default:
                 return floor >= 9;
 

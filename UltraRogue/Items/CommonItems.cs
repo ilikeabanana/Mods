@@ -333,7 +333,7 @@ namespace Ultrarogue.Items
     public class PogoStick : BaseItem
     {
         public override string ItemName => "Pogo Stick";
-        public override string itemDescription => "Jump height +15%";
+        public override string itemDescription => "Jump height +15% and +50% slam damage";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Utility };
         Change jumpChange;
 
@@ -341,6 +341,16 @@ namespace Ultrarogue.Items
         {
             jumpChange = new Change(percentage: 0);
             new PlayerChange(jumpHeight: jumpChange);
+
+            new DamageModifier(ItemName, (eid) =>
+            {
+                int count = Plugin.GetItemCount(this);
+                if (count <= 0) return 1f;
+
+                if (eid.hitter == "ground slam") return 1.5f;
+
+                return 1f;
+            });
         }
 
         public override void OnUpdate(int count)
