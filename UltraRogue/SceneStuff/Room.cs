@@ -312,11 +312,27 @@ public class Room : MonoBehaviour
                localPos.z < -30 || localPos.z > 30;
     }
 
+    public static Room getObjectInsideRoom(Vector3 position)
+    {
+
+        // Detect room change.
+        Vector2Int grid = RoomGenerator.Instance.WorldToGrid(position);
+
+        Room[] rooms = FindObjectsByType<Room>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+
+        foreach (Room room in rooms)
+        {
+            if (room.position == grid) return room;
+        }
+        return null;
+
+    }
+
     IEnumerator SpawnBoss()
     {
         CloseOffRoom();
         yield return new WaitForSeconds(0.5f);
-
+        isFighting = true;
         if (bossEnemyType == null || bossEnemyType.waves == null || bossEnemyType.waves.Count == 0)
         {
             Debug.LogError("[Room] BossPick has no waves defined.");

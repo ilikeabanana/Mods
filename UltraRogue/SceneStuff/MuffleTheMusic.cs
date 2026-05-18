@@ -12,9 +12,9 @@ public class MuffleTheMusic : MonoBehaviour
 
         muffleZone.muffleTargets = new List<AudioLowPassFilter>()
         {
+            MusicManager.Instance.cleanTheme.GetComponent<AudioLowPassFilter>(),
             MusicManager.Instance.battleTheme.GetComponent<AudioLowPassFilter>(),
-            MusicManager.Instance.battleTheme.GetComponent<AudioLowPassFilter>(),
-            MusicManager.Instance.battleTheme.GetComponent<AudioLowPassFilter>(),
+            MusicManager.Instance.bossTheme.GetComponent<AudioLowPassFilter>(),
         };
     }
 }

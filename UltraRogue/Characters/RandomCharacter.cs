@@ -31,7 +31,6 @@ namespace Ultrarogue.Characters
 
             pC.globalDamageMult = CreateRandomChange();
             pC.moveSpeed = CreateRandomChange();
-            pC.jumpHeight = CreateRandomChange();
             pC.maxHealth = CreateRandomChange();
             pC.attackSpeed = CreateRandomChange();
             pC.cooldownRed = CreateRandomChange();
@@ -45,7 +44,6 @@ namespace Ultrarogue.Characters
                 hasReset = true;
                 pC.globalDamageMult = new Change();
                 pC.moveSpeed = new Change();
-                pC.jumpHeight = new Change();
                 pC.maxHealth = new Change();
                 pC.attackSpeed = new Change();
                 pC.cooldownRed = new Change();

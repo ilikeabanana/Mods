@@ -1614,20 +1614,18 @@ namespace Ultrarogue
             {
                 string name = "ultrarogue";
                 Node[] array = new Node[1];
-                array[0] = CommandRoot.Branch("items", new Node[]
-                {
-                    CommandRoot.Leaf("add", delegate(string name)
-                    {
-                        name = name.Replace("_", " ");
-                        BaseItem item = getItem(name);
-                        if(item == null)
-                        {
-                            Log.Error($"No item found with name {name}");
-                        }
 
-                        Plugin.GiveItem(item);
-                        Log.Info($"Gave item {item.ItemName}");
-                    }, true),
+                List<Node> list = new List<Node>();
+                foreach (var item in Plugin.nameToItem)
+                {
+                    list.Add(CommandRoot.Leaf("add_" + item.Value.ItemName.Replace(" ", "_"), () =>
+                    {
+                        Plugin.GiveItem(item.Value);
+                        Log.Info($"Gave item {item.Value.ItemName}");
+                    }, true));
+                }
+                GameConsole.CommandTree.Branch br = CommandRoot.Branch("items", new Node[]
+                {
                     CommandRoot.Leaf("addall", delegate()
                     {
                         foreach (var item in Plugin.nameToItem)
@@ -1637,6 +1635,9 @@ namespace Ultrarogue
                         Log.Info($"Gave all the items, item count: {Plugin.nameToItem.Count}");
                     }, true)
                 });
+                br.children.AddRangeToArray(list.ToArray());
+                array[0] = br;
+                
                 return CommandRoot.Branch(name, array);
             }
         }

@@ -127,6 +127,10 @@ namespace Ultrarogue.Items
                 nail.damage = damage;
                 nail.hitAmount = float.MaxValue - 1;
             }
+
+            KeepInBoundsRoom kibr = gameObject2.AddComponent<KeepInBoundsRoom>();
+
+            kibr.RoomInside = Room.getObjectInsideRoom(NewMovement.Instance.transform.position);
         }
     }
 
