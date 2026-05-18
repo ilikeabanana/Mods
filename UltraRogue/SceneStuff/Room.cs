@@ -422,7 +422,7 @@ public class Room : MonoBehaviour
         if (door != null)
         {
             if (roomType == RoomType.Normal || roomType == RoomType.Boss || roomType == RoomType.Start) return;
-            if (Random.value <= 0.75f) return;
+            if (Random.value <= 0.75f && Plugin.CurrentDifficulty != 2) return;
             door.GetComponentInChildren<Door>().gameObject.AddComponent<Lockable>();
         }
     }
@@ -740,6 +740,8 @@ public class KeepInBoundsRoom : MonoBehaviour
     private int _consecutiveFramesOut;
     private const int MaxFramesOut = 30;
 
+    public bool ResetVelocity = true;
+
     void Start()
     {
         _agent = GetComponent<NavMeshAgent>() ?? GetComponentInChildren<NavMeshAgent>();
@@ -775,7 +777,7 @@ public class KeepInBoundsRoom : MonoBehaviour
         Vector3 clamped = RoomInside.transform.position;
 
         // Kill any physics momentum that would immediately push them back out.
-        if (_rb != null)
+        if (_rb != null && ResetVelocity)
         {
             _rb.velocity = Vector3.zero;
             _rb.angularVelocity = Vector3.zero;

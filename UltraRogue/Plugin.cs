@@ -1581,7 +1581,11 @@ namespace Ultrarogue
     {
         public static void Prefix(DiscordController __instance)
         {
-            if(!isInRogueScene()) return;
+            if (!isInRogueScene())
+            {
+                Plugin.Logger.LogInfo($"The large image is {__instance.cachedActivity.Assets.LargeImage}"); // I must find 0-1 image (i has not found it yet)
+                return;
+            }
 
             __instance.cachedActivity.State = "ROGUE MODE";
 
@@ -1616,6 +1620,18 @@ namespace Ultrarogue
                 Node[] array = new Node[1];
 
                 List<Node> list = new List<Node>();
+
+                // Add the "addall" leaf first
+                list.Add(CommandRoot.Leaf("addall", delegate ()
+                {
+                    foreach (var item in Plugin.nameToItem)
+                    {
+                        Plugin.GiveItem(item.Value);
+                    }
+                    Log.Info($"Gave all the items, item count: {Plugin.nameToItem.Count}");
+                }, true));
+
+                // Then add all item leaves
                 foreach (var item in Plugin.nameToItem)
                 {
                     list.Add(CommandRoot.Leaf("add_" + item.Value.ItemName.Replace(" ", "_"), () =>
@@ -1624,20 +1640,11 @@ namespace Ultrarogue
                         Log.Info($"Gave item {item.Value.ItemName}");
                     }, true));
                 }
-                GameConsole.CommandTree.Branch br = CommandRoot.Branch("items", new Node[]
-                {
-                    CommandRoot.Leaf("addall", delegate()
-                    {
-                        foreach (var item in Plugin.nameToItem)
-                        {
-                            Plugin.GiveItem(item.Value);
-                        }
-                        Log.Info($"Gave all the items, item count: {Plugin.nameToItem.Count}");
-                    }, true)
-                });
-                br.children.AddRangeToArray(list.ToArray());
+
+                // Now build the branch with the complete array
+                GameConsole.CommandTree.Branch br = CommandRoot.Branch("items", list.ToArray());
+
                 array[0] = br;
-                
                 return CommandRoot.Branch(name, array);
             }
         }

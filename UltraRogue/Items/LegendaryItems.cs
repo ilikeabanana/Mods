@@ -131,6 +131,7 @@ namespace Ultrarogue.Items
             KeepInBoundsRoom kibr = gameObject2.AddComponent<KeepInBoundsRoom>();
 
             kibr.RoomInside = Room.getObjectInsideRoom(NewMovement.Instance.transform.position);
+            kibr.ResetVelocity = false;
         }
     }
 

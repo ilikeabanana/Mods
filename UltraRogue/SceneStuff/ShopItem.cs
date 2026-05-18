@@ -118,7 +118,7 @@ public class ShopItem : MonoBehaviour
 
         if ((float)RogueDifficultyManager.ItemRNG.NextDouble() >= 0.5f)
         {
-            DropTable table = gameObject.name.Contains("Ration") ? rationTable : null;
+            DropTable table = gameObject.name.Contains("(3)") || gameObject.name.Contains("(4)") ? rationTable : null;
             BaseItem chosenItem = PickUniqueItem(table);
 
             cost = getCost(chosenItem.Rarity);
