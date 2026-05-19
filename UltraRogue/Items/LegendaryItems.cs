@@ -61,6 +61,7 @@ namespace Ultrarogue.Items
 
         public override void OnUpdate(int count)
         {
+            if (!Plugin.isInRogueScene()) return;
             if (count <= 0) return;
 
             if (wasPreviouslyFighting && !Room.isFighting)
@@ -154,49 +155,68 @@ namespace Ultrarogue.Items
     {
         public override Rarity Rarity => Rarity.Legendary;
         public override string ItemName => "Eye of God";
+
         public override string itemDescription =>
             "3% chance on hit to call down a virtue beam dealing 300% base damage. " +
             "Every 100% damage dealt increases activation chance by 3% (+3% per stack) " +
             "and beam damage by 100% (+50% per stack).";
-        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Utility };
+
+        public override List<ItemTag> itemTags =>
+            new List<ItemTag>() { ItemTag.Utility };
 
         private const float BaseChance = 3f;
         private const float ChancePerHundred = 3f;
         private const float MaxChance = 75f;
 
-        private const float BaseDamage = 3f;   // 2000% expressed as a multiplier
-        private const float DamagePerHundred = 1f;  // 150% per 100% dmg
-        private const float MaxDamageMultiplier = 75f; // 7500% cap
+        private const float BaseDamage = 3f;
+        private const float DamagePerHundred = 1f;
+        private const float MaxDamageMultiplier = 75f;
+
+        // GLOBAL accumulated damage
+        private static float accumulatedDamage = 0f;
 
         public override void OnStart()
         {
             new HitEffect(ItemName, (eid, dmg) =>
             {
                 int count = Plugin.GetItemCount(this);
+
                 if (count <= 0) return;
                 if (eid.hitter == "fire") return;
 
-                float overspill = dmg;
+                // Add damage dealt globally
+                accumulatedDamage += dmg / Plugin.globalDamageMult.CalculateChanges(1f);
 
-                float procChance = BaseChance + (overspill * ChancePerHundred * count);
+                // Every full 1.0 damage = one bonus step
+                int thresholds = Mathf.FloorToInt(accumulatedDamage);
+
+                float procChance =
+                    BaseChance + (thresholds * ChancePerHundred * count);
+
                 procChance = Mathf.Min(procChance, MaxChance);
 
-                if (!Plugin.canExecute(procChance, eid.hitter)) return;
+                if (!Plugin.canExecute(procChance, ""))
+                    return;
 
-                float damageMultiplier = BaseDamage + (overspill * DamagePerHundred * count);
-                damageMultiplier = Mathf.Min(damageMultiplier, MaxDamageMultiplier);
+                float damageMultiplier =
+                    BaseDamage + (thresholds * DamagePerHundred * count);
+
+                damageMultiplier =
+                    Mathf.Min(damageMultiplier, MaxDamageMultiplier);
 
                 GameObject virtueBeam = Object.Instantiate(
                     AssetsManager.VirtueBeam,
                     eid.transform.position,
                     Quaternion.identity
                 );
-
                 if (virtueBeam.TryGetComponent<VirtueInsignia>(out var insig))
                 {
                     insig.target = new EnemyTarget(eid);
                     insig.damage = Mathf.RoundToInt(damageMultiplier);
                 }
+
+                // RESET AFTER PROC
+                accumulatedDamage = 0f;
             });
         }
     }

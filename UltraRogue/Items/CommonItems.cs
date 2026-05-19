@@ -191,6 +191,10 @@ namespace Ultrarogue.Items
         {
             hpChange.addition = 10 * count;
         }
+        public override void OnRemoval()
+        {
+            hpChange.addition = 0;
+        }
     }
     public class SandWorm : BaseItem
     {

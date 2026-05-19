@@ -47,7 +47,7 @@ public class RoomGenerator : MonoBehaviour
     public static RoomGenerator Instance { get; private set; }
 
     [Header("Room Size")]
-    float roomWidth = 59.5f;
+    float roomWidth = 60f;
     float roomHeight = 30f;
 
     [Header("Performance")]
@@ -151,7 +151,7 @@ public class RoomGenerator : MonoBehaviour
         {
             // Place epic portal
             GameObject quad1 = new GameObject("PortalEntry");
-            quad1.transform.position = new Vector3(0, 10, 0);
+            quad1.transform.position = GameObject.Find("Spawn(Clone)").transform.Find("Pit (3)").transform.position;
             quad1.transform.Rotate(-90, 0, 0);
             GameObject quad2 = new GameObject("PortalExit");
             quad2.transform.position = GameObject.Find("Pit").transform.Find("Cube (2)").position + Vector3.up;

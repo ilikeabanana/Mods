@@ -24,10 +24,14 @@ public class MinimapUI : MonoBehaviour
 
     [Header("UI Colors")]
     public Color colorSilhouette = new Color(0.28f, 0.28f, 0.30f);
-    public Color colorCurrentBase = new Color(0.95f, 0.95f, 1.00f);
     public Color colorCorridor = new Color(0.38f, 0.38f, 0.40f);
 
-    // ── NEW: arrow indicator ──────────────────────────────────────────────────
+    [Header("Current Room Outline")]
+    [Tooltip("Color of the pulsing outline drawn around the current room.")]
+    public Color colorOutline = new Color(0.95f, 0.95f, 1.00f);
+    [Tooltip("Extra pixels added to each side of the cell for the outline border.")]
+    public float outlinePadding = 3f;
+
     [Header("Direction Arrow")]
     [Tooltip("Color of the direction arrow drawn on the current room.")]
     public Color colorArrow = new Color(1f, 1f, 1f, 0.92f);
@@ -36,7 +40,7 @@ public class MinimapUI : MonoBehaviour
     public float arrowFraction = 0.55f;
     [Tooltip("Which Transform to read the look direction from. " +
              "Leave null to fall back to NewMovement.Instance's camera.")]
-    public Transform lookTarget;   // drag your camera or player here in the Inspector
+    public Transform lookTarget;
 
     [Header("Animation")]
     public float pulseSpeed = 2.8f;
@@ -51,9 +55,13 @@ public class MinimapUI : MonoBehaviour
     private Vector2Int _currentPos = new(int.MinValue, 0);
     private float _pulseTimer;
 
-    // ── Arrow state (NEW) ─────────────────────────────────────────────────────
-    private RectTransform _arrowRT;   // the arrow RectTransform
-    private Image _arrowImg;  // …and its Image component
+    // ── Outline state ─────────────────────────────────────────────────────────
+    private RectTransform _outlineRT;
+    private Image _outlineImg;
+
+    // ── Arrow state ───────────────────────────────────────────────────────────
+    private RectTransform _arrowRT;
+    private Image _arrowImg;
 
     private static readonly Vector2Int[] Dirs =
         { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right };
@@ -83,15 +91,13 @@ public class MinimapUI : MonoBehaviour
             MarkVisited(grid);
         }
 
-        // ── Pulse current cell ────────────────────────────────────────────
+        // Tick the shared pulse timer.
         _pulseTimer += Time.deltaTime * pulseSpeed;
-        float t = 0.60f + 0.40f * Mathf.Sin(_pulseTimer);
-        Color pulsed = Color.Lerp(colorCurrentBase * 0.7f, colorCurrentBase, t);
 
-        if (_cells.TryGetValue(_currentPos, out var curImg))
-            curImg.color = pulsed;
+        // Update outline (pulses around the current room).
+        UpdateOutline();
 
-        // ── Update arrow position & rotation (NEW) ────────────────────────
+        // Update arrow position & rotation.
         UpdateArrow();
     }
 
@@ -107,7 +113,9 @@ public class MinimapUI : MonoBehaviour
         _scouted.Clear();
         _currentPos = new Vector2Int(int.MinValue, 0);
         _placedRooms = placedRooms;
-        _arrowRT = null;   // reset arrow reference (NEW)
+        _outlineRT = null;
+        _outlineImg = null;
+        _arrowRT = null;
         _arrowImg = null;
 
         if (minimapPanel == null)
@@ -133,7 +141,7 @@ public class MinimapUI : MonoBehaviour
             -((maxY + minY) / 2f) * step
         );
 
-        // Corridors (behind cells).
+        // Corridors (rendered first, behind everything else).
         foreach (var kvp in placedRooms)
         {
             Vector2Int pos = kvp.Key;
@@ -156,6 +164,9 @@ public class MinimapUI : MonoBehaviour
             }
         }
 
+        // Outline placeholder — created BEFORE cells so it renders beneath them.
+        CreateOutline();
+
         // Room cells.
         foreach (var kvp in placedRooms)
         {
@@ -168,7 +179,7 @@ public class MinimapUI : MonoBehaviour
             _cells[pos] = cell;
         }
 
-        // ── Create the arrow on top of everything (NEW) ───────────────────
+        // Arrow sits on top of everything.
         CreateArrow();
 
         MarkVisited(Vector2Int.zero);
@@ -183,21 +194,63 @@ public class MinimapUI : MonoBehaviour
         _scouted.Clear();
         _placedRooms = null;
         _currentPos = new Vector2Int(int.MinValue, 0);
-        _arrowRT = null;   // (NEW)
+        _outlineRT = null;
+        _outlineImg = null;
+        _arrowRT = null;
         _arrowImg = null;
     }
 
-    // ── Arrow helpers (NEW) ───────────────────────────────────────────────────
+    // ── Outline helpers ───────────────────────────────────────────────────────
 
     /// <summary>
-    /// Builds a simple procedural arrow texture and attaches it as a UI Image
-    /// that always sits on top of the current-room cell.
+    /// Creates the outline Image. Must be called before room cells are created
+    /// so it sits behind them in the hierarchy.
     /// </summary>
+    void CreateOutline()
+    {
+        float size = cellSize + outlinePadding * 2f;
+        _outlineImg = MakeImage("CurrentOutline", minimapPanel, Vector2.zero,
+                                new Vector2(size, size));
+        _outlineImg.color = Color.clear;
+        _outlineImg.raycastTarget = false;
+        _outlineRT = _outlineImg.GetComponent<RectTransform>();
+        // Keep behind all cells (cells are added after this call).
+        _outlineRT.SetAsLastSibling();
+    }
+
+    /// <summary>
+    /// Snaps the outline to the current cell and pulses its alpha.
+    /// </summary>
+    void UpdateOutline()
+    {
+        if (_outlineRT == null) return;
+
+        if (_cells.TryGetValue(_currentPos, out var cellImg))
+        {
+            _outlineRT.anchoredPosition =
+                cellImg.GetComponent<RectTransform>().anchoredPosition;
+            _outlineRT.gameObject.SetActive(true);
+
+            // Pulse alpha between ~0.45 and 1.0.
+            float t = 0.55f + 0.45f * Mathf.Sin(_pulseTimer);
+            _outlineImg.color = new Color(
+                colorOutline.r,
+                colorOutline.g,
+                colorOutline.b,
+                colorOutline.a * t);
+        }
+        else
+        {
+            _outlineRT.gameObject.SetActive(false);
+        }
+    }
+
+    // ── Arrow helpers ─────────────────────────────────────────────────────────
+
     void CreateArrow()
     {
         float arrowSize = cellSize * arrowFraction;
 
-        // We re-use MakeImage for the GameObject boilerplate.
         _arrowImg = MakeImage("PlayerArrow", minimapPanel, Vector2.zero,
                               new Vector2(arrowSize, arrowSize));
         _arrowImg.sprite = BuildArrowSprite();
@@ -205,19 +258,13 @@ public class MinimapUI : MonoBehaviour
         _arrowImg.raycastTarget = false;
 
         _arrowRT = _arrowImg.GetComponent<RectTransform>();
-        // Sit on top of all cells (Unity UI draws siblings in order).
         _arrowRT.SetAsLastSibling();
     }
 
-    /// <summary>
-    /// Snaps the arrow to the current cell's anchored position and
-    /// rotates it to match the horizontal look direction.
-    /// </summary>
     void UpdateArrow()
     {
         if (_arrowRT == null) return;
 
-        // Position: copy from the current cell's anchored position.
         if (_cells.TryGetValue(_currentPos, out var cellImg))
         {
             _arrowRT.anchoredPosition =
@@ -230,10 +277,7 @@ public class MinimapUI : MonoBehaviour
             return;
         }
 
-        // Rotation: derive a top-down yaw angle from the look transform.
         float yawDeg = GetLookYaw();
-        // Unity UI rotates counter-clockwise from "up", so we negate for
-        // standard compass behaviour (clockwise from north / +Y).
         _arrowRT.localRotation = Quaternion.Euler(0f, 0f, -yawDeg);
     }
 
@@ -248,7 +292,6 @@ public class MinimapUI : MonoBehaviour
 
         if (src == null && NewMovement.Instance != null)
         {
-            // Try to find a camera among the player's children.
             var cam = NewMovement.Instance.GetComponentInChildren<Camera>();
             if (cam != null) src = cam.transform;
         }
@@ -258,7 +301,6 @@ public class MinimapUI : MonoBehaviour
 
         if (src == null) return 0f;
 
-        // Project forward onto the horizontal plane, then measure clockwise angle.
         Vector3 flat = Vector3.ProjectOnPlane(src.forward, Vector3.up);
         if (flat.sqrMagnitude < 0.001f) flat = Vector3.forward;
         return Vector3.SignedAngle(Vector3.forward, flat, Vector3.up);
@@ -270,27 +312,23 @@ public class MinimapUI : MonoBehaviour
     /// </summary>
     static Sprite BuildArrowSprite()
     {
-        const int S = 32;   // texture resolution in pixels
+        const int S = 32;
         var tex = new Texture2D(S, S, TextureFormat.RGBA32, false);
         tex.filterMode = FilterMode.Bilinear;
 
         Color clear = Color.clear;
         Color white = Color.white;
 
-        // Fill transparent.
         for (int y = 0; y < S; y++)
             for (int x = 0; x < S; x++)
                 tex.SetPixel(x, y, clear);
 
-        // Draw a filled upward-pointing triangle.
-        //   apex  at (S/2, S-2)
-        //   base  at y = S*0.22  from x = S*0.15 to x = S*0.85
+        // Filled upward-pointing triangle.
         for (int y = 0; y < S; y++)
         {
             float frac = Mathf.InverseLerp(S * 0.22f, S - 2f, y);
             if (frac < 0f) continue;
 
-            // Linearly interpolate the half-width from full base to apex (0).
             float halfW = Mathf.Lerp(S * 0.35f, 0f, frac);
             int left = Mathf.RoundToInt(S * 0.5f - halfW);
             int right = Mathf.RoundToInt(S * 0.5f + halfW);
@@ -299,7 +337,7 @@ public class MinimapUI : MonoBehaviour
                 tex.SetPixel(x, y, white);
         }
 
-        // Small rectangular tail below the triangle for a classic arrow look.
+        // Rectangular tail.
         int tailX0 = Mathf.RoundToInt(S * 0.36f);
         int tailX1 = Mathf.RoundToInt(S * 0.64f);
         int tailY0 = Mathf.RoundToInt(S * 0.04f);
@@ -312,7 +350,7 @@ public class MinimapUI : MonoBehaviour
         return Sprite.Create(tex, new Rect(0, 0, S, S), new Vector2(0.5f, 0.5f));
     }
 
-    // ── Existing helpers (unchanged) ──────────────────────────────────────────
+    // ── Existing helpers ──────────────────────────────────────────────────────
 
     void MarkVisited(Vector2Int pos)
     {
@@ -334,7 +372,13 @@ public class MinimapUI : MonoBehaviour
             Image cell = kvp.Value;
 
             if (pos == _currentPos)
-                cell.color = colorCurrentBase;
+            {
+                // Current room shows its actual room color — the outline handles
+                // the "you are here" indicator, so no special tinting needed.
+                cell.color = _placedRooms.TryGetValue(pos, out var r)
+                             ? RoomColor(r.roomType) * 0.90f
+                             : colorNormal * 0.90f;
+            }
             else if (_visited.Contains(pos))
                 cell.color = RoomColor(_placedRooms[pos].roomType) * 0.90f;
             else if (_scouted.Contains(pos))
