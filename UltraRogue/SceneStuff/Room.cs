@@ -9,6 +9,7 @@ using Ultrarogue.Characters;
 using Ultrarogue.Items;
 using Ultrarogue.SceneStuff;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 using UnityEngine.AI;
 using static Ultrarogue.Plugin;
 using Random = UnityEngine.Random;
@@ -553,8 +554,7 @@ public class Room : MonoBehaviour
 
             if (enemyRando.NextDouble() <= itemChance)
             {
-                Vector3 itemPos = transform.position + new Vector3(
-                    Random.Range(-2f, 2f), 1f, Random.Range(-2f, 2f));
+                Vector3 itemPos = spawnPoints[Random.Range(0, spawnPoints.Count)].position;
                 GameObject plc = new GameObject("ItemDropAnchor");
                 plc.transform.position = itemPos;
                 StartCoroutine(spawnItem(plc.transform));
@@ -606,11 +606,17 @@ public class Room : MonoBehaviour
         }
     }
 
+    public static GameObject pedestalItem = null;
+
     IEnumerator spawnItem(Transform plc)
     {
         yield return new WaitForSeconds(0.15f);
+        if (pedestalItem == null)
+            pedestalItem = Addressables.LoadAssetAsync<GameObject>("Assets/Modding/RogueMode/Draghtnim/Pedestal.prefab").WaitForCompletion();
         ItemPickup.CreatePickup(Plugin.GiveRandomItem(), plc);
         Instantiate(AssetsManager.spawnEffect, plc.position, Quaternion.identity);
+        if(pedestalItem != null)
+            Instantiate(pedestalItem, plc.transform.position, Quaternion.identity);
     }
     IEnumerator SpawnPortalWhenClear()
     {
