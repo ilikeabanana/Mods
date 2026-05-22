@@ -10,7 +10,7 @@ namespace Ultrarogue.Items
     public class LuckyLeaf : BaseItem
     {
         public override string ItemName => "Lucky Leaf";
-        public override string itemDescription => "+1 luck";
+        public override string itemDescription => "Luck based items are more likely to trigger";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Utility };
         public override Rarity Rarity => Rarity.Legendary;
         public override void OnGotten(int count, bool firstPickup)
@@ -21,6 +21,99 @@ namespace Ultrarogue.Items
         public override void OnRemoval()
         {
             Plugin.luck = 0;
+        }
+    }
+    [HarmonyPatch]
+    public class ToolbarsFavorite : BaseItem
+    {
+        public override string ItemName => "Toolbar's favorite";
+        public override string itemDescription => "Double the hitscan bounce count. All hitscan attacks explode now.";
+        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
+        public override Rarity Rarity => Rarity.Legendary;
+        public override List<Plugin.Weapon> WeaponRequirements => new List<Plugin.Weapon>() { Plugin.Weapon.Revolver };
+
+        internal static readonly HashSet<RevolverBeam> taggedBeams = new HashSet<RevolverBeam>();
+
+        private static void SpawnExplosion(Vector3 point)
+        {
+            GameObject go = Object.Instantiate(MonoSingleton<DefaultReferenceManager>.Instance.explosion, point, Quaternion.identity);
+            foreach (Explosion exp in go.GetComponentsInChildren<Explosion>())
+            {
+                exp.canHit = AffectedSubjects.EnemiesOnly;
+            }
+        }
+
+        [HarmonyPatch(typeof(RevolverBeam), "Start")]
+        static class StartPatch
+        {
+            // Changed to Prefix so the bounce count is doubled BEFORE the gun fires
+            static void Prefix(RevolverBeam __instance)
+            {
+                if (Plugin.GetItemCount("Toolbar's favorite") == 0) return;
+                if (__instance.beamType == BeamType.Enemy || __instance.beamType == BeamType.MaliciousFace) return;
+
+                taggedBeams.Add(__instance);
+
+                if (__instance.previouslyHitTransform == null)
+                {
+                    __instance.ricochetAmount *= 2 + (Plugin.GetItemCount("Toolbar's favorite") - 1);
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(RevolverBeam), "HitSomething")]
+        static class HitSomethingPatch
+        {
+            static void Postfix(RevolverBeam __instance, PhysicsCastResult hit)
+            {
+                if (!taggedBeams.Contains(__instance)) return;
+                if (__instance.hitAmount != 1) return;
+
+                SpawnExplosion(hit.point);
+                taggedBeams.Remove(__instance);
+            }
+        }
+
+        [HarmonyPatch(typeof(RevolverBeam), "PiercingShotCheck")]
+        static class PiercingShotCheckPatch
+        {
+            // Struct to safely pass multiple state variables from Prefix to Postfix
+            struct BeamState
+            {
+                public bool fadeOut;
+                public Vector3 pos;
+            }
+
+            static void Prefix(RevolverBeam __instance, out BeamState __state)
+            {
+                __state = new BeamState
+                {
+                    fadeOut = __instance.fadeOut,
+                    pos = __instance.shotHitPoint // Fallback if no hits
+                };
+
+                // Capture the precise point of impact before the game logic loses it
+                if (__instance.hitList != null && __instance.enemiesPierced < __instance.hitList.Count)
+                {
+                    __state.pos = __instance.hitList[__instance.enemiesPierced].point;
+                }
+                else if (__instance.hitList != null && __instance.hitList.Count > 0)
+                {
+                    __state.pos = __instance.hitList[__instance.hitList.Count - 1].point;
+                }
+            }
+
+            static void Postfix(RevolverBeam __instance, BeamState __state)
+            {
+                if (!taggedBeams.Contains(__instance)) return;
+
+                // If the beam is terminating or bouncing on this step, spawn the explosion
+                if (!__state.fadeOut && __instance.fadeOut)
+                {
+                    SpawnExplosion(__state.pos);
+                    taggedBeams.Remove(__instance);
+                }
+            }
         }
     }
 
@@ -290,7 +383,7 @@ namespace Ultrarogue.Items
     public class Soulcatcher : BaseItem
     {
         public override string ItemName => "Soulcatcher";
-        public override string itemDescription => "Each kill permanently increases global damage by 1% with a maximum of +150% (+150% per stack)";
+        public override string itemDescription => "Each kill permanently increases damage by 1% up to +150% (+150% per stack)";
         public override Rarity Rarity => Rarity.Legendary;
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         Change dmgChange;

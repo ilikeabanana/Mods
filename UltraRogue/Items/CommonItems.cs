@@ -173,7 +173,7 @@ namespace Ultrarogue.Items
     public class SmallKit : BaseItem
     {
         public override string ItemName => "Small Kit";
-        public override string itemDescription => "Get +5 hp";
+        public override string itemDescription => "+10 max hp per stack";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Healing };
 
         Change hpChange;
@@ -337,7 +337,7 @@ namespace Ultrarogue.Items
     public class PogoStick : BaseItem
     {
         public override string ItemName => "Pogo Stick";
-        public override string itemDescription => "Jump height +15% and +50% slam damage";
+        public override string itemDescription => "Jump Height +15% and slam damage +50%";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Utility };
         Change jumpChange;
 
@@ -371,7 +371,7 @@ namespace Ultrarogue.Items
     public class IronSights : BaseItem
     {
         public override string ItemName => "Iron Sights";
-        public override string itemDescription => "Global damage +6%";
+        public override string itemDescription => "+6% damage per stack";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         Change dmgChange;
 

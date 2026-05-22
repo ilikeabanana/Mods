@@ -7,10 +7,12 @@ using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.SceneManagement;
 using HarmonyLib;
+using Steamworks;
 
 using BepLogSource = BepInEx.Logging.ManualLogSource;
 using BepLogger = BepInEx.Logging.Logger;
 using Unity.AI.Navigation;
+using System.Collections.Generic;
 
 /// <summary> Handles loading and accessing the empty scene. </summary>
 [HarmonyPatch]
@@ -46,6 +48,51 @@ public static class SceneLoader
         "Sometimes special rooms are locked and require a key to be opened"
     };
 
+    public static Dictionary<SteamId, string[]> customMessagesForYoutubers = new Dictionary<SteamId, string[]>()
+    {
+        // Linguini / Lasguini
+        { 76561199195414858L, new string[] {
+            "Hi linguini, (and maybe lasagna)",
+            "Where are my goddamnt cookies?",
+            "you probably dont need items linguini."
+        }},
+        
+        // Gronf
+        { 76561199354650051L, new string[] {
+            "Bronf",
+            "Cronf",
+            "Shlonf",
+            "Splonf"
+        }},
+        
+        // TondarYZD
+        { 76561199124864632L, new string[] {
+            "Are you ultraing the rogue tondar?",
+            "Toolbar",
+            "Make a tierlist of a tierlist of a tierlist...",
+            "when banana in spore?"
+        }},
+        
+        // Ineophobe
+        { 76561198377209797L, new string[] {
+            "slop",
+            "more slop",
+            "ultra slop",
+            "when risk of slop 2?"
+        }},
+        
+        // Banana Studio (me :DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD)
+        { 76561198300312593L, new string[] {
+            "oh, hi me :D",
+            "your mod fucking sucks",
+            "WHY DID I ADD THIS",
+            "i am writing insults to myself",
+            "unless someone reads the code (hi person who reads the code)",
+            "no one will see this",
+            "hello :D"
+        }}
+    };
+
     static bool LoadingScene = false;
 
     /// <summary> Asynchronously loads the Empty level. </summary>
@@ -61,6 +108,14 @@ public static class SceneLoader
             SceneHelper.Instance.loadingBlocker.SetActive(true);
 
             string randomMessage = messages[Random.Range(0, messages.Length)];
+            if (SteamClient.IsLoggedOn)
+            {
+                if (customMessagesForYoutubers.ContainsKey(SteamClient.SteamId))
+                {
+                    string[] userMessages = customMessagesForYoutubers[SteamClient.SteamId];
+                    randomMessage = userMessages[Random.Range(0, userMessages.Length)];
+                }
+            }
             SceneHelper.SetLoadingSubtext(randomMessage);
         }
 

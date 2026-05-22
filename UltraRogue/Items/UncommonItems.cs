@@ -270,7 +270,7 @@ namespace Ultrarogue.Items
     public class MissleLauncher : BaseItem
     {
         public override string ItemName => "Missle Launcher";
-        public override string itemDescription => "10% chance to launch a missle dealing 300% (+300% per stack) damage";
+        public override string itemDescription => "10% chance to launch a missile that deals 300% (+300% per stack) base damage to an enemy";
 
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         public override Rarity Rarity => Rarity.Uncommon;

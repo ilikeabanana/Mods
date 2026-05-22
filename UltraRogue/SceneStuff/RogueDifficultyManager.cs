@@ -438,13 +438,13 @@ public class RogueDifficultyManager : MonoBehaviour
                 return floor >= 3;
             case EnemyType.Power:
             case EnemyType.Ferryman:
-            case EnemyType.Sisyphus:
                 return floor >= 5;
             case EnemyType.Gabriel:
                 return floor >= 6;
             case EnemyType.V2:
             case EnemyType.V2Second:
             case EnemyType.HideousMass:
+            case EnemyType.Sisyphus:
                 return false;
             case EnemyType.MinosPrime:
                 return floor >= 8;

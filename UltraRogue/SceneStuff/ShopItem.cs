@@ -94,15 +94,40 @@ public class ShopItem : MonoBehaviour
         price = GetComponentInChildren<TMP_Text>();
     }
 
+    int GetScaledCost(int baseCost)
+    {
+        int floor = RogueDifficultyManager.Instance != null
+            ? RogueDifficultyManager.Instance.floor
+            : 0;
+
+        // +53% every 5 floors
+        int scalingSteps = floor / 5;
+
+        float multiplier = Mathf.Pow(1.53f, scalingSteps);
+
+        return Mathf.CeilToInt(baseCost * multiplier);
+    }
+
     int getCost(Rarity rar)
     {
+        int baseCost = 2;
+
         switch (rar)
         {
-            case Rarity.Common: return 3;
-            case Rarity.Uncommon: return 5;
-            case Rarity.Legendary: return 8;
+            case Rarity.Common:
+                baseCost = 4;
+                break;
+
+            case Rarity.Uncommon:
+                baseCost = 7;
+                break;
+
+            case Rarity.Legendary:
+                baseCost = 12;
+                break;
         }
-        return 2;
+
+        return GetScaledCost(baseCost);
     }
 
     public static DropTable rationTable = new DropTable(new Dictionary<Rarity, float>()
@@ -118,7 +143,7 @@ public class ShopItem : MonoBehaviour
 
         if ((float)RogueDifficultyManager.ItemRNG.NextDouble() >= 0.5f)
         {
-            DropTable table = gameObject.name.Contains("(3)") || gameObject.name.Contains("(4)") ? rationTable : null;
+            DropTable table = gameObject.name.Contains("Ration") ? rationTable : null;
             BaseItem chosenItem = PickUniqueItem(table);
 
             cost = getCost(chosenItem.Rarity);
@@ -149,6 +174,16 @@ public class ShopItem : MonoBehaviour
         {
             AWeapon chosenWeapon = PickUniqueWeapon();
 
+            int weaponBaseCost = 5;
+
+            weaponBaseCost += RogueDifficultyManager.ItemRNG.Next(-1, 3);
+
+            weaponBaseCost = Mathf.Max(4, weaponBaseCost);
+
+            cost = GetScaledCost(weaponBaseCost);
+
+            price.text = $"${cost}";
+
             WeaponPickupRogue.CreatePickupConditional(transform, () =>
             {
                 var mgr = RogueDifficultyManager.Instance;
@@ -167,6 +202,7 @@ public class ShopItem : MonoBehaviour
                         $"Need {cost} gold  (you have {mgr.Gold})");
                     messageCooldown = 2f;
                 }
+
                 return false;
             }, weapon: chosenWeapon);
         }

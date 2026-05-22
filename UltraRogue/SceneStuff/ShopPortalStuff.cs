@@ -53,11 +53,10 @@ public class ShopPortalStuff : MonoBehaviour
         }
 
         foreach (GameObject go in ForeignExit)
-        {
-
-            go.transform.localPosition = new Vector3(0, -50, 0);
-
-        }
+{
+    if (go == null) continue; // add this
+    go.transform.localPosition = new Vector3(0, -50, 0);
+}
 
     }
     void Open()

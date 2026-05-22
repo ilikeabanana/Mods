@@ -161,6 +161,12 @@ public class Room : MonoBehaviour
         }
     }
 
+    // ── Constants you can tune ───────────────────────────────────────────────────
+    private const int WaveThreshold = 28;   // spawn plan size that triggers wave mode
+    private const int WaveSize = 12;   // enemies per wave
+    private const int WaveResumeBelow = 8;   // wait until alive count drops to this before next wave
+    private const float WavePollRate = 0.5f; // how often (seconds) we check alive count between waves
+
     IEnumerator SpawnEnemies()
     {
         if (SpawnCredits == 0) yield break;
@@ -199,7 +205,6 @@ public class Room : MonoBehaviour
             EnemyType enemyType = kvp.Key;
             int totalCount = kvp.Value;
 
-            // Build radiance tier thresholds against the full count for this type.
             int baseC = RogueDifficultyManager.Instance.GetCountBeforeRadiance(enemyType);
             List<int> thresholds = new List<int>();
             float t = baseC;
@@ -209,11 +214,10 @@ public class Room : MonoBehaviour
                 if (rounded > totalCount) break;
                 thresholds.Add(rounded);
                 float next = t * Mathf.Sqrt(t);
-                if (next <= t) break; // guard against infinite loop when baseC == 1
+                if (next <= t) break;
                 t = next;
             }
 
-            // Work top-down: highest tier first, consuming from remaining count.
             var radianceBuffCounts = new List<int>();
             int remaining = totalCount;
             for (int tier = thresholds.Count - 1; tier >= 0; tier--)
@@ -221,10 +225,9 @@ public class Room : MonoBehaviour
                 int count = remaining / thresholds[tier];
                 remaining %= thresholds[tier];
                 for (int i = 0; i < count; i++)
-                    radianceBuffCounts.Add(tier + 1); // tier 0 → 1 buff, tier 1 → 2 buffs, etc.
+                    radianceBuffCounts.Add(tier + 1);
             }
 
-            // Plain (unbuffed) enemies first, then buffed ones.
             for (int i = 0; i < remaining; i++)
                 spawnPlan.Add(new PlannedSpawn(enemyType, 0));
             foreach (int buffs in radianceBuffCounts)
@@ -233,73 +236,101 @@ public class Room : MonoBehaviour
 
         Plugin.Logger.LogInfo($"[Room] Spawn plan built: {spawnPlan.Count} enemies total.");
 
-        // ── Phase 2: Spawn every planned enemy ───────────────────────────────────
+        // ── Phase 2: Spawn ────────────────────────────────────────────────────────
+        bool useWaves = spawnPlan.Count >= WaveThreshold;
+        if (useWaves)
+            Plugin.Logger.LogInfo($"[Room] Large room ({spawnPlan.Count} enemies) — using wave-based spawning.");
+
         BaseItem mask = Plugin.getItem("Agonized Mask");
         int maskCount = Plugin.GetItemCount(mask);
 
-        for (int spawnedEnemies = 0; spawnedEnemies < spawnPlan.Count; spawnedEnemies++)
+        int waveStart = 0;
+
+        while (waveStart < spawnPlan.Count)
         {
-            // First 100 enemies stagger in; everything beyond spawns instantly.
-            if (spawnedEnemies < 100)
+            // In wave mode, wait until the room is thinned enough before each wave
+            // (skip the check for the very first wave so combat starts immediately).
+            if (useWaves && waveStart > 0)
             {
-                float delay = spawnedEnemies < 25
-                    ? 0.05f
-                    : 0.05f / (spawnedEnemies - 24);
-                yield return new WaitForSeconds(delay);
+                Plugin.Logger.LogInfo($"[Room] Waiting to spawn wave starting at index {waveStart}…");
+                while (true)
+                {
+                    int alive = GetComponentsInChildren<EnemyIdentifier>()
+                                    .Count(e => !e.dead);
+                    if (alive <= WaveResumeBelow) break;
+                    yield return new WaitForSeconds(WavePollRate);
+                }
+                Plugin.Logger.LogInfo($"[Room] Spawning next wave (index {waveStart}).");
             }
 
-            PlannedSpawn planned = spawnPlan[spawnedEnemies];
+            int waveEnd = useWaves
+                ? Mathf.Min(waveStart + WaveSize, spawnPlan.Count)
+                : spawnPlan.Count;
 
-            GameObject enemyPrefab = DefaultReferenceManager.Instance.GetEnemyPrefab(planned.type);
-            if (planned.type == EnemyType.Power)
-                enemyPrefab = AssetsManager.funnyPowerIntroSpawn;
-            if (planned.type == EnemyType.MirrorReaper)
-                enemyPrefab = AssetsManager.GetEnemiesOfType(EnemyType.MirrorReaper).FirstOrDefault().gameObject;
-            if (enemyPrefab == null) continue;
-
-            Transform spawnPt = spawnPoints[enemyRando.Next(0, spawnPoints.Count)];
-            if (spawnPt == null)
+            for (int spawnedEnemies = waveStart; spawnedEnemies < waveEnd; spawnedEnemies++)
             {
-                Debug.LogWarning($"[Room] No fitting spawn point for {planned.type} — skipping this unit.");
-                continue;
+                // Stagger the first 100 enemies; everything beyond spawns instantly.
+                int localIndex = spawnedEnemies - waveStart; // reset stagger per wave
+                if (localIndex < 100)
+                {
+                    float delay = localIndex < 25
+                        ? 0.05f
+                        : 0.05f / (localIndex - 24);
+                    yield return new WaitForSeconds(delay);
+                }
+
+                PlannedSpawn planned = spawnPlan[spawnedEnemies];
+
+                GameObject enemyPrefab = DefaultReferenceManager.Instance.GetEnemyPrefab(planned.type);
+                if (planned.type == EnemyType.Power)
+                    enemyPrefab = AssetsManager.funnyPowerIntroSpawn;
+                if (planned.type == EnemyType.MirrorReaper)
+                    enemyPrefab = AssetsManager.GetEnemiesOfType(EnemyType.MirrorReaper).FirstOrDefault()?.gameObject;
+                if (enemyPrefab == null) continue;
+
+                Transform spawnPt = spawnPoints[enemyRando.Next(0, spawnPoints.Count)];
+                if (spawnPt == null)
+                {
+                    Debug.LogWarning($"[Room] No fitting spawn point for {planned.type} — skipping.");
+                    continue;
+                }
+
+                Vector3 pos;
+                do
+                {
+                    pos = spawnPt.position + new Vector3(
+                        (float)((enemyRando.NextDouble() * 4.0) - 2.0), 0,
+                        (float)((enemyRando.NextDouble() * 4.0) - 2.0));
+                } while (IsOutOfBounds(pos));
+
+                if (isFlying(planned.type)) pos += Vector3.up * 3f;
+
+                if (planned.type == ReplacerType && allObjectActivators.Count > 0)
+                {
+                    GameObject objectToEnable = allObjectActivators[Random.Range(0, allObjectActivators.Count)];
+                    objectToEnable.SetActive(true);
+                    allObjectActivators.Remove(objectToEnable);
+                    continue;
+                }
+
+                GameObject inst = Instantiate(enemyPrefab, pos, enemyPrefab.transform.rotation);
+                inst.transform.parent = transform;
+                KeepInBoundsRoom kibr = inst.AddComponent<KeepInBoundsRoom>();
+                kibr.RoomInside = this;
+
+                EnemyIdentifier eid = inst.GetComponent<EnemyIdentifier>()
+                                   ?? inst.GetComponentInChildren<EnemyIdentifier>();
+                kibr.eid = eid;
+                if (maskCount > 0 && Random.value <= (0.25f + (0.10f * maskCount)))
+                    eid.puppet = true;
+                if (planned.radianceBuffs > 0 && eid != null)
+                {
+                    for (int b = 0; b < planned.radianceBuffs; b++)
+                        eid.BuffAll();
+                }
             }
 
-            Vector3 pos;
-            do
-            {
-                pos = spawnPt.position + new Vector3(
-                    (float)((enemyRando.NextDouble() * 4.0) - 2.0), 0,
-                    (float)((enemyRando.NextDouble() * 4.0) - 2.0));
-            } while (IsOutOfBounds(pos));
-
-            if (isFlying(planned.type)) pos += Vector3.up * 3f;
-
-            if(planned.type == ReplacerType && allObjectActivators.Count > 0)
-            {
-                GameObject objectToEnable = allObjectActivators[Random.Range(0, allObjectActivators.Count)];
-                objectToEnable.SetActive(true);
-                allObjectActivators.Remove(objectToEnable);
-                continue;
-            }
-
-            GameObject inst = Instantiate(enemyPrefab, pos, enemyPrefab.transform.rotation);
-            inst.transform.parent = transform;
-            KeepInBoundsRoom kibr = inst.AddComponent<KeepInBoundsRoom>();
-            kibr.RoomInside = this;
-
-            // Always grab eid, not just when buffing
-            EnemyIdentifier eid = inst.GetComponent<EnemyIdentifier>()
-                               ?? inst.GetComponentInChildren<EnemyIdentifier>();
-            kibr.eid = eid; // <-- moved outside the radianceBuffs block
-            if (maskCount > 0 && Random.value <= (0.25f + (0.10f * maskCount)))
-                eid.puppet = true;
-            if (planned.radianceBuffs > 0 && eid != null)
-            {
-                for (int b = 0; b < planned.radianceBuffs; b++)
-                    eid.BuffAll();
-
-                
-            }
+            waveStart = waveEnd;
         }
 
         hasSpawnedEnemies = true;
