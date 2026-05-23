@@ -451,11 +451,14 @@ public class Room : MonoBehaviour
         GameObject door = null;
         if (doorPrefab != null) door = Instantiate(doorPrefab, exit.position, exit.rotation * Quaternion.Euler(0, 90, 0), transform);
 
+
         if (door != null)
         {
+            door.SetActive(true);
             if (roomType == RoomType.Normal || roomType == RoomType.Boss || roomType == RoomType.Start) return;
             if (Random.value <= 0.75f && Plugin.CurrentDifficulty != 2) return;
             door.GetComponentInChildren<Door>().gameObject.AddComponent<Lockable>();
+
         }
     }
 
