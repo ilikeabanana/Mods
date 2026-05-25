@@ -8,7 +8,7 @@ namespace Ultrarogue.Characters
     {
         public override string Name => "V2";
 
-        public override string Description => "Start with the piercer, shotgun and knuckle blaster. You <color=red>DONT HEAL FROM BLOOD</color> anymore";
+        public override string Description => "Start with the piercer, shotgun and knuckle blaster. <color=red>YOUR REVOLVER DOES TRIPLE SHOTS</color>";
         public override List<AWeapon> StartingWeapons => new List<AWeapon>()
         {
             new AWeapon(Plugin.Weapon.Revolver, Plugin.Variant.Blue, false),

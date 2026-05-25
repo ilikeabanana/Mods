@@ -634,6 +634,9 @@ namespace Ultrarogue
                 ) && (
                     !x.CanOnlyHaveOne ||
                     GetItemCount(x) <= 0
+                ) && (
+                    x.ItemName != "Thunder Boomerang" ||
+                    weapons.Any(w => w.weapon == Weapon.Revolver && w.variant == Variant.Green)
                 )
             ).ToList();
         }
