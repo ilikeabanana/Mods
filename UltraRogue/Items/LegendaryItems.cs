@@ -26,7 +26,7 @@ namespace Ultrarogue.Items
     [HarmonyPatch]
     public class ToolbarsFavorite : BaseItem
     {
-        public override string ItemName => "Toolbar's favorite";
+        public override string ItemName => "Thunder Boomerang";
         public override string itemDescription => "Double the hitscan bounce count. All hitscan attacks explode now.";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         public override Rarity Rarity => Rarity.Legendary;
@@ -38,26 +38,21 @@ namespace Ultrarogue.Items
         {
             GameObject go = Object.Instantiate(MonoSingleton<DefaultReferenceManager>.Instance.explosion, point, Quaternion.identity);
             foreach (Explosion exp in go.GetComponentsInChildren<Explosion>())
-            {
                 exp.canHit = AffectedSubjects.EnemiesOnly;
-            }
         }
 
         [HarmonyPatch(typeof(RevolverBeam), "Start")]
         static class StartPatch
         {
-            // Changed to Prefix so the bounce count is doubled BEFORE the gun fires
-            static void Prefix(RevolverBeam __instance)
+            static void Postfix(RevolverBeam __instance)
             {
-                if (Plugin.GetItemCount("Toolbar's favorite") == 0) return;
+                if (Plugin.GetItemCount("Thunder Boomerang") == 0) return;
                 if (__instance.beamType == BeamType.Enemy || __instance.beamType == BeamType.MaliciousFace) return;
 
-                taggedBeams.Add(__instance);
-
                 if (__instance.previouslyHitTransform == null)
-                {
-                    __instance.ricochetAmount *= 2 + (Plugin.GetItemCount("Toolbar's favorite") - 1);
-                }
+                    __instance.ricochetAmount *= 2;
+                else if (__instance.ricochetAmount == 0)
+                    taggedBeams.Add(__instance);
             }
         }
 
@@ -77,40 +72,18 @@ namespace Ultrarogue.Items
         [HarmonyPatch(typeof(RevolverBeam), "PiercingShotCheck")]
         static class PiercingShotCheckPatch
         {
-            // Struct to safely pass multiple state variables from Prefix to Postfix
-            struct BeamState
+            static void Prefix(RevolverBeam __instance, out bool __state)
             {
-                public bool fadeOut;
-                public Vector3 pos;
+                __state = __instance.fadeOut;
             }
 
-            static void Prefix(RevolverBeam __instance, out BeamState __state)
-            {
-                __state = new BeamState
-                {
-                    fadeOut = __instance.fadeOut,
-                    pos = __instance.shotHitPoint // Fallback if no hits
-                };
-
-                // Capture the precise point of impact before the game logic loses it
-                if (__instance.hitList != null && __instance.enemiesPierced < __instance.hitList.Count)
-                {
-                    __state.pos = __instance.hitList[__instance.enemiesPierced].point;
-                }
-                else if (__instance.hitList != null && __instance.hitList.Count > 0)
-                {
-                    __state.pos = __instance.hitList[__instance.hitList.Count - 1].point;
-                }
-            }
-
-            static void Postfix(RevolverBeam __instance, BeamState __state)
+            static void Postfix(RevolverBeam __instance, bool __state)
             {
                 if (!taggedBeams.Contains(__instance)) return;
 
-                // If the beam is terminating or bouncing on this step, spawn the explosion
-                if (!__state.fadeOut && __instance.fadeOut)
+                if (!__state && __instance.fadeOut)
                 {
-                    SpawnExplosion(__state.pos);
+                    SpawnExplosion(__instance.shotHitPoint);
                     taggedBeams.Remove(__instance);
                 }
             }

@@ -650,7 +650,11 @@ public class Room : MonoBehaviour
         ItemPickup.CreatePickup(Plugin.GiveRandomItem(), plc);
         Instantiate(AssetsManager.spawnEffect, plc.position, Quaternion.identity);
         if(pedestalItem != null)
-            Instantiate(pedestalItem, plc.transform.position, Quaternion.identity);
+        {
+            GameObject ped = Instantiate(pedestalItem, plc.transform.position + Vector3.up, Quaternion.identity);
+            ped.transform.parent = transform;
+        }
+           
     }
     IEnumerator SpawnPortalWhenClear()
     {

@@ -7,7 +7,7 @@ namespace Ultrarogue.Characters
     public class V1 : BaseCharacter
     {
         public override string Name => "V1";
-        public override string Description => "Start with the piercer and feedbacker, health items will <color=red>NOT</color> spawn.";
+        public override string Description => "Start with the piercer and feedbacker, <color=red>YOU CAN HEAL FROM BLOOD</color>.";
         public override List<AWeapon> StartingWeapons => new List<AWeapon>()
         {
             new AWeapon(Plugin.Weapon.Revolver, Plugin.Variant.Blue),
