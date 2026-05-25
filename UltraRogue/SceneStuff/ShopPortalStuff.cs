@@ -26,16 +26,11 @@ public class ShopPortalStuff : MonoBehaviour
 
         if (GameObject.Find(PortalExitFinder))
         {
-            Exit = PortalScript.exit.gameObject;
-            Exit.transform.parent = GameObject.Find(PortalExitSlot).transform;
-            Exit.transform.localPosition = Vector3.zero;
-            Exit.transform.rotation = GameObject.Find(PortalExitFinder).transform.rotation;
-            /*
             Exit = Instantiate(GameObject.Find(PortalExitFinder));
             slot = GameObject.Find(PortalExitSlot).transform;
             Exit.transform.parent = slot;
             Exit.transform.localPosition = Vector3.zero;
-            PortalScript.exit = Exit.transform;*/
+            PortalScript.exit = Exit.transform;
         }
 
     }
