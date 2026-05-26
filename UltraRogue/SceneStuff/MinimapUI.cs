@@ -359,6 +359,7 @@ public class MinimapUI : MonoBehaviour
         return Sprite.Create(tex, new Rect(0, 0, S, S), new Vector2(0.5f, 0.5f));
     }
 
+
     // ── Existing helpers ──────────────────────────────────────────────────────
 
     void MarkVisited(Vector2Int pos)
@@ -372,7 +373,13 @@ public class MinimapUI : MonoBehaviour
         }
         RefreshAll();
     }
-
+    public void RevealAll()
+    {
+        foreach (var room in _placedRooms)
+        {
+            MarkVisited(room.Key);
+        }
+    }
     void RefreshAll()
     {
         foreach (var kvp in _cells)

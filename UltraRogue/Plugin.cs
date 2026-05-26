@@ -1620,7 +1620,7 @@ namespace Ultrarogue
             public override Branch BuildTree(GameConsole.Console con)
             {
                 string name = "ultrarogue";
-                Node[] array = new Node[1];
+                Node[] array = new Node[3];
 
                 List<Node> list = new List<Node>();
 
@@ -1648,6 +1648,25 @@ namespace Ultrarogue
                 GameConsole.CommandTree.Branch br = CommandRoot.Branch("items", list.ToArray());
 
                 array[0] = br;
+
+                array[1] = Branch("floor", new Node[]
+                {
+                    CommandRoot.Leaf("revealfloor", delegate ()
+                    {
+                        if(MinimapUI.Instance == null)
+                        {
+                            Log.Error("No minimap found!");
+                            return;
+                        }
+                        MinimapUI.Instance.RevealAll();
+                    }, true),
+                    CommandRoot.Leaf("nextstage", delegate ()
+                    {
+                        NewMovement.Instance.transform.position = GameObject.Find("PortalPos").transform.position;
+                        RoomGenerator.Instance.RegenerateRooms();
+                    }, true),
+                });
+
                 return CommandRoot.Branch(name, array);
             }
         }
