@@ -6,6 +6,12 @@ public class RoomLinker : MonoBehaviour
     [Tooltip("The room script this trigger belongs to.")]
     public Room linkedRoom;
 
+    void Awake()
+    {
+        if (linkedRoom == null)
+            linkedRoom = transform.parent.GetComponent<Room>();
+    }
+
     void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Player"))

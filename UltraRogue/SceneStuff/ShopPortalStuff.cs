@@ -10,29 +10,33 @@ public class ShopPortalStuff : MonoBehaviour
     [SerializeField] Door DoorToRunSimpleOpenOverrideOn;
     [SerializeField] string PortalExitFinder = "ShopPortalExit";
     [SerializeField] string PortalExitSlot = "ShopHolders";
+    [SerializeField] bool TriggerOnAwake = true;
     [Tooltip("If null, will just do GetComponent to get it")]
     [SerializeField] Portal PortalScript;
     GameObject Exit;
-    private Transform slot;
+    Transform slot;
     GameObject[] ForeignExit = { null, null };
     bool isOpen = false;
 
     void Awake()
     {
-
-        isOpen = false;
-        if (PortalScript == null) PortalScript = GetComponent<Portal>();
-
-
-        if (GameObject.Find(PortalExitFinder))
+        if (TriggerOnAwake)
         {
-            Exit = Instantiate(GameObject.Find(PortalExitFinder));
-            slot = GameObject.Find(PortalExitSlot).transform;
-            Exit.transform.parent = slot;
-            Exit.transform.localPosition = Vector3.zero;
-            PortalScript.exit = Exit.transform;
-        }
+            isOpen = false;
+            if (PortalScript == null) PortalScript = GetComponent<Portal>();
 
+
+            if (GameObject.Find(PortalExitFinder))
+            {
+                Exit = Instantiate(GameObject.Find(PortalExitFinder));
+                slot = GameObject.Find(PortalExitSlot).transform;
+                Exit.transform.parent = slot;
+                Exit.transform.localPosition = Vector3.zero;
+                PortalScript.exit.transform.gameObject.GetComponent<Follow>().target = Exit.transform;
+                //Exit.transform.eulerAngles = new Vector3(0,270,0);
+            }
+
+        }
     }
 
     public void Fake()
@@ -55,7 +59,9 @@ public class ShopPortalStuff : MonoBehaviour
         foreach (GameObject go in ForeignExit)
         {
             if (go == null) continue; // add this
+
             go.transform.localPosition = new Vector3(0, -50, 0);
+
         }
 
     }
