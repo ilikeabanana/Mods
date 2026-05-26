@@ -351,7 +351,7 @@ namespace Ultrarogue.Items
                 int count = Plugin.GetItemCount(this);
                 if (count <= 0) return 1f;
 
-                if (eid.hitter == "ground slam") return 1.5f;
+                if (eid.hitter == "ground slam") return 1f + (0.5f * count);
 
                 return 1f;
             });

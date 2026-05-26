@@ -217,6 +217,7 @@ namespace Ultrarogue.Items
         public override string itemDescription => "Have a 20% (+15% per stack) to get a dual wield";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Utility };
     }
+    [HarmonyPatch]
     public class EyeOfGod : BaseItem
     {
         public override Rarity Rarity => Rarity.Legendary;
@@ -279,12 +280,52 @@ namespace Ultrarogue.Items
                 {
                     insig.target = new EnemyTarget(eid);
                     insig.damage = Mathf.RoundToInt(damageMultiplier);
+                    insig.predictive = true;
+                    insig.windUpSpeedMultiplier = 2;
                 }
+                virtueBeam.name += "God";
 
                 // RESET AFTER PROC
                 accumulatedDamage = 0f;
             });
         }
+
+        static Dictionary<VirtueInsignia, List<EnemyIdentifier>> alreadyHits = new Dictionary<VirtueInsignia, List<EnemyIdentifier>>();
+        [HarmonyPatch(typeof(VirtueInsignia), nameof(VirtueInsignia.OnTriggerEnter))]
+        public static bool Prefix(VirtueInsignia __instance, Collider other)
+        {
+            if (!__instance.gameObject.name.Contains("God")) return true;
+            if (!alreadyHits.ContainsKey(__instance))
+                alreadyHits.Add(__instance, new List<EnemyIdentifier>());
+            if (__instance.target != null && (!__instance.target.isPlayer || other.gameObject.CompareTag("Player")))
+            {
+
+                EnemyIdentifier enemyIdentifier = other.GetComponent<EnemyIdentifier>();
+                if (enemyIdentifier == null)
+                {
+                    EnemyIdentifierIdentifier component = other.GetComponent<EnemyIdentifierIdentifier>();
+                    if (component != null)
+                    {
+                        enemyIdentifier = component.eid;
+                    }
+                }
+                Rigidbody rigidbody;
+                if (enemyIdentifier != null && other.TryGetComponent<Rigidbody>(out rigidbody) && !alreadyHits[__instance].Contains(enemyIdentifier))
+                {
+                    rigidbody.AddExplosionForce(1000f, __instance.transform.position, 10f);
+                    enemyIdentifier.SimpleDamage((float)__instance.damage);
+                    alreadyHits[__instance].Add(enemyIdentifier);
+                }
+
+            }
+            Flammable component2 = other.GetComponent<Flammable>();
+            if (component2 && !component2.playerOnly)
+            {
+                component2.Burn(10f, false);
+            }
+            return false;
+        }
+
     }
 
     public class JumperCable : BaseItem

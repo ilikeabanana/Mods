@@ -254,7 +254,7 @@ public class RogueDifficultyManager : MonoBehaviour
         }
         return 2;
     }
-
+     
     public BossPick GetBoss()
     {
         List<BossPick> options = new List<BossPick>();
@@ -264,152 +264,174 @@ public class RogueDifficultyManager : MonoBehaviour
             case 1:
             case 2:
                 options.Add(new BossPick(new List<BossEntry>()
-                {
-                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.Cerberus)[0].gameObject, 0),
-                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.Cerberus)[0].gameObject, 0),
-                }));
+            {
+                new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.Cerberus)[0].gameObject, healthAddition: 8),
+                new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.Cerberus)[0].gameObject, healthAddition: 8),
+            }));
 
                 options.Add(new BossPick(new List<BossEntry>()
-                {
-                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.MaliciousFace)[0].gameObject, 30),
-                }));
+            {
+                new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.MaliciousFace)[0].gameObject,
+                    healthMod: 42),
+            }));
 
                 options.Add(new BossPick(new List<BossEntry>()
-                {
-                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.VeryCancerousRodent)[0].gameObject, 0),
-                }));
+            {
+                new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.VeryCancerousRodent)[0].gameObject,
+                    healthAddition: 18),
+            }));
 
                 options.Add(new BossPick(new List<BossEntry>()
-                {
-                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.Swordsmachine)[0].gameObject, 0),
-                }));
+            {
+                new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.Swordsmachine)[0].gameObject,
+                    healthAddition: 20),
+            }));
+                options.Add(new BossPick(new List<BossEntry>()
+            {
+                new BossEntry(AssetsManager.funnyPowerIntroSpawn, healthAddition: 28),
+            }));
 
                 options.Add(new BossPick(new List<BossEntry>()
-                {
-                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.Swordsmachine)[0].gameObject, 0),
-                }));
-
-                options.Add(new BossPick(new List<BossEntry>()
-                {
-                    new BossEntry(AssetsManager.funnyPowerIntroSpawn, 20),
-                }));
-
-                options.Add(new BossPick(new List<BossEntry>()
-                {
-                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.Mindflayer)[0].gameObject, 0),
-                }));
+            {
+                new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.Mindflayer)[0].gameObject,
+                    healthAddition: 28),
+            }));
                 break;
+
             case 3:
             case 4:
             case 5:
                 options.Add(new BossPick(new List<BossEntry>()
-                {
-                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.V2)[0].gameObject, 0),
-                }));
+            {
+                new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.V2)[0].gameObject,
+                    healthAddition: 30),
+            }));
                 options.Add(new BossPick(new List<BossEntry>()
-                {
-                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.Gabriel)[0].gameObject, 50),
-                }));
+            {
+                new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.Gabriel)[0].gameObject,
+                    healthMod: 65),
+            }));
                 options.Add(new BossPick(new List<BossEntry>()
-                {
-                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.HideousMass)[0].gameObject, 50),
-                }));
+            {
+                new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.HideousMass)[0].gameObject,
+                    healthMod: 65),
+            }));
                 options.Add(new BossPick(new List<BossEntry>()
-                {
-                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.Ferryman)[0].gameObject, 50),
-                }));
+            {
+                new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.Ferryman)[0].gameObject,
+                    healthMod: 65),
+            }));
                 options.Add(new BossPick(new List<BossEntry>()
-                {
-                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.Sisyphus)[0].gameObject, 50),
-                }));
+            {
+                new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.Sisyphus)[0].gameObject,
+                    healthMod: 70),
+            }));
                 break;
+
             case 6:
             case 7:
                 options.Add(new BossPick(new List<BossEntry>()
-                {
-                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.Ferryman)[0].gameObject, 0),
-                }));
+            {
+                new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.Ferryman)[0].gameObject,
+                    healthAddition: 30),
+            }));
                 options.Add(new BossPick(new List<BossEntry>()
-                {
-                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.Minotaur)[0].gameObject, 0),
-                }));
+            {
+                new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.Minotaur)[0].gameObject,
+                    healthAddition: 25),
+            }));
                 options.Add(new BossPick(new List<BossEntry>()
-                {
-                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.GabrielSecond)[0].gameObject, 0),
-                }));
+            {
+                new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.GabrielSecond)[0].gameObject,
+                    healthAddition: 35),
+            }));
                 options.Add(new BossPick(new List<BossEntry>()
-                {
-                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.Mandalore)[0].gameObject, 0),
-                }));
-
+            {
+                new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.Mandalore)[0].gameObject,
+                    healthAddition: 30),
+            }));
                 Enemy A = null;
                 Enemy T = null;
-
                 options.Add(new BossPick(new List<BossEntry>()
-                {
-                    new BossEntry(AssetsManager.Agony, 0),
-                    new BossEntry(AssetsManager.Tundra, 0),
-                }, (eid) =>
-                {
-                    if (A == null)
-                    {
-                        A = Room.FindEnemyComponent(eid.gameObject);
-                        return;
-                    }
-                    if (T == null)
-                    {
-                        T = Room.FindEnemyComponent(eid.gameObject);
-                    }
-
-                    A.symbiote = T;
-                    T.symbiote = A;
-
-                }));
+            {
+                new BossEntry(AssetsManager.Agony, healthAddition: 45),
+                new BossEntry(AssetsManager.Tundra, healthAddition: 45),
+            }, (eid) =>
+            {
+                if (A == null) { A = Room.FindEnemyComponent(eid.gameObject); return; }
+                if (T == null) { T = Room.FindEnemyComponent(eid.gameObject); }
+                A.symbiote = T;
+                T.symbiote = A;
+            }));
                 options.Add(new BossPick(new List<List<BossEntry>>()
-                {
-                    new List<BossEntry> { new BossEntry(AssetsManager.funnyPowerIntroSpawn, 0) }, // Wave 1
-                    new List<BossEntry> { new BossEntry(AssetsManager.funnyPowerIntroSpawn, 0), 
-                        new BossEntry(AssetsManager.funnyPowerIntroSpawn, 0) } // Wave 2
-                }));
+            {
+                new List<BossEntry> {
+                    new BossEntry(AssetsManager.funnyPowerIntroSpawn, radianceBuffs: 1)
+                },
+                new List<BossEntry> {
+                    new BossEntry(AssetsManager.funnyPowerIntroSpawn, radianceBuffs: 1),
+                    new BossEntry(AssetsManager.funnyPowerIntroSpawn, radianceBuffs: 1)
+                }
+            }));
                 break;
+
             case 8:
             case 9:
                 options.Add(new BossPick(new List<BossEntry>()
-                {
-                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.MinosPrime)[0].gameObject, 0, 25, 8),
-                }));
+            {
+                new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.MinosPrime)[0].gameObject,
+                    healthMod: 40, healthPerFloorMod: 12, startFloor: 8),
+            }));
                 options.Add(new BossPick(new List<BossEntry>()
-                {
-                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.MirrorReaper)[0].gameObject, 0, 23, 8),
-                }));
+            {
+                new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.MirrorReaper)[0].gameObject,
+                    healthPerFloorMod: 12, startFloor: 8),
+            }));
                 options.Add(new BossPick(new List<BossEntry>()
-                {
-                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.MaliciousFace)[0].gameObject, 60, 45, 8),
-                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.MaliciousFace)[0].gameObject, 60, 45, 8),
-                }));
+            {
+                new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.MaliciousFace)[0].gameObject,
+                    healthMod: 80, healthPerFloorMod: 50, startFloor: 8,
+                    radianceBuffs: 2, radianceBuffsPerFloor: 0.5f),
+                new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.MaliciousFace)[0].gameObject,
+                    healthMod: 80, healthPerFloorMod: 50, startFloor: 8,
+                    radianceBuffs: 2, radianceBuffsPerFloor: 0.5f),
+            }));
                 break;
+
             default:
                 options.Add(new BossPick(new List<BossEntry>()
-                {
-                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.MinosPrime)[0].gameObject, 0, 25, 8),
-                }));
+            {
+                new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.MinosPrime)[0].gameObject,
+                    healthMod: 55, healthPerFloorMod: 18, startFloor: 8,
+                    radianceBuffs: 0, radianceBuffsPerFloor: 0.35f),
+            }));
                 options.Add(new BossPick(new List<BossEntry>()
-                {
-                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.SisyphusPrime)[0].gameObject, 130, 20, 8),
-                }));
+            {
+                new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.SisyphusPrime)[0].gameObject,
+                    healthMod: 170, healthPerFloorMod: 28, startFloor: 8,
+                    radianceBuffs: 0, radianceBuffsPerFloor: 0.35f),
+            }));
                 options.Add(new BossPick(new List<BossEntry>()
-                {
-                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.MirrorReaper)[0].gameObject, 0, 23, 8),
-                }));
+            {
+                new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.MirrorReaper)[0].gameObject,
+                    healthAddition: 45, healthPerFloorMod: 18, startFloor: 8,
+                    radianceBuffs: 0, radianceBuffsPerFloor: 1f),
+            }));
                 options.Add(new BossPick(new List<BossEntry>()
-                {
-                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.BigJohnator)[0].gameObject, 100, 12, 8),
-                }));
+            {
+                new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.BigJohnator)[0].gameObject,
+                    healthMod: 130, healthPerFloorMod: 18, startFloor: 8,
+                    radianceBuffs: 0, radianceBuffsPerFloor: 0.5f),
+            }));
                 options.Add(new BossPick(new List<BossEntry>()
-                {
-                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.MaliciousFace)[0].gameObject, 60, 45, 8),
-                    new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.MaliciousFace)[0].gameObject, 60, 45, 8),
-                }));
+            {
+                new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.MaliciousFace)[0].gameObject,
+                    healthMod: 95, healthPerFloorMod: 60, startFloor: 8,
+                    radianceBuffs: 0, radianceBuffsPerFloor: 1f),
+                new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.MaliciousFace)[0].gameObject,
+                    healthMod: 95, healthPerFloorMod: 60, startFloor: 8,
+                    radianceBuffs: 0, radianceBuffsPerFloor: 1f),
+            }));
                 break;
         }
 
@@ -551,16 +573,22 @@ public class BossEntry
 {
     public GameObject prefab;
     public float healthMod;
+    public float healthAddition;
     public float healthPerFloorMod;
     public int startFloor;
+    public int radianceBuffs;
+    public float radianceBuffsPerFloor; // fractional — floors past startFloor accumulate this
 
-
-    public BossEntry(GameObject prefab, float healthMod = 0, float healthPerFloorMod = 0, int startFloor = 0)
+    public BossEntry(GameObject prefab, float healthMod = 0, float healthAddition = 0, float healthPerFloorMod = 0,
+                     int startFloor = 0, int radianceBuffs = 0, float radianceBuffsPerFloor = 0f)
     {
         this.prefab = prefab;
         this.healthMod = healthMod;
+        this.healthAddition = healthAddition;
         this.healthPerFloorMod = healthPerFloorMod;
         this.startFloor = startFloor;
+        this.radianceBuffs = radianceBuffs;
+        this.radianceBuffsPerFloor = radianceBuffsPerFloor;
     }
 }
 

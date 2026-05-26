@@ -76,6 +76,14 @@ public class MinimapUI : MonoBehaviour
         Instance = this;
     }
 
+    private Vector2Int? _manualOverridePos = null;
+
+    public void SetRoomOverride(Vector2Int? pos)
+    {
+        _manualOverridePos = pos;
+    }
+
+    // Update the Update() method in MinimapUI:
     void Update()
     {
         if (_placedRooms == null || RoomGenerator.Instance == null) return;
@@ -83,8 +91,9 @@ public class MinimapUI : MonoBehaviour
         var player = NewMovement.Instance;
         if (player == null) return;
 
-        // Detect room change.
-        Vector2Int grid = RoomGenerator.Instance.WorldToGrid(player.transform.position);
+        // Use the override if it exists, otherwise use grid math
+        Vector2Int grid = _manualOverridePos ?? RoomGenerator.Instance.WorldToGrid(player.transform.position);
+
         if (grid != _currentPos)
         {
             _currentPos = grid;

@@ -54,7 +54,7 @@ public static class SceneLoader
         { 76561199195414858L, new string[] {
             "Hi linguini, (and maybe lasagna)",
             "Where are my goddamnt cookies?",
-            "you probably dont need items linguini."
+            "you probably dont need items."
         }},
         
         // Gronf
@@ -67,10 +67,13 @@ public static class SceneLoader
         
         // TondarYZD
         { 76561199124864632L, new string[] {
-            "Are you ultraing the rogue tondar?",
+            "tongler",
             "Toolbar",
-            "Make a tierlist of a tierlist of a tierlist...",
-            "when banana in spore?"
+            "tungsten",
+            "tond tond tond yzdur",
+            "toenail",
+            "tondler",
+            "johndar"
         }},
         
         // Ineophobe
@@ -110,7 +113,7 @@ public static class SceneLoader
             string randomMessage = messages[Random.Range(0, messages.Length)];
             if (SteamClient.IsLoggedOn)
             {
-                if (customMessagesForYoutubers.ContainsKey(SteamClient.SteamId))
+                if (customMessagesForYoutubers.ContainsKey(SteamClient.SteamId) && Random.value <= 0.25f)
                 {
                     string[] userMessages = customMessagesForYoutubers[SteamClient.SteamId];
                     randomMessage = userMessages[Random.Range(0, userMessages.Length)];

@@ -260,6 +260,7 @@ public class Room : MonoBehaviour
                     if (alive <= WaveResumeBelow) break;
                     yield return new WaitForSeconds(WavePollRate);
                 }
+                yield return new WaitForSeconds(0.5f);
                 Plugin.Logger.LogInfo($"[Room] Spawning next wave (index {waveStart}).");
             }
 
@@ -392,15 +393,29 @@ public class Room : MonoBehaviour
                 if (eid != null)
                 {
                     waveEnemies.Add(eid);
-                    if (bossEntry.healthMod != 0 || bossEntry.healthPerFloorMod != 0)
+                    // existing health block:
+                    if (bossEntry.healthMod != 0 || bossEntry.healthPerFloorMod != 0 || bossEntry.healthAddition != 0)
                     {
                         Enemy e = FindEnemyComponent(bossInst);
+                        if (bossEntry.healthMod == 0) bossEntry.healthMod = eid.health;
                         int floorsActive = Mathf.Max(0, RogueDifficultyManager.Instance.floor - bossEntry.startFloor);
-                        float totalHealth = bossEntry.healthMod + bossEntry.healthPerFloorMod * floorsActive;
+                        float totalHealth = bossEntry.healthMod + bossEntry.healthAddition + bossEntry.healthPerFloorMod * floorsActive;
                         eid.health = totalHealth;
                         e.health = totalHealth;
                         e.originalHealth = totalHealth;
                     }
+
+
+                    int floorsForRadiance = Mathf.Max(0, RogueDifficultyManager.Instance.floor - bossEntry.startFloor);
+                    int totalRadiance = bossEntry.radianceBuffs
+                        + Mathf.FloorToInt(bossEntry.radianceBuffsPerFloor * floorsForRadiance);
+
+                    for (int r = 0; r < totalRadiance; r++)
+                        eid.BuffAll();
+
+                    if (totalRadiance > 0)
+                        Debug.Log($"[Room] Applied {totalRadiance} radiance buff(s) to {eid.enemyType}.");
+
                     bossEnemyType.onSpawn?.Invoke(eid);
                     if (eid.gameObject.GetComponent<BossHealthBar>() == null)
                         eid.gameObject.AddComponent<BossHealthBar>();

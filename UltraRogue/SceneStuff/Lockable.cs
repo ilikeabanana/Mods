@@ -11,10 +11,8 @@ namespace Ultrarogue.SceneStuff
             {
                 door.Lock();
             }
-            Transform keyLock = null;
-            if (gameObject.name.Contains("Shop"))
-                keyLock = transform.Find("LockObject");
-            else
+            Transform keyLock = transform.Find("LockObject");
+            if (keyLock == null)
                 keyLock = transform.parent.Find("LockObject");
 
             if (keyLock != null)
@@ -31,10 +29,8 @@ namespace Ultrarogue.SceneStuff
                 {
                     door.Unlock();
                 }
-                Transform keyLock = null;
-                if (gameObject.name.Contains("Shop"))
-                    keyLock = transform.Find("LockObject");
-                else
+                Transform keyLock = transform.Find("LockObject");
+                if (keyLock == null)
                     keyLock = transform.parent.Find("LockObject");
 
                 if (keyLock != null)
