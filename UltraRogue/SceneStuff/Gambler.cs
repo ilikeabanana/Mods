@@ -7,33 +7,19 @@ public class Gambler : MonoBehaviour
     const float GAMBLE_COOLDOWN = 1.5f;
     const float EXPLOSION_BASE_CHANCE = 0.08f;   // 8% on first use
     const float EXPLOSION_CHANCE_RAMP = 0.07f;   // +7% each subsequent use
-    const float EXPLOSION_RADIUS = 5f;
-    const float EXPLOSION_DAMAGE = 40f;
-
+    public GameObject ExplosionWarningThing;
+    public ShopZone zone;
     float cooldown = 0f;
     int useCount = 0;
     bool exploded = false;
 
     Transform itemPlacementThing;
-
-    void Update()
+    public void Gamble()
     {
         if (exploded) return;
-
-        if (cooldown > 0f)
-        {
-            cooldown -= Time.deltaTime;
-            return;
-        }
-
-        if (NewMovement.Instance == null) return;
-
-        if (Vector3.Distance(NewMovement.Instance.transform.position, transform.position) <= 2f)
-        {
-            Activate();
-            cooldown = GAMBLE_COOLDOWN;
-        }
+        Activate();
     }
+        
 
     void Awake()
     {
@@ -86,14 +72,15 @@ public class Gambler : MonoBehaviour
 
     IEnumerator explosionNumerator()
     {
-        gameObject.AddComponent<AudioSource>().PlayOneShot(AssetsManager.StalkerWarning);
+        ExplosionWarningThing.SetActive(true);
 
-        yield return new WaitForSeconds(1f);
+        yield return new WaitForSeconds(1.5f);
 
         var explosionPrefab = DefaultReferenceManager.Instance.explosion;
         if (explosionPrefab != null)
         {
             Instantiate(explosionPrefab, transform.position, Quaternion.identity);
+            zone.ForceOff();
         }
 
         Destroy(gameObject);
