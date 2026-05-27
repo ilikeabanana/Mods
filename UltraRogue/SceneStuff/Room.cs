@@ -530,6 +530,7 @@ public class Room : MonoBehaviour
         foreach (var zone in GetComponentsInChildren<DeathZone>())
         {
             zone.respawnTarget = spawnPoints[Random.Range(0, spawnPoints.Count)].position;
+            zone.notInstakill = true;
         }
     }
 

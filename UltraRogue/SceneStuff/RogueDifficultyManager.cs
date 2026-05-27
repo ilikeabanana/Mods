@@ -313,11 +313,6 @@ public class RogueDifficultyManager : MonoBehaviour
             }));
                 options.Add(new BossPick(new List<BossEntry>()
             {
-                new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.HideousMass)[0].gameObject,
-                    healthMod: 65),
-            }));
-                options.Add(new BossPick(new List<BossEntry>()
-            {
                 new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.Ferryman)[0].gameObject,
                     healthMod: 65),
             }));
