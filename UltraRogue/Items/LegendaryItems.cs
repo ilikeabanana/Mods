@@ -27,7 +27,7 @@ namespace Ultrarogue.Items
     public class ToolbarsFavorite : BaseItem
     {
         public override string ItemName => "Thunder Boomerang";
-        public override string itemDescription => "Double the hitscan bounce count. All hitscan attacks explode now.";
+        public override string itemDescription => "Double the hitscan bounce count. Bouncing hitscan attacks explode now.";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         public override Rarity Rarity => Rarity.Legendary;
         public override List<Plugin.Weapon> WeaponRequirements => new List<Plugin.Weapon>() { Plugin.Weapon.Revolver };
