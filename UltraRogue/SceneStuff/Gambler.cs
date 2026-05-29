@@ -81,6 +81,7 @@ public class Gambler : MonoBehaviour
         {
             Instantiate(explosionPrefab, transform.position, Quaternion.identity);
             zone.ForceOff();
+            MonoSingleton<AudioMixerController>.Instance.SetMusicVolume(zone.originalMusicVolume);
         }
 
         Destroy(gameObject);

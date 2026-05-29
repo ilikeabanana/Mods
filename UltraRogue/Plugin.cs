@@ -1586,13 +1586,14 @@ namespace Ultrarogue
         {
             if (!isInRogueScene())
             {
-                Plugin.Logger.LogInfo($"The large image is {__instance.cachedActivity.Assets.LargeImage}"); // I must find 0-1 image (i has not found it yet)
+                
                 return;
             }
 
             __instance.cachedActivity.State = "ROGUE MODE";
 
             __instance.cachedActivity.Details = "Floor: " + RogueDifficultyManager.Instance.floor;
+            __instance.cachedActivity.Assets.LargeImage = "level_0-1";
         }
     }
 
