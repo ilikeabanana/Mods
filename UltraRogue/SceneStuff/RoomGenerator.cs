@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using ULTRAKILL.Portal;
 using ULTRAKILL.Portal.Geometry;
 using Ultrarogue;
+using Ultrarogue.SceneStuff;
 using Unity.AI.Navigation;
 using UnityEngine;
 using UnityEngine.Events;
@@ -66,6 +67,7 @@ public class RoomGenerator : MonoBehaviour
         Instance = this;
         StartCoroutine(GenerateRooms());
     }
+    bool canDoTheErrorRoom = false;
 
     public void RegenerateRooms()
     {
@@ -89,6 +91,7 @@ public class RoomGenerator : MonoBehaviour
 
     IEnumerator GenerateRooms(bool firstTime = true)
     {
+        canDoTheErrorRoom = false;
         guaranteedCombatRoomsWithCredits = 0;
 
         yield return new WaitUntil(() => DefaultReferenceManager.Instance != null);
@@ -149,13 +152,15 @@ public class RoomGenerator : MonoBehaviour
 
         if (!firstTime)
         {
+
+            yield return new WaitForSeconds(2);
             // Place epic portal
             GameObject quad1 = new GameObject("PortalEntry");
-            quad1.transform.position = GameObject.Find("Spawn(Clone)").transform.Find("Pit (3)").transform.position;
+            quad1.transform.position = new Vector3(0, 65, 0);
             quad1.transform.Rotate(-90, 0, 0);
             GameObject quad2 = new GameObject("PortalExit");
-            quad2.transform.position = GameObject.Find("Pit").transform.Find("Cube (2)").position + Vector3.up;
-            quad2.transform.Rotate(-90, 0, 0);
+            quad2.transform.position = GameObject.Find("Pit").transform.Find("Cube (2)").position + Vector3.up * 4;
+            quad2.transform.Rotate(90, 0, 0);
 
             Portal portal1 = quad1.AddComponent<Portal>();
             portal1.shape = new PlaneShape { width = 10, height = 10 };
@@ -167,15 +172,15 @@ public class RoomGenerator : MonoBehaviour
             portal1.clippingMethod = PortalClippingMethod.Default;
             portal1.maxRecursions = 3;
             portal1.renderSettings = PortalSideFlags.Enter | PortalSideFlags.Exit | PortalSideFlags.None;
-            portal1.useFogEnter = true;
+            portal1.useFogEnter = true; 
             portal1.useFogExit = true;
             portal1.canSeePortalLayer = true;
 
             PortalIdentifier portalIdent = quad2.AddComponent<PortalIdentifier>();
             portalIdent.isTraversable = true;
             yield return new WaitForEndOfFrame();
-            portal1.onExitTravel = new UnityEventPortalTravel();
-            portal1.onExitTravel.AddListener((IP, D) =>
+            portal1.onEntryTravel = new UnityEventPortalTravel();
+            portal1.onEntryTravel.AddListener((IP, D) =>
             {
                 if (IP.travellerType == PortalTravellerType.PLAYER)
                 {
@@ -183,7 +188,11 @@ public class RoomGenerator : MonoBehaviour
                 }
             });
 
-            StartCoroutine(StartThingggg(quad1, quad2));
+            //StartCoroutine(StartThingggg(quad1, quad2));
+        }
+        else
+        {
+            canDoTheErrorRoom = true;
         }
     }
 
@@ -227,6 +236,7 @@ public class RoomGenerator : MonoBehaviour
         MusicManager.Instance.battleTheme.clip = UnCalmMusic[index];
 
         MusicManager.Instance.StartMusic();
+        canDoTheErrorRoom = true;
     }
 
     // ─── Exit helpers ────────────────────────────────────────────────────────
@@ -359,13 +369,6 @@ public class RoomGenerator : MonoBehaviour
 
         placedRooms[gridPos] = room;
         path.Add(gridPos);
-
-        if (isStart)
-        {
-            var player = NewMovement.Instance;
-            if (player != null)
-                player.transform.position = worldPos + Vector3.up * 2f;
-        }
     }
 
     // ─── Special rooms ────────────────────────────────────────────────────────
@@ -799,6 +802,7 @@ public class RoomGenerator : MonoBehaviour
         if (Time.time < _nextActivationCheck) return;
         _nextActivationCheck = Time.time + ActivationCheckInterval;
         UpdateRoomActivation();
+        CheckOutOfBounds();
     }
 
     void UpdateRoomActivation()
@@ -807,19 +811,84 @@ public class RoomGenerator : MonoBehaviour
         if (player == null) return;
 
         Vector2Int playerGrid = WorldToGrid(player.transform.position);
+        Vector2Int startGrid = path.Count > 0 ? path[0] : Vector2Int.zero;
 
         foreach (var kvp in placedRooms)
         {
             if (kvp.Value == null) continue;
 
+            // The start room is always kept active regardless of player distance.
+            bool isStartRoom = kvp.Key == startGrid;
+
             int manhattanDist = Mathf.Abs(kvp.Key.x - playerGrid.x)
                               + Mathf.Abs(kvp.Key.y - playerGrid.y);
 
-            bool shouldBeActive = manhattanDist <= activationRadius;
+            bool shouldBeActive = isStartRoom || manhattanDist <= activationRadius;
 
             if (kvp.Value.gameObject.activeSelf != shouldBeActive)
                 kvp.Value.gameObject.SetActive(shouldBeActive);
         }
+    }
+
+    // ─── Out-of-bounds recovery ───────────────────────────────────────────────
+
+    private const float ErrorRoomRadius = 100f;
+    private bool _isTeleportingToErrorRoom = false;
+
+    void CheckOutOfBounds()
+    {
+        var player = NewMovement.Instance;
+        if (player == null) return;
+        if (_isTeleportingToErrorRoom) return;
+
+        Vector2Int playerGrid = WorldToGrid(player.transform.position);
+
+        // Player is still inside a valid room — nothing to do.
+        if (placedRooms.ContainsKey(playerGrid)) return;
+
+        // Player is OOB. Check if they're already near the ErrorRoom — if so, leave them alone.
+        GameObject errorRoom = GameObject.Find("ErrorRoom");
+        if (errorRoom != null)
+        {
+            float dist = Vector3.Distance(player.transform.position, errorRoom.transform.position);
+            if (dist <= ErrorRoomRadius) return;
+        }
+        if (!canDoTheErrorRoom) return;
+        Debug.LogWarning($"[RoomGenerator] Player is out of bounds at grid {playerGrid} " +
+                         $"(world {player.transform.position}). Teleporting to ErrorRoom.");
+        TeleportPlayerToErrorRoom(player, errorRoom);
+    }
+
+    void TeleportPlayerToErrorRoom(NewMovement player, GameObject errorRoom = null)
+    {
+        if (errorRoom == null) errorRoom = GameObject.Find("ErrorRoom");
+        if (errorRoom == null)
+        {
+            Debug.LogError("[RoomGenerator] Could not find a GameObject named 'ErrorRoom' to teleport the player to!");
+            return;
+        }
+
+        _isTeleportingToErrorRoom = true;
+
+        player.transform.position = errorRoom.transform.position;
+
+        // Reset velocity so the player doesn't carry momentum into the error room.
+        if (player.rb != null)
+            player.rb.velocity = Vector3.zero;
+
+        Debug.Log($"[RoomGenerator] Player teleported to ErrorRoom at {errorRoom.transform.position}.");
+
+        foreach (var door in FindObjectsByType<Door>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        {
+            if (door.TryGetComponent<Lockable>(out var lockable))
+            {
+                if (lockable.locked)
+                    continue;
+            }
+            door.Unlock();
+        }
+
+        _isTeleportingToErrorRoom = false;
     }
 
     void EnforceEmptyRoomConnectivity()

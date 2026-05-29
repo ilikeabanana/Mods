@@ -29,11 +29,11 @@ namespace Ultrarogue.Characters
             _items = null;
             hasReset = false;
 
-            pC.globalDamageMult = CreateRandomChange();
-            pC.moveSpeed = CreateRandomChange();
-            pC.maxHealth = CreateRandomChange();
-            pC.attackSpeed = CreateRandomChange();
-            pC.cooldownRed = CreateRandomChange();
+            pC.globalDamageMult = CreateRandomChange(0.5, 1.5);
+            pC.moveSpeed = CreateRandomChange(0.5, 2);
+            pC.maxHealth = CreateRandomChange(0.5, 2);
+            pC.attackSpeed = CreateRandomChange(0.5, 2);
+            pC.cooldownRed = CreateRandomChange(0.25, 2);
         }
         PlayerChange pC = new PlayerChange();
         bool hasReset = false;
@@ -70,10 +70,8 @@ namespace Ultrarogue.Characters
             return result;
         }
 
-        static Change CreateRandomChange()
+        static Change CreateRandomChange(double min = 0.01, double max = 2)
         {
-            double min = 0.01;
-            double max = 2;
             double scaledValue = min + (Rng.NextDouble() * (max - min));
             return new Change(multiplier: (float)scaledValue);
         }

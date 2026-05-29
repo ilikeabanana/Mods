@@ -166,7 +166,12 @@ public class Room : MonoBehaviour
     private const int WaveSize = 12;   // enemies per wave
     private const int WaveResumeBelow = 8;   // wait until alive count drops to this before next wave
     private const float WavePollRate = 0.5f; // how often (seconds) we check alive count between waves
-
+                                             // ── NEW FIELD ─────────────────────────────────────────────────────────────
+    private readonly List<GameObject> _pendingActivators = new List<GameObject>();
+    // ── NEW FIELDS ────────────────────────────────────────────────────────────
+    private bool _activatorsWereUsed = false;
+    private float _activatorSettleUntil = 0f;
+    private const float ActivatorSettleTime = 6f; // tune to longest intro animation
     IEnumerator SpawnEnemies()
     {
         if (SpawnCredits == 0) yield break;
@@ -311,6 +316,7 @@ public class Room : MonoBehaviour
                     GameObject objectToEnable = allObjectActivators[Random.Range(0, allObjectActivators.Count)];
                     objectToEnable.SetActive(true);
                     allObjectActivators.Remove(objectToEnable);
+                    _activatorsWereUsed = true;
                     continue;
                 }
 
@@ -333,6 +339,8 @@ public class Room : MonoBehaviour
 
             waveStart = waveEnd;
         }
+        if (_activatorsWereUsed)
+            _activatorSettleUntil = Time.time + ActivatorSettleTime;
 
         hasSpawnedEnemies = true;
     }
@@ -549,9 +557,14 @@ public class Room : MonoBehaviour
 
         if (!hasSpawnedEnemies || rewardGiven) return;
 
-        EnemyIdentifier[] enemies = GetComponentsInChildren<EnemyIdentifier>();
+        if (!hasSpawnedEnemies || rewardGiven) return;
 
-        EnemyIdentifier[] aliveEnemies = enemies.Where((x) => !x.dead).ToArray();
+        // If activators were used, wait until their intro animations have had
+        // time to finish and register their EnemyIdentifiers.
+        if (_activatorsWereUsed && Time.time < _activatorSettleUntil) return;
+
+        EnemyIdentifier[] enemies = GetComponentsInChildren<EnemyIdentifier>();
+        EnemyIdentifier[] aliveEnemies = enemies.Where(x => !x.dead).ToArray();
 
         if (aliveEnemies.Length == 0)
         {
