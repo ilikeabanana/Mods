@@ -49,11 +49,9 @@ public class RoomGenerator : MonoBehaviour
 
     [Header("Room Size")]
     // One grid cell = one standard (1×1) room = 60 wide × 30 deep in world units.
+    // RoomSizeWidth=2 means a room that is 120 wide (two standard rooms side by side).
     const float roomWidth = 60f;
     const float roomHeight = 30f;
-    // Half those values — the exit on every side sits exactly here in local space.
-    const float TileHalfW = roomWidth * 0.5f;   // 30
-    const float TileHalfH = roomHeight * 0.5f;   // 15
 
     // World-space AABB per placed room (centre + half-extents).
     // Used only for overlap rejection and player-grid lookup.
@@ -251,16 +249,47 @@ public class RoomGenerator : MonoBehaviour
 
     // ─── Exit helpers ────────────────────────────────────────────────────────
 
-    Transform GetExitFacing(Room room, Vector2Int dir)
+    /// <summary>
+    /// Returns the exit on <paramref name="room"/> that faces <paramref name="dir"/>
+    /// AND is closest to the world position of <paramref name="neighborGridPos"/>.
+    /// For 1×1 rooms there is only one exit per direction so it is returned immediately.
+    /// For wider/taller rooms the correct exit is whichever one sits nearest the
+    /// neighbor's centre — e.g. a 2×1 room picks its left top-exit when connecting
+    /// to the room above-left, and its right top-exit for the room above-right.
+    /// </summary>
+    Transform GetExitFacing(Room room, Vector2Int dir, Vector2Int neighborGridPos)
     {
-        if (dir == Vector2Int.up) return room.exitTop;
-        if (dir == Vector2Int.down) return room.exitBottom;
-        if (dir == Vector2Int.left) return room.exitLeft;
-        if (dir == Vector2Int.right) return room.exitRight;
-        return null;
+        List<Transform> exits = room.ExitsForDir(dir);
+        if (exits.Count == 0) return null;
+        if (exits.Count == 1) return exits[0];
+
+        // Pick the exit whose world position is closest to the neighbour's centre.
+        Vector3 neighborCentre = new Vector3(
+            neighborGridPos.x * roomWidth,
+            0f,
+            neighborGridPos.y * roomHeight
+        );
+
+        Transform best = null;
+        float bestDist = float.MaxValue;
+        foreach (var t in exits)
+        {
+            if (t == null) continue;
+            float d = Vector3.Distance(
+                new Vector3(t.position.x, 0f, t.position.z),
+                new Vector3(neighborCentre.x, 0f, neighborCentre.z)
+            );
+            if (d < bestDist) { bestDist = d; best = t; }
+        }
+        return best;
     }
 
-    /// <summary>Returns true when the room (or prefab) has a non-null exit in <paramref name="dir"/>.</summary>
+    // Overload for cases where we don't care which specific neighbour — just need
+    // to know if ANY exit exists in that direction (e.g. prefab compatibility checks).
+    Transform GetExitFacing(Room room, Vector2Int dir) =>
+        room.ExitsForDir(dir).Find(t => t != null);
+
+    /// <summary>Returns true when the room (or prefab) has at least one non-null exit in <paramref name="dir"/>.</summary>
     bool RoomHasExit(Room room, Vector2Int dir) => GetExitFacing(room, dir) != null;
 
     /// <summary>
@@ -280,8 +309,8 @@ public class RoomGenerator : MonoBehaviour
     /// </summary>
     bool WorldOverlapsClear(Vector2Int gridPos, Room prefab)
     {
-        float hw = prefab.RoomSizeWidth * TileHalfW - 0.5f;
-        float hd = prefab.RoomSizeHeight * TileHalfH - 0.5f;
+        float hw = prefab.RoomSizeWidth * roomWidth * 0.5f - 0.5f;
+        float hd = prefab.RoomSizeHeight * roomHeight * 0.5f - 0.5f;
 
         // The new room would sit at this world centre (same formula as PlaceRoom).
         Vector3 newCentre = new Vector3(gridPos.x * roomWidth, 0f, gridPos.y * roomHeight);
@@ -334,8 +363,9 @@ public class RoomGenerator : MonoBehaviour
             Vector2Int neighborPos = gridPos + dir;
             if (!placedRooms.TryGetValue(neighborPos, out Room neighbor)) continue;
 
-            Transform neighborExit = GetExitFacing(neighbor, -dir);
-            Transform myExit = GetExitFacing(room, dir);
+            // Get the specific exits that will connect (chosen by proximity to each other's centre).
+            Transform neighborExit = GetExitFacing(neighbor, -dir, gridPos);
+            Transform myExit = GetExitFacing(room, dir, neighborPos);
 
             if (neighborExit == null || myExit == null) continue;
 
@@ -408,8 +438,8 @@ public class RoomGenerator : MonoBehaviour
 
         roomBounds[gridPos] = (
             room.transform.position,
-            room.RoomSizeWidth * TileHalfW,
-            room.RoomSizeHeight * TileHalfH
+            room.RoomSizeWidth * roomWidth * 0.5f,
+            room.RoomSizeHeight * roomHeight * 0.5f
         );
 
         placedRooms[gridPos] = room;
@@ -586,8 +616,8 @@ public class RoomGenerator : MonoBehaviour
 
         roomBounds[pos] = (
             room.transform.position,
-            room.RoomSizeWidth * TileHalfW,
-            room.RoomSizeHeight * TileHalfH
+            room.RoomSizeWidth * roomWidth * 0.5f,
+            room.RoomSizeHeight * roomHeight * 0.5f
         );
 
         placedRooms[pos] = room;
@@ -702,8 +732,8 @@ public class RoomGenerator : MonoBehaviour
 
         roomBounds[bossPos] = (
             bossRoom.transform.position,
-            bossRoom.RoomSizeWidth * TileHalfW,
-            bossRoom.RoomSizeHeight * TileHalfH
+            bossRoom.RoomSizeWidth * roomWidth * 0.5f,
+            bossRoom.RoomSizeHeight * roomHeight * 0.5f
         );
 
         placedRooms[bossPos] = bossRoom;
@@ -784,10 +814,9 @@ public class RoomGenerator : MonoBehaviour
                 Vector2Int neighborPos = pos + dir;
                 if (!placedRooms.TryGetValue(neighborPos, out Room neighbor)) continue;
 
-                Transform myExit = GetExitFacing(room, dir);
-                Transform neighborExit = GetExitFacing(neighbor, -dir);
+                Transform myExit = GetExitFacing(room, dir, neighborPos);
+                Transform neighborExit = GetExitFacing(neighbor, -dir, pos);
 
-                // Both exits must exist and be at the same Y level.
                 if (myExit == null || neighborExit == null) continue;
                 if (Mathf.Abs(myExit.position.y - neighborExit.position.y) <= 0.1f)
                     validConnections.Add((pos, dir));
@@ -800,25 +829,26 @@ public class RoomGenerator : MonoBehaviour
             Vector2Int pos = kvp.Key;
             Room room = kvp.Value;
 
-            HandleExit(room, pos, Vector2Int.up, room.exitTop);
-            HandleExit(room, pos, Vector2Int.down, room.exitBottom);
-            HandleExit(room, pos, Vector2Int.left, room.exitLeft);
-            HandleExit(room, pos, Vector2Int.right, room.exitRight);
+            foreach (var dir in directions)
+            {
+                Vector2Int neighborPos = pos + dir;
+                foreach (var exit in room.ExitsForDir(dir))
+                    HandleExit(room, pos, dir, neighborPos, exit);
+            }
         }
 
         if (MinimapUI.Instance != null)
             MinimapUI.Instance.BuildMinimap(placedRooms, validConnections);
     }
 
-    void HandleExit(Room room, Vector2Int pos, Vector2Int dir, Transform exit)
+    void HandleExit(Room room, Vector2Int pos, Vector2Int dir, Vector2Int neighborPos, Transform exit)
     {
         if (exit == null) return;
 
-        Vector2Int neighborPos = pos + dir;
-
         if (placedRooms.TryGetValue(neighborPos, out Room neighbor))
         {
-            Transform neighborExit = GetExitFacing(neighbor, -dir);
+            // Pick the neighbor's exit that is closest to this specific exit.
+            Transform neighborExit = GetExitFacing(neighbor, -dir, pos);
 
             if (neighborExit == null)
             {

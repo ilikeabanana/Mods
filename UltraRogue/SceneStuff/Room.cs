@@ -30,10 +30,32 @@ public class Room : MonoBehaviour
     public Vector2Int position;
     public float spawnChance;
 
-    public Transform exitLeft;
-    public Transform exitRight;
-    public Transform exitTop;
-    public Transform exitBottom;
+    // Exits per direction.  Assign in the Inspector.
+    // A 1×1 room has 1 entry per list.  A 2×1 room has 2 in exitsTop / exitsBottom
+    // (one per 60-unit tile along that axis) and 1 each in exitsLeft / exitsRight.
+    // Order them left-to-right (for Top/Bottom) or bottom-to-top (for Left/Right)
+    // in the Inspector so index 0 is always the leftmost / bottommost exit.
+    public List<Transform> exitsLeft = new List<Transform>();
+    public List<Transform> exitsRight = new List<Transform>();
+    public List<Transform> exitsTop = new List<Transform>();
+    public List<Transform> exitsBottom = new List<Transform>();
+
+    // ── Convenience accessors kept for code that still needs a single exit ────
+    // These return the first (and usually only) exit in that list.
+    public Transform exitLeft => exitsLeft.Count > 0 ? exitsLeft[0] : null;
+    public Transform exitRight => exitsRight.Count > 0 ? exitsRight[0] : null;
+    public Transform exitTop => exitsTop.Count > 0 ? exitsTop[0] : null;
+    public Transform exitBottom => exitsBottom.Count > 0 ? exitsBottom[0] : null;
+
+    /// <summary>Returns the exit list for a given grid direction.</summary>
+    public List<Transform> ExitsForDir(Vector2Int dir)
+    {
+        if (dir == Vector2Int.left) return exitsLeft;
+        if (dir == Vector2Int.right) return exitsRight;
+        if (dir == Vector2Int.up) return exitsTop;
+        if (dir == Vector2Int.down) return exitsBottom;
+        return new List<Transform>();
+    }
 
     public int SpawnCredits = 0;
 
@@ -62,13 +84,13 @@ public class Room : MonoBehaviour
     public static bool isFighting = false;
 
     [Header("Room sizes")]
-    public int RoomSizeWidth = 2;
-    public int RoomSizeHeight = 1; // ROOM SIZES!!!
+    public int RoomSizeWidth = 1;
+    public int RoomSizeHeight = 1; // ROOM SIZES!!! (1×1 = standard 60×30 room)
 
     void OnGizmosDraw()
     {
         Gizmos.color = Color.cyan;
-        Gizmos.DrawWireCube(transform.position, new Vector3(RoomSizeWidth, 100, RoomSizeHeight));
+        Gizmos.DrawWireCube(transform.position, new Vector3(RoomSizeWidth * 60f, 100, RoomSizeHeight * 30f));
     }
 
     static bool HasAnyWeaponsThatCanBreakThroughGlass()
@@ -523,8 +545,13 @@ public class Room : MonoBehaviour
 
     void BlockExitsWithObstacles()
     {
-        Transform[] exits = { exitLeft, exitRight, exitTop, exitBottom };
-        foreach (var exit in exits)
+        var allExits = new List<Transform>();
+        allExits.AddRange(exitsLeft);
+        allExits.AddRange(exitsRight);
+        allExits.AddRange(exitsTop);
+        allExits.AddRange(exitsBottom);
+
+        foreach (var exit in allExits)
         {
             if (exit == null) continue;
             var obs = exit.gameObject.GetComponent<NavMeshObstacle>()
@@ -634,7 +661,6 @@ public class Room : MonoBehaviour
             {
                 Vector3 itemPos = spawnPoints[Random.Range(0, spawnPoints.Count)].position;
                 GameObject plc = new GameObject("ItemDropAnchor");
-                plc.transform.parent = transform;
                 plc.transform.position = itemPos;
                 StartCoroutine(spawnItem(plc.transform));
             }
@@ -823,8 +849,8 @@ public class KeepInBoundsRoom : MonoBehaviour
     // is always safely on the NavMesh bake.
     private const float BoundsShrink = 5f;
 
-    float XLimit => RoomInside != null ? RoomInside.RoomSizeWidth * 30f : 60f;
-    float ZLimit => RoomInside != null ? RoomInside.RoomSizeHeight * 30f : 30f;
+    float XLimit => RoomInside != null ? RoomInside.RoomSizeWidth * 60f : 25f;
+    float ZLimit => RoomInside != null ? RoomInside.RoomSizeHeight * 30f : 10f;
 
     // We count *consecutive* frames out-of-bounds.
     // Resetting on re-entry let enemies oscillate forever in the old code.

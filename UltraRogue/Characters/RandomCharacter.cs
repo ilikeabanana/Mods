@@ -63,6 +63,11 @@ namespace Ultrarogue.Characters
             for (int i = 0; i < 2; i++)
             {
                 var weapon = allWeapons[Rng.Next(allWeapons.Count)];
+                while(result.Any((x) => x.weapon == weapon))
+                {
+                    weapon = allWeapons[Rng.Next(allWeapons.Count)];
+                }
+                
                 var variant = allVariants[Rng.Next(allVariants.Count)];
                 bool alt = AWeapon.CanBeAlternate(weapon) && Rng.NextDouble() <= 0.5;
                 result.Add(new AWeapon(weapon, variant, alt));
