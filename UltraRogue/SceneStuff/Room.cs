@@ -61,14 +61,29 @@ public class Room : MonoBehaviour
 
     public static bool isFighting = false;
 
+    [Header("Room sizes")]
+    public int RoomSizeWidth = 2;
+    public int RoomSizeHeight = 1; // ROOM SIZES!!!
+
+    void OnGizmosDraw()
+    {
+        Gizmos.color = Color.cyan;
+        Gizmos.DrawWireCube(transform.position, new Vector3(RoomSizeWidth, 100, RoomSizeHeight));
+    }
+
     static bool HasAnyWeaponsThatCanBreakThroughGlass()
     {
+        foreach (var weapon in Plugin.weapons)
+        {
+            Plugin.Logger.LogInfo("User has: " + weapon.ToString());
+        }
+
         return Plugin.weapons.Any(w =>
             (w.weapon == Weapon.Revolver && (w.variant == Variant.Blue || w.variant == Variant.Red)) ||
             (w.weapon == Weapon.Shotgun && (w.variant == Variant.Blue || w.variant == Variant.Green)) ||
             (w.weapon == Weapon.Railcannon && (w.variant == Variant.Blue || w.variant == Variant.Red)) ||
             (w.weapon == Weapon.RocketLauncher) ||
-            (w.weapon == Weapon.Arm && w.variant == Variant.Red)
+            (w.weapon == Weapon.Arm && w.variant == Variant.Green)
         );
     }
 
@@ -82,7 +97,7 @@ public class Room : MonoBehaviour
 
             case RoomType.Normal:
                 int c = Plugin.GetItemCount("Dual Gun");
-                if(c > 0)
+                if (c > 0)
                     if (Plugin.canExecute(Plugin.LogarithmicChance(c - 1, 0.15f, 0.25f, 0.9f) * 100, ""))
                     {
                         MonoSingleton<CameraController>.Instance.CameraShake(0.35f);
@@ -145,7 +160,7 @@ public class Room : MonoBehaviour
         }
     }
 
-    
+
 
     private int playerHealthAtFightStart = -1;
 
@@ -546,7 +561,7 @@ public class Room : MonoBehaviour
     {
         foreach (var zone in GetComponentsInChildren<DeathZone>())
         {
-            if(zone.respawnTarget.y == 0)
+            if (zone.respawnTarget.y == 0)
                 zone.respawnTarget = spawnPoints[Random.Range(0, spawnPoints.Count)].position;
         }
         if (tookNoDamage && hasSpawnedEnemies)
@@ -619,6 +634,7 @@ public class Room : MonoBehaviour
             {
                 Vector3 itemPos = spawnPoints[Random.Range(0, spawnPoints.Count)].position;
                 GameObject plc = new GameObject("ItemDropAnchor");
+                plc.transform.parent = transform;
                 plc.transform.position = itemPos;
                 StartCoroutine(spawnItem(plc.transform));
             }
@@ -678,12 +694,12 @@ public class Room : MonoBehaviour
             pedestalItem = Addressables.LoadAssetAsync<GameObject>("Assets/Modding/RogueMode/Draghtnim/Pedestal.prefab").WaitForCompletion();
         ItemPickup.CreatePickup(Plugin.GiveRandomItem(), plc);
         Instantiate(AssetsManager.spawnEffect, plc.position, Quaternion.identity);
-        if(pedestalItem != null)
+        if (pedestalItem != null)
         {
             GameObject ped = Instantiate(pedestalItem, plc.transform.position + Vector3.up, Quaternion.identity);
             ped.transform.parent = transform;
         }
-           
+
     }
     IEnumerator SpawnPortalWhenClear()
     {
@@ -803,10 +819,12 @@ public class KeepInBoundsRoom : MonoBehaviour
     private NavMeshAgent _agent;
     private Rigidbody _rb;
 
-    // Slightly tighter than the room's actual wall (60/30) so the
-    // clamped position is always safely on the NavMesh bake.
-    private const float XLimit = 55f;
-    private const float ZLimit = 25f;
+    // Slightly tighter than the room's actual walls so the clamped position
+    // is always safely on the NavMesh bake.
+    private const float BoundsShrink = 5f;
+
+    float XLimit => RoomInside != null ? RoomInside.RoomSizeWidth * 30f : 60f;
+    float ZLimit => RoomInside != null ? RoomInside.RoomSizeHeight * 30f : 30f;
 
     // We count *consecutive* frames out-of-bounds.
     // Resetting on re-entry let enemies oscillate forever in the old code.

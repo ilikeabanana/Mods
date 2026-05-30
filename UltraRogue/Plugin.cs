@@ -411,6 +411,7 @@ namespace Ultrarogue
 
         void Update()
         {
+            /*
             if (Input.GetKeyDown(KeyCode.X))
             {
                 Transform cam = CameraController.Instance.transform;
@@ -449,7 +450,7 @@ namespace Ultrarogue
 
                     ItemPickup.CreatePickup(items[i], obj.transform);
                 }
-            }
+            }*/
 #if RUNTIME_ROOMS
             if (Input.GetKeyDown(KeyCode.F5))
             {
@@ -1078,6 +1079,9 @@ namespace Ultrarogue
     public class PlayerPatches
     {
 
+        static Dictionary<Slider, float> sliderPercentageMax = new Dictionary<Slider, float>();
+        static Dictionary<Slider, float> sliderPercentageMin = new Dictionary<Slider, float>();
+
         [HarmonyPatch(typeof(HealthBar), nameof(HealthBar.Update))]
         [HarmonyPrefix]
         public static void DisplayCorrectMaxHP(HealthBar __instance)
@@ -1086,23 +1090,31 @@ namespace Ultrarogue
             {
                 foreach (Slider slider in __instance.hpSliders)
                 {
-                    if (slider.gameObject.name.StartsWith("Supercharge"))
-                    {
-                        if (slider.maxValue != Plugin.MaxHealth * 2)
-                        {
-                            Plugin.Logger.LogInfo($"Applying thing to {slider.gameObject.name} that has max of {slider.maxValue}");
-                            slider.maxValue = Plugin.MaxHealth * 2;
-                            slider.minValue = Plugin.MaxHealth;
-                        }
-                    }
-                    else
-                    {
-                        if (slider.maxValue != Plugin.MaxHealth)
-                        {
-                            Plugin.Logger.LogInfo($"Applying thing to {slider.gameObject.name} that has max of {slider.maxValue}");
-                            slider.maxValue = Plugin.MaxHealth;
-                        }
-                    }
+                    if (!sliderPercentageMax.ContainsKey(slider))
+                        sliderPercentageMax[slider] = slider.maxValue / 100; // 100 being the default value
+                    if (!sliderPercentageMin.ContainsKey(slider))
+                        sliderPercentageMin[slider] = slider.minValue / 100; // 100 being the default value
+
+                    slider.maxValue = sliderPercentageMax[slider] * Plugin.MaxHealth;
+                    slider.minValue = sliderPercentageMin[slider] * Plugin.MaxHealth;
+
+                    //if (slider.gameObject.name.StartsWith("Supercharge"))
+                    //{
+                    //    if (slider.maxValue != Plugin.MaxHealth * 2)
+                    //    {
+                    //        Plugin.Logger.LogInfo($"Applying thing to {slider.gameObject.name} that has max of {slider.maxValue}");
+                    //        slider.maxValue = Plugin.MaxHealth * 2;
+                    //        slider.minValue = Plugin.MaxHealth;
+                    //    }
+                    //}
+                    //else
+                    //{
+                    //    if (slider.maxValue != Plugin.MaxHealth)
+                    //    {
+                    //        Plugin.Logger.LogInfo($"Applying thing to {slider.gameObject.name} that has max of {slider.maxValue}");
+                    //        slider.maxValue = Plugin.MaxHealth;
+                    //    }
+                    //}
                     
                 }
             }
@@ -1110,10 +1122,13 @@ namespace Ultrarogue
             {
                 foreach (Slider slider2 in __instance.afterImageSliders)
                 {
-                    if (slider2.maxValue != Plugin.MaxHealth)
-                    {
-                        slider2.maxValue = Plugin.MaxHealth;
-                    }
+                    if (!sliderPercentageMax.ContainsKey(slider2))
+                        sliderPercentageMax[slider2] = slider2.maxValue / 100; // 100 being the default value
+                    if (!sliderPercentageMin.ContainsKey(slider2))
+                        sliderPercentageMin[slider2] = slider2.minValue / 100; // 100 being the default value
+
+                    slider2.maxValue = sliderPercentageMax[slider2] * Plugin.MaxHealth;
+                    slider2.minValue = sliderPercentageMin[slider2] * Plugin.MaxHealth;
                 }
             }
         }
@@ -1373,7 +1388,7 @@ namespace Ultrarogue
 
             public static float ModifyDelta(float maxDelta)
             {
-                return cooldownReduction.CalculateChanges(maxDelta);
+                return AttackSpeed.CalculateChanges(maxDelta);
             }
         }
         [HarmonyPatch(typeof(RocketLauncher), nameof(RocketLauncher.Update))]

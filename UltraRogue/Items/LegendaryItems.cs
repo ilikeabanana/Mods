@@ -237,7 +237,7 @@ namespace Ultrarogue.Items
 
         private const float BaseDamage = 3f;
         private const float DamagePerHundred = 1f;
-        private const float MaxDamageMultiplier = 75f;
+        private const float MaxDamageMultiplier = 7.5f;
 
         // GLOBAL accumulated damage
         private static float accumulatedDamage = 0f;
@@ -250,6 +250,7 @@ namespace Ultrarogue.Items
 
                 if (count <= 0) return;
                 if (eid.hitter == "fire") return;
+                if (eid.hitter == "godseye") return;
 
                 // Add damage dealt globally
                 accumulatedDamage += dmg / Plugin.globalDamageMult.CalculateChanges(1f);
@@ -262,7 +263,7 @@ namespace Ultrarogue.Items
 
                 procChance = Mathf.Min(procChance, MaxChance);
 
-                if (!Plugin.canExecute(procChance, ""))
+                if (!Plugin.canExecute(procChance, eid.hitter))
                     return;
 
                 float damageMultiplier =
@@ -280,7 +281,6 @@ namespace Ultrarogue.Items
                 {
                     insig.target = new EnemyTarget(eid);
                     insig.damage = Mathf.RoundToInt(damageMultiplier);
-                    insig.predictive = true;
                     insig.windUpSpeedMultiplier = 2;
                 }
                 virtueBeam.name += "God";
@@ -313,6 +313,7 @@ namespace Ultrarogue.Items
                 if (enemyIdentifier != null && other.TryGetComponent<Rigidbody>(out rigidbody) && !alreadyHits[__instance].Contains(enemyIdentifier))
                 {
                     rigidbody.AddExplosionForce(1000f, __instance.transform.position, 10f);
+                    enemyIdentifier.hitter = "godseye";
                     enemyIdentifier.SimpleDamage((float)__instance.damage);
                     alreadyHits[__instance].Add(enemyIdentifier);
                 }
