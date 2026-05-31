@@ -74,30 +74,23 @@ public class Room : MonoBehaviour
     /// <summary>
     /// Dynamically fetches the correct exit transform based on which grid cell is being checked.
     /// </summary>
-    public Transform GetExit(Vector2Int cellPos, Vector2Int direction)
+    public Transform GetExit(Vector2Int direction)
     {
-        int localX = cellPos.x - position.x;
-        int localY = cellPos.y - position.y;
-
         if (direction == Vector2Int.up)
         {
-            if (exitsTop != null && localX >= 0 && localX < exitsTop.Length) return exitsTop[localX];
-            return exitTop;
+            return exitsTop[0];
         }
         if (direction == Vector2Int.down)
         {
-            if (exitsBottom != null && localX >= 0 && localX < exitsBottom.Length) return exitsBottom[localX];
-            return exitBottom;
+            return exitsBottom[0];
         }
         if (direction == Vector2Int.left)
         {
-            if (exitsLeft != null && localY >= 0 && localY < exitsLeft.Length) return exitsLeft[localY];
-            return exitLeft;
+            return exitsLeft[0];
         }
         if (direction == Vector2Int.right)
         {
-            if (exitsRight != null && localY >= 0 && localY < exitsRight.Length) return exitsRight[localY];
-            return exitRight;
+            return exitsRight[0];
         }
         return null;
     }

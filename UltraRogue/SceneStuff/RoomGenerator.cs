@@ -53,7 +53,7 @@ public class RoomGenerator : MonoBehaviour
 
     [Header("Performance")]
     [Tooltip("How many grid cells away from the player rooms stay active (1 = current + immediate neighbors).")]
-    int activationRadius = 2;
+    int activationRadius = 50;
 
     private bool _generationComplete = false;
     private float _nextActivationCheck = 0f;
@@ -110,7 +110,7 @@ public class RoomGenerator : MonoBehaviour
         );
 
         Vector2Int current = Vector2Int.zero;
-        PlaceRoom(current, isStart: true);
+        PlaceRoom(current, isStart: true, direction: Vector2Int.zero);
 
         int placed = 1;
         int safetyBreak = 0;
@@ -132,7 +132,7 @@ public class RoomGenerator : MonoBehaviour
                 List<Room> compatible = CompatiblePrefabs(-dir);
                 if (compatible.Count == 0) break;
 
-                PlaceRoom(next, prefabPool: compatible);
+                PlaceRoom(next, prefabPool: compatible, direction: dir);
                 current = next;
                 placed++;
             }
@@ -243,11 +243,8 @@ public class RoomGenerator : MonoBehaviour
 
     Transform GetExitFacing(Room room, Vector2Int dir)
     {
-        if (dir == Vector2Int.up) return room.exitTop;
-        if (dir == Vector2Int.down) return room.exitBottom;
-        if (dir == Vector2Int.left) return room.exitLeft;
-        if (dir == Vector2Int.right) return room.exitRight;
-        return null;
+        Plugin.Logger.LogInfo($"Getting exit for room {room.gameObject.name}");
+        return room.GetExit(dir);
     }
 
     /// <summary>Returns true when the room (or prefab) has a non-null exit in <paramref name="dir"/>.</summary>
@@ -320,7 +317,7 @@ public class RoomGenerator : MonoBehaviour
     ///   Optional filtered list of prefabs to draw from (e.g. those with a specific
     ///   required exit). Falls back to <see cref="roomPrefabs"/> when null.
     /// </param>
-    void PlaceRoom(Vector2Int gridPos, bool isStart = false, List<Room> prefabPool = null)
+    void PlaceRoom(Vector2Int gridPos, Vector2Int direction, bool isStart = false, List<Room> prefabPool = null)
     {
         Room prefab;
 
@@ -352,7 +349,6 @@ public class RoomGenerator : MonoBehaviour
         }
 
         Vector3 worldPos = new Vector3(gridPos.x * roomWidth, 0f, gridPos.y * roomHeight);
-
         Room room = Instantiate(prefab, worldPos, Quaternion.identity);
         room.position = gridPos;
         room.roomType = RoomType.Normal;
