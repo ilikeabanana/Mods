@@ -30,37 +30,21 @@ public class Room : MonoBehaviour
     public Vector2Int position;
     public float spawnChance;
 
-    // Exits per direction.  Assign in the Inspector.
-    // A 1×1 room has 1 entry per list.  A 2×1 room has 2 in exitsTop / exitsBottom
-    // (one per 60-unit tile along that axis) and 1 each in exitsLeft / exitsRight.
-    // Order them left-to-right (for Top/Bottom) or bottom-to-top (for Left/Right)
-    // in the Inspector so index 0 is always the leftmost / bottommost exit.
-    public List<Transform> exitsLeft = new List<Transform>();
-    public List<Transform> exitsRight = new List<Transform>();
-    public List<Transform> exitsTop = new List<Transform>();
-    public List<Transform> exitsBottom = new List<Transform>();
+    [Header("Multi-Tile Exit Arrays")]
+    [Tooltip("Size must equal RoomSizeHeight")] public Transform[] exitsLeft;
+    [Tooltip("Size must equal RoomSizeHeight")] public Transform[] exitsRight;
+    [Tooltip("Size must equal RoomSizeWidth")] public Transform[] exitsTop;
+    [Tooltip("Size must equal RoomSizeWidth")] public Transform[] exitsBottom;
 
-    // ── Convenience accessors kept for code that still needs a single exit ────
-    // These return the first (and usually only) exit in that list.
-    public Transform exitLeft => exitsLeft.Count > 0 ? exitsLeft[0] : null;
-    public Transform exitRight => exitsRight.Count > 0 ? exitsRight[0] : null;
-    public Transform exitTop => exitsTop.Count > 0 ? exitsTop[0] : null;
-    public Transform exitBottom => exitsBottom.Count > 0 ? exitsBottom[0] : null;
-
-    /// <summary>Returns the exit list for a given grid direction.</summary>
-    public List<Transform> ExitsForDir(Vector2Int dir)
-    {
-        if (dir == Vector2Int.left) return exitsLeft;
-        if (dir == Vector2Int.right) return exitsRight;
-        if (dir == Vector2Int.up) return exitsTop;
-        if (dir == Vector2Int.down) return exitsBottom;
-        return new List<Transform>();
-    }
+    [Header("Legacy Single Exits (Fallback)")]
+    public Transform exitLeft;
+    public Transform exitRight;
+    public Transform exitTop;
+    public Transform exitBottom;
 
     public int SpawnCredits = 0;
 
     public List<Transform> spawnPoints = new List<Transform>();
-
 
     public RoomType roomType = RoomType.Normal;
 
@@ -85,12 +69,43 @@ public class Room : MonoBehaviour
 
     [Header("Room sizes")]
     public int RoomSizeWidth = 1;
-    public int RoomSizeHeight = 1; // ROOM SIZES!!! (1×1 = standard 60×30 room)
+    public int RoomSizeHeight = 1;
+
+    /// <summary>
+    /// Dynamically fetches the correct exit transform based on which grid cell is being checked.
+    /// </summary>
+    public Transform GetExit(Vector2Int cellPos, Vector2Int direction)
+    {
+        int localX = cellPos.x - position.x;
+        int localY = cellPos.y - position.y;
+
+        if (direction == Vector2Int.up)
+        {
+            if (exitsTop != null && localX >= 0 && localX < exitsTop.Length) return exitsTop[localX];
+            return exitTop;
+        }
+        if (direction == Vector2Int.down)
+        {
+            if (exitsBottom != null && localX >= 0 && localX < exitsBottom.Length) return exitsBottom[localX];
+            return exitBottom;
+        }
+        if (direction == Vector2Int.left)
+        {
+            if (exitsLeft != null && localY >= 0 && localY < exitsLeft.Length) return exitsLeft[localY];
+            return exitLeft;
+        }
+        if (direction == Vector2Int.right)
+        {
+            if (exitsRight != null && localY >= 0 && localY < exitsRight.Length) return exitsRight[localY];
+            return exitRight;
+        }
+        return null;
+    }
 
     void OnGizmosDraw()
     {
         Gizmos.color = Color.cyan;
-        Gizmos.DrawWireCube(transform.position, new Vector3(RoomSizeWidth * 60f, 100, RoomSizeHeight * 30f));
+        Gizmos.DrawWireCube(transform.position, new Vector3(RoomSizeWidth * 60f, 100f, RoomSizeHeight * 30f));
     }
 
     static bool HasAnyWeaponsThatCanBreakThroughGlass()
@@ -182,11 +197,8 @@ public class Room : MonoBehaviour
         }
     }
 
-
-
     private int playerHealthAtFightStart = -1;
 
-    // Represents a single planned enemy spawn: its type and how many radiance buffs it gets.
     private readonly struct PlannedSpawn
     {
         public readonly EnemyType type;
@@ -198,17 +210,16 @@ public class Room : MonoBehaviour
         }
     }
 
-    // ── Constants you can tune ───────────────────────────────────────────────────
-    private const int WaveThreshold = 28;   // spawn plan size that triggers wave mode
-    private const int WaveSize = 12;   // enemies per wave
-    private const int WaveResumeBelow = 8;   // wait until alive count drops to this before next wave
-    private const float WavePollRate = 0.5f; // how often (seconds) we check alive count between waves
-                                             // ── NEW FIELD ─────────────────────────────────────────────────────────────
+    private const int WaveThreshold = 28;
+    private const int WaveSize = 12;
+    private const int WaveResumeBelow = 8;
+    private const float WavePollRate = 0.5f;
+
     private readonly List<GameObject> _pendingActivators = new List<GameObject>();
-    // ── NEW FIELDS ────────────────────────────────────────────────────────────
     private bool _activatorsWereUsed = false;
     private float _activatorSettleUntil = 0f;
-    private const float ActivatorSettleTime = 6f; // tune to longest intro animation
+    private const float ActivatorSettleTime = 6f;
+
     IEnumerator SpawnEnemies()
     {
         if (SpawnCredits == 0) yield break;
@@ -219,7 +230,6 @@ public class Room : MonoBehaviour
         Plugin.Logger.LogInfo($"Room has {SpawnCredits} spawn credits because difficulty is {RogueDifficultyManager.Instance.Difficulty}");
         isFighting = true;
 
-        // ── Phase 1a: Spend credits, accumulate total counts per enemy type ─────
         var enemyCounts = new Dictionary<EnemyType, int>();
 
         while (SpawnCredits > 0)
@@ -239,7 +249,6 @@ public class Room : MonoBehaviour
             enemyCounts[randomEnemy] += amountToSpawn;
         }
 
-        // ── Phase 1b: Resolve radiance using TOTAL count per type, build spawn list
         var spawnPlan = new List<PlannedSpawn>();
 
         foreach (var kvp in enemyCounts)
@@ -278,7 +287,6 @@ public class Room : MonoBehaviour
 
         Plugin.Logger.LogInfo($"[Room] Spawn plan built: {spawnPlan.Count} enemies total.");
 
-        // ── Phase 2: Spawn ────────────────────────────────────────────────────────
         bool useWaves = spawnPlan.Count >= WaveThreshold;
         if (useWaves)
             Plugin.Logger.LogInfo($"[Room] Large room ({spawnPlan.Count} enemies) — using wave-based spawning.");
@@ -290,8 +298,6 @@ public class Room : MonoBehaviour
 
         while (waveStart < spawnPlan.Count)
         {
-            // In wave mode, wait until the room is thinned enough before each wave
-            // (skip the check for the very first wave so combat starts immediately).
             if (useWaves && waveStart > 0)
             {
                 Plugin.Logger.LogInfo($"[Room] Waiting to spawn wave starting at index {waveStart}…");
@@ -312,8 +318,7 @@ public class Room : MonoBehaviour
 
             for (int spawnedEnemies = waveStart; spawnedEnemies < waveEnd; spawnedEnemies++)
             {
-                // Stagger the first 100 enemies; everything beyond spawns instantly.
-                int localIndex = spawnedEnemies - waveStart; // reset stagger per wave
+                int localIndex = spawnedEnemies - waveStart;
                 if (localIndex < 100)
                 {
                     float delay = localIndex < 25
@@ -382,28 +387,28 @@ public class Room : MonoBehaviour
         hasSpawnedEnemies = true;
     }
 
-    bool IsOutOfBounds(Vector3 worldPosition)
+    public bool IsOutOfBounds(Vector3 worldPosition)
     {
         Vector3 localPos = transform.InverseTransformPoint(worldPosition);
-
-        return localPos.x < -60 || localPos.x > 60 ||
-               localPos.z < -30 || localPos.z > 30;
+        return localPos.x < -60f || localPos.x > (60f * RoomSizeWidth) ||
+               localPos.z < -30f || localPos.z > (30f * RoomSizeHeight);
     }
 
     public static Room getObjectInsideRoom(Vector3 position)
     {
-
-        // Detect room change.
         Vector2Int grid = RoomGenerator.Instance.WorldToGrid(position);
-
         Room[] rooms = FindObjectsByType<Room>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
 
         foreach (Room room in rooms)
         {
-            if (room.position == grid) return room;
+            // Accommodate multi-tile grid occupancy checks
+            if (grid.x >= room.position.x && grid.x < room.position.x + room.RoomSizeWidth &&
+                grid.y >= room.position.y && grid.y < room.position.y + room.RoomSizeHeight)
+            {
+                return room;
+            }
         }
         return null;
-
     }
 
     IEnumerator SpawnBoss()
@@ -427,8 +432,6 @@ public class Room : MonoBehaviour
             {
                 if (bossEntry.prefab == null) continue;
 
-
-
                 Vector3 spawnPos = transform.position + Vector3.up * 1f + new Vector3(UnityEngine.Random.Range(-4f, 4f), 0f, UnityEngine.Random.Range(-4f, 4f));
                 GameObject bossInst = Instantiate(bossEntry.prefab, spawnPos, bossEntry.prefab.transform.rotation);
                 bossInst.transform.parent = transform;
@@ -438,7 +441,6 @@ public class Room : MonoBehaviour
                 if (eid != null)
                 {
                     waveEnemies.Add(eid);
-                    // existing health block:
                     if (bossEntry.healthMod != 0 || bossEntry.healthPerFloorMod != 0 || bossEntry.healthAddition != 0)
                     {
                         Enemy e = FindEnemyComponent(bossInst);
@@ -449,7 +451,6 @@ public class Room : MonoBehaviour
                         e.health = totalHealth;
                         e.originalHealth = totalHealth;
                     }
-
 
                     int floorsForRadiance = Mathf.Max(0, RogueDifficultyManager.Instance.floor - bossEntry.startFloor);
                     int totalRadiance = bossEntry.radianceBuffs
@@ -468,12 +469,10 @@ public class Room : MonoBehaviour
                     {
                         eid.onDeath.AddListener(() =>
                         {
-                            Destroy(bossInst); // Prevent that stupid fucking gabe bug
+                            Destroy(bossInst);
                         });
                     }
                 }
-
-
             }
 
             bool waveAlive = true;
@@ -502,6 +501,7 @@ public class Room : MonoBehaviour
         e = obj.GetComponentInParent<Enemy>();
         return e;
     }
+
     public void CreateDoor(Transform exit)
     {
 #if RUNTIME_ROOMS
@@ -511,14 +511,12 @@ public class Room : MonoBehaviour
         GameObject door = null;
         if (doorPrefab != null) door = Instantiate(doorPrefab, exit.position, exit.rotation * Quaternion.Euler(0, 90, 0), transform);
 
-
         if (door != null)
         {
             door.SetActive(true);
             if (roomType == RoomType.Normal || roomType == RoomType.Boss || roomType == RoomType.Start) return;
             if (Random.value <= 0.75f && Plugin.CurrentDifficulty != 2) return;
             door.GetComponentInChildren<Door>().gameObject.AddComponent<Lockable>();
-
         }
     }
 
@@ -533,6 +531,7 @@ public class Room : MonoBehaviour
 
     public void DisableExit(Transform exit) => exit.gameObject.SetActive(false);
     private readonly List<NavMeshObstacle> _exitObstacles = new();
+
     public void CloseOffRoom()
     {
         foreach (var door in FindObjectsByType<Door>(
@@ -545,11 +544,16 @@ public class Room : MonoBehaviour
 
     void BlockExitsWithObstacles()
     {
-        var allExits = new List<Transform>();
-        allExits.AddRange(exitsLeft);
-        allExits.AddRange(exitsRight);
-        allExits.AddRange(exitsTop);
-        allExits.AddRange(exitsBottom);
+        List<Transform> allExits = new List<Transform>();
+        if (exitsLeft != null) allExits.AddRange(exitsLeft);
+        if (exitsRight != null) allExits.AddRange(exitsRight);
+        if (exitsTop != null) allExits.AddRange(exitsTop);
+        if (exitsBottom != null) allExits.AddRange(exitsBottom);
+
+        if (exitLeft != null) allExits.Add(exitLeft);
+        if (exitRight != null) allExits.Add(exitRight);
+        if (exitTop != null) allExits.Add(exitTop);
+        if (exitBottom != null) allExits.Add(exitBottom);
 
         foreach (var exit in allExits)
         {
@@ -599,10 +603,6 @@ public class Room : MonoBehaviour
 
         if (!hasSpawnedEnemies || rewardGiven) return;
 
-        if (!hasSpawnedEnemies || rewardGiven) return;
-
-        // If activators were used, wait until their intro animations have had
-        // time to finish and register their EnemyIdentifiers.
         if (_activatorsWereUsed && Time.time < _activatorSettleUntil) return;
 
         EnemyIdentifier[] enemies = GetComponentsInChildren<EnemyIdentifier>();
@@ -725,16 +725,14 @@ public class Room : MonoBehaviour
             GameObject ped = Instantiate(pedestalItem, plc.transform.position + Vector3.up, Quaternion.identity);
             ped.transform.parent = transform;
         }
-
     }
+
     IEnumerator SpawnPortalWhenClear()
     {
         GameObject portalPlace = GameObject.Find("PortalPlace");
         if (portalPlace == null) yield break;
 
-        // The portal quad is 10x10, rotated flat on XZ — half-extent is 5 units per axis.
         const float halfExtent = 5f;
-        // How far above the portal plane we consider the player "on top of it".
         const float aboveThreshold = 4f;
 
         Vector3 portalPos = portalPlace.transform.position;
@@ -762,7 +760,6 @@ public class Room : MonoBehaviour
         }
     }
 
-
     public void CreatePortal()
     {
         GameObject quad1 = new GameObject("PortalEntry");
@@ -787,8 +784,6 @@ public class Room : MonoBehaviour
         portal1.useFogExit = true;
         portal1.canSeePortalLayer = true;
 
-        // quad2 also needs a Portal component so the render system
-        // can resolve GetPortalObject() for the exit handle
         Portal portal2 = quad2.AddComponent<Portal>();
         portal2.shape = new PlaneShape { width = 10, height = 10 };
         portal2.entry = quad1.transform;
@@ -803,7 +798,6 @@ public class Room : MonoBehaviour
         portal2.useFogExit = true;
         portal2.canSeePortalLayer = true;
 
-        // Keep PortalIdentifier on quad2 for traversal detection
         PortalIdentifier portalIdent = quad2.AddComponent<PortalIdentifier>();
         portalIdent.isTraversable = true;
 
@@ -824,10 +818,8 @@ public class Room : MonoBehaviour
                 RoomGenerator.Instance.RegenerateRooms();
                 Destroy(port.gameObject);
             }
-
         });
     }
-
 
     public Vector3 GetOffset(Transform exit)
     {
@@ -845,15 +837,6 @@ public class KeepInBoundsRoom : MonoBehaviour
     private NavMeshAgent _agent;
     private Rigidbody _rb;
 
-    // Slightly tighter than the room's actual walls so the clamped position
-    // is always safely on the NavMesh bake.
-    private const float BoundsShrink = 5f;
-
-    float XLimit => RoomInside != null ? RoomInside.RoomSizeWidth * 60f : 25f;
-    float ZLimit => RoomInside != null ? RoomInside.RoomSizeHeight * 30f : 10f;
-
-    // We count *consecutive* frames out-of-bounds.
-    // Resetting on re-entry let enemies oscillate forever in the old code.
     private int _consecutiveFramesOut;
     private const int MaxFramesOut = 30;
 
@@ -865,16 +848,20 @@ public class KeepInBoundsRoom : MonoBehaviour
         _rb = GetComponent<Rigidbody>() ?? GetComponentInChildren<Rigidbody>();
     }
 
-    // LateUpdate runs AFTER all enemy AI Update() calls this frame,
-    // so we're correcting the final resting position, not an intermediate one.
     void LateUpdate()
     {
         if (RoomInside == null) return;
 
         Vector3 local = RoomInside.transform.InverseTransformPoint(transform.position);
 
-        bool outOfBounds = local.x < -XLimit || local.x > XLimit ||
-                           local.z < -ZLimit || local.z > ZLimit;
+        // Scaled bounds limits checking dynamically via grid configuration sizes
+        float xLimitMin = -55f;
+        float xLimitMax = 55f * RoomInside.RoomSizeWidth;
+        float zLimitMin = -25f;
+        float zLimitMax = 25f * RoomInside.RoomSizeHeight;
+
+        bool outOfBounds = local.x < xLimitMin || local.x > xLimitMax ||
+                           local.z < zLimitMin || local.z > zLimitMax;
 
         if (!outOfBounds)
         {
@@ -888,12 +875,10 @@ public class KeepInBoundsRoom : MonoBehaviour
             return;
         }
 
-        // Clamp to safe zone.
-        local.x = Mathf.Clamp(local.x, -XLimit, XLimit);
-        local.z = Mathf.Clamp(local.z, -ZLimit, ZLimit);
-        Vector3 clamped = RoomInside.transform.position;
+        local.x = Mathf.Clamp(local.x, xLimitMin, xLimitMax);
+        local.z = Mathf.Clamp(local.z, zLimitMin, zLimitMax);
+        Vector3 clampedWorldPos = RoomInside.transform.TransformPoint(local);
 
-        // Kill any physics momentum that would immediately push them back out.
         if (_rb != null && ResetVelocity)
         {
             _rb.velocity = Vector3.zero;
@@ -903,11 +888,11 @@ public class KeepInBoundsRoom : MonoBehaviour
         if (_agent != null && _agent.isActiveAndEnabled)
         {
             _agent.ResetPath();
-            _agent.Warp(clamped); // Warp works off-mesh too, drop the isOnNavMesh check
+            _agent.Warp(clampedWorldPos);
         }
         else
         {
-            transform.position = clamped;
+            transform.position = clampedWorldPos;
         }
     }
 }
