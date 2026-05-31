@@ -124,8 +124,10 @@ public static class SceneLoader
 
         // if the bundle isnt loaded yet then like load it :P oh yea and wait for it to load
         if (!Loaded)
+        {
             Load();
-        yield return new WaitForSeconds(1f); // idk wait a second ig???
+            yield return new WaitForSeconds(1f);
+        }
 
         AssetsManager.weaponMat = Addressables.LoadAssetAsync<Material>("Assets/Modding/RogueMode/WeaponPickup.mat").WaitForCompletion();
 

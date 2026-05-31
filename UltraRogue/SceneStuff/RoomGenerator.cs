@@ -2,8 +2,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using ULTRAKILL.Portal;
 using ULTRAKILL.Portal.Geometry;
 using Ultrarogue;
@@ -18,11 +16,6 @@ public class RoomGenerator : MonoBehaviour
     [Header("Generation Settings")]
     int minRooms = 5;
     int maxRooms = 13;
-    [Header("Forced Room Spawn")]
-    [Tooltip("When >= 0, guarantees roomPrefabs[forceSpawnRoomIndex] is placed as one of the normal rooms. Set to -1 to disable.")]
-    public int forceSpawnRoomIndex = -1;
-    bool _forcedRoomPlaced = false;
-
     [Header("Room Prefabs")]
     [Tooltip("Normal combat room prefabs — one is chosen at random per room.")]
     public List<Room> roomPrefabs = new List<Room>();
@@ -55,15 +48,8 @@ public class RoomGenerator : MonoBehaviour
     public static RoomGenerator Instance { get; private set; }
 
     [Header("Room Size")]
-    // One grid cell = one standard (1×1) room = 60 wide × 30 deep in world units.
-    // RoomSizeWidth=2 means a room that is 120 wide (two standard rooms side by side).
-    const float roomWidth = 60f;
-    const float roomHeight = 30f;
-
-    // World-space AABB per placed room (centre + half-extents).
-    // Used only for overlap rejection and player-grid lookup.
-    readonly Dictionary<Vector2Int, (Vector3 centre, float hx, float hz)> roomBounds
-        = new Dictionary<Vector2Int, (Vector3, float, float)>();
+    float roomWidth = 60f;
+    float roomHeight = 30f;
 
     [Header("Performance")]
     [Tooltip("How many grid cells away from the player rooms stay active (1 = current + immediate neighbors).")]
@@ -96,8 +82,6 @@ public class RoomGenerator : MonoBehaviour
 
         placedRooms.Clear();
         path.Clear();
-        roomBounds.Clear();
-        _forcedRoomPlaced = false;
 
         _generationComplete = false;
         if (MinimapUI.Instance != null) MinimapUI.Instance.ClearAndReset();
@@ -109,7 +93,6 @@ public class RoomGenerator : MonoBehaviour
     {
         canDoTheErrorRoom = false;
         guaranteedCombatRoomsWithCredits = 0;
-        _forcedRoomPlaced = false;
 
         yield return new WaitUntil(() => DefaultReferenceManager.Instance != null);
         if (!firstTime) yield return new WaitForSeconds(6f);
@@ -139,33 +122,17 @@ public class RoomGenerator : MonoBehaviour
 
             for (int i = 0; i < steps && placed < count; i++)
             {
-                Room currentRoom = placedRooms[current];
-
-                // Step to the first free cell just beyond the current room's footprint in dir.
-                // The room's anchor (current) is its leftmost/bottommost cell.
-                // Going right: skip over RoomSizeWidth cells → next = current + (RoomSizeWidth, 0)
-                // Going up:    skip over RoomSizeHeight cells → next = current + (0, RoomSizeHeight)
-                // Going left/down: one step back is always current + dir (anchor IS the left/bottom edge)
-                Vector2Int next;
-                if (dir == Vector2Int.right)
-                    next = current + new Vector2Int(currentRoom.RoomSizeWidth, 0);
-                else if (dir == Vector2Int.up)
-                    next = current + new Vector2Int(0, currentRoom.RoomSizeHeight);
-                else
-                    next = current + dir; // left/down: anchor is already the near edge
+                Vector2Int next = current + dir;
                 if (placedRooms.ContainsKey(next)) break;
 
-                // The current room must have an exit on the side facing dir.
-                if (!RoomHasExit(currentRoom, dir)) break;
+                // The room we're expanding from must have an exit facing this direction.
+                if (!RoomHasExit(placedRooms[current], dir)) break;
 
-                // At least one normal prefab must have a return exit.
+                // At least one normal prefab must have a return exit (facing back toward current).
                 List<Room> compatible = CompatiblePrefabs(-dir);
                 if (compatible.Count == 0) break;
 
-                PlaceRoomInternal(next, prefabPool: compatible);
-
-                // Advance current to the canonical (anchor) cell of the new room,
-                // which is what we stored in room.position = next.
+                PlaceRoom(next, prefabPool: compatible);
                 current = next;
                 placed++;
             }
@@ -274,52 +241,16 @@ public class RoomGenerator : MonoBehaviour
 
     // ─── Exit helpers ────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Returns the exit on <paramref name="room"/> that faces <paramref name="dir"/>
-    /// AND is closest to the world position of <paramref name="neighborGridPos"/>.
-    /// For 1×1 rooms there is only one exit per direction so it is returned immediately.
-    /// For wider/taller rooms the correct exit is whichever one sits nearest the
-    /// neighbor's centre — e.g. a 2×1 room picks its left top-exit when connecting
-    /// to the room above-left, and its right top-exit for the room above-right.
-    /// </summary>
-    Transform GetExitFacing(Room room, Vector2Int dir, Vector2Int neighborGridPos)
+    Transform GetExitFacing(Room room, Vector2Int dir)
     {
-        List<Transform> exits = room.ExitsForDir(dir);
-        if (exits.Count == 0) return null;
-        if (exits.Count == 1) return exits[0];
-
-        // Use the neighbor's actual world position (its pivot) if it's already placed,
-        // otherwise fall back to the grid formula. This handles large rooms correctly.
-        Vector3 neighborCentre;
-        if (placedRooms.TryGetValue(neighborGridPos, out Room neighborRoom))
-            neighborCentre = new Vector3(neighborRoom.transform.position.x, 0f, neighborRoom.transform.position.z);
-        else
-            neighborCentre = new Vector3(
-                neighborGridPos.x * roomWidth,
-                0f,
-                neighborGridPos.y * roomHeight
-            );
-
-        Transform best = null;
-        float bestDist = float.MaxValue;
-        foreach (var t in exits)
-        {
-            if (t == null) continue;
-            float d = Vector3.Distance(
-                new Vector3(t.position.x, 0f, t.position.z),
-                new Vector3(neighborCentre.x, 0f, neighborCentre.z)
-            );
-            if (d < bestDist) { bestDist = d; best = t; }
-        }
-        return best;
+        if (dir == Vector2Int.up) return room.exitTop;
+        if (dir == Vector2Int.down) return room.exitBottom;
+        if (dir == Vector2Int.left) return room.exitLeft;
+        if (dir == Vector2Int.right) return room.exitRight;
+        return null;
     }
 
-    // Overload for cases where we don't care which specific neighbour — just need
-    // to know if ANY exit exists in that direction (e.g. prefab compatibility checks).
-    Transform GetExitFacing(Room room, Vector2Int dir) =>
-        room.ExitsForDir(dir).Find(t => t != null);
-
-    /// <summary>Returns true when the room (or prefab) has at least one non-null exit in <paramref name="dir"/>.</summary>
+    /// <summary>Returns true when the room (or prefab) has a non-null exit in <paramref name="dir"/>.</summary>
     bool RoomHasExit(Room room, Vector2Int dir) => GetExitFacing(room, dir) != null;
 
     /// <summary>
@@ -331,51 +262,25 @@ public class RoomGenerator : MonoBehaviour
         roomPrefabs.FindAll(p => RoomHasExit(p, dir));
 
     /// <summary>
-    /// Returns true when the world-space AABB of <paramref name="prefab"/> placed at
-    /// <paramref name="gridPos"/> does not overlap any already-placed room.
-    /// A 1×1 room is exactly 60×30, so it never overlaps its own grid cell neighbours.
-    /// Larger rooms extend beyond their cell and can clip — this catches that.
-    /// We shrink by 0.5 u on each side so walls that share an edge are not rejected.
-    /// </summary>
-    bool WorldOverlapsClear(Vector2Int gridPos, Room prefab)
-    {
-        float hw = prefab.RoomSizeWidth * roomWidth * 0.5f - 0.5f;
-        float hd = prefab.RoomSizeHeight * roomHeight * 0.5f - 0.5f;
-
-        float newPivotX = gridPos.x * roomWidth + (prefab.RoomSizeWidth - 1) * roomWidth * 0.5f;
-        float newPivotZ = gridPos.y * roomHeight + (prefab.RoomSizeHeight - 1) * roomHeight * 0.5f;
-        Vector3 newCentre = new Vector3(newPivotX, 0f, newPivotZ);
-
-        foreach (var kvp in roomBounds)
-        {
-            var (c, ehx, ehz) = kvp.Value;
-            // AABB overlap test (ignore Y entirely).
-            bool overlapX = Mathf.Abs(newCentre.x - c.x) < hw + ehx;
-            bool overlapZ = Mathf.Abs(newCentre.z - c.z) < hd + ehz;
-            if (overlapX && overlapZ) return false;
-        }
-        return true;
-    }
-
-    /// <summary>
     /// Returns true when <paramref name="prefab"/> has exits in every direction
-    /// required by its already-placed neighbours at <paramref name="gridPos"/>,
-    /// AND its world-space footprint does not overlap any existing room.
+    /// required by its already-placed neighbours at <paramref name="gridPos"/>.
     /// </summary>
     bool PrefabFitsNeighbours(Room prefab, Vector2Int gridPos)
     {
-        if (!WorldOverlapsClear(gridPos, prefab)) return false;
-
         foreach (var dir in directions)
         {
-            if (!placedRooms.TryGetValue(gridPos + dir, out Room neighbour)) continue;
-            // Skip cells that belong to the room we're currently placing (won't happen
-            // for new placements, but guard against it for the boss-room swap case).
-            // WorldOverlapsClear already blocks true physical overlaps.
+            if (!placedRooms.ContainsKey(gridPos + dir)) continue;
 
+            // The placed neighbour must have a return exit toward gridPos.
+            Room neighbour = placedRooms[gridPos + dir];
             bool neighbourFacesUs = RoomHasExit(neighbour, -dir);
+
+            // The new prefab must also face the neighbour.
             bool weFaceNeighbour = RoomHasExit(prefab, dir);
 
+            // Only block placement when BOTH sides want a connection but one is
+            // missing. If the neighbour has no exit toward us, a wall will be
+            // placed there regardless — no constraint on the new prefab.
             if (neighbourFacesUs && !weFaceNeighbour) return false;
         }
         return true;
@@ -390,9 +295,8 @@ public class RoomGenerator : MonoBehaviour
             Vector2Int neighborPos = gridPos + dir;
             if (!placedRooms.TryGetValue(neighborPos, out Room neighbor)) continue;
 
-            // Get the specific exits that will connect (chosen by proximity to each other's centre).
-            Transform neighborExit = GetExitFacing(neighbor, -dir, gridPos);
-            Transform myExit = GetExitFacing(room, dir, neighborPos);
+            Transform neighborExit = GetExitFacing(neighbor, -dir);
+            Transform myExit = GetExitFacing(room, dir);
 
             if (neighborExit == null || myExit == null) continue;
 
@@ -417,9 +321,6 @@ public class RoomGenerator : MonoBehaviour
     ///   required exit). Falls back to <see cref="roomPrefabs"/> when null.
     /// </param>
     void PlaceRoom(Vector2Int gridPos, bool isStart = false, List<Room> prefabPool = null)
-        => PlaceRoomInternal(gridPos, isStart, prefabPool);
-
-    Room PlaceRoomInternal(Vector2Int gridPos, bool isStart = false, List<Room> prefabPool = null)
     {
         Room prefab;
 
@@ -429,50 +330,28 @@ public class RoomGenerator : MonoBehaviour
         }
         else
         {
-            // If a forced room hasn't been placed yet, try to inject it as the only option.
-            // If it doesn't fit here, fall through to the normal pool and try again later.
-            Room forcedPrefab = null;
-            if (!_forcedRoomPlaced
-                && forceSpawnRoomIndex >= 0
-                && forceSpawnRoomIndex < roomPrefabs.Count)
-            {
-                forcedPrefab = roomPrefabs[forceSpawnRoomIndex];
-            }
-
+            // Use the supplied pool (already filtered for exit compatibility).
+            // Apply a secondary filter: the chosen prefab must also face every
+            // other already-placed neighbour it will touch.
             List<Room> pool = prefabPool ?? roomPrefabs;
 
-            // If we have a forced prefab and it fits, use it; otherwise use the normal pool.
-            if (forcedPrefab != null && PrefabFitsNeighbours(forcedPrefab, gridPos))
+            // Further narrow to prefabs that satisfy all existing neighbours.
+            List<Room> fullyCompatible = pool.FindAll(p => PrefabFitsNeighbours(p, gridPos));
+
+            if (fullyCompatible.Count > 0)
             {
-                prefab = forcedPrefab;
-                _forcedRoomPlaced = true;
+                prefab = fullyCompatible[RogueDifficultyManager.RoomRNG.Next(0, fullyCompatible.Count)];
             }
             else
             {
-                List<Room> fullyCompatible = pool.FindAll(p => PrefabFitsNeighbours(p, gridPos));
-
-                if (fullyCompatible.Count > 0)
-                {
-                    prefab = fullyCompatible[RogueDifficultyManager.RoomRNG.Next(0, fullyCompatible.Count)];
-                }
-                else
-                {
-                    Debug.LogWarning($"[RoomGenerator] No fully-compatible prefab found at {gridPos}; " +
-                                      "falling back to partially-compatible pool.");
-                    prefab = pool[RogueDifficultyManager.RoomRNG.Next(0, pool.Count)];
-                }
+                // Fallback: use the broader pool (HandleExit will wall off mismatches).
+                Debug.LogWarning($"[RoomGenerator] No fully-compatible prefab found at {gridPos}; " +
+                                  "falling back to partially-compatible pool.");
+                prefab = pool[RogueDifficultyManager.RoomRNG.Next(0, pool.Count)];
             }
         }
 
-        // gridPos is the leftmost/bottommost cell this room occupies.
-        // The pivot (centre of the room) sits half-a-room to the right/up from that cell's centre.
-        // e.g. 2×1 at gridPos (1,0):
-        //   pivotX = 1*60 + (2-1)*0.5*60 = 60+30 = 90
-        //   left exit at local -30 → world 60 = cell (1,0) centre ✓
-        //   right exit at local +30 → world 120 = cell (2,0) centre ✓
-        float pivotX = gridPos.x * roomWidth + (prefab.RoomSizeWidth - 1) * roomWidth * 0.5f;
-        float pivotZ = gridPos.y * roomHeight + (prefab.RoomSizeHeight - 1) * roomHeight * 0.5f;
-        Vector3 worldPos = new Vector3(pivotX, 0f, pivotZ);
+        Vector3 worldPos = new Vector3(gridPos.x * roomWidth, 0f, gridPos.y * roomHeight);
 
         Room room = Instantiate(prefab, worldPos, Quaternion.identity);
         room.position = gridPos;
@@ -488,23 +367,8 @@ public class RoomGenerator : MonoBehaviour
 
         if (!isStart) AlignRoomToNeighborExit(room, gridPos);
 
-        float hx = room.RoomSizeWidth * roomWidth * 0.5f;
-        float hz = room.RoomSizeHeight * roomHeight * 0.5f;
-        var centre = room.transform.position;
-
-        // Register every grid cell this room occupies so other rooms can't overlap it
-        // and the generation loop treats all its cells as taken.
-        for (int dx = 0; dx < room.RoomSizeWidth; dx++)
-            for (int dz = 0; dz < room.RoomSizeHeight; dz++)
-            {
-                var cell = gridPos + new Vector2Int(dx, dz);
-                placedRooms[cell] = room;
-                roomBounds[cell] = (centre, hx, hz);
-            }
-
-        room.position = gridPos;
+        placedRooms[gridPos] = room;
         path.Add(gridPos);
-        return room;
     }
 
     // ─── Special rooms ────────────────────────────────────────────────────────
@@ -666,9 +530,7 @@ public class RoomGenerator : MonoBehaviour
             return;
         }
 
-        float pivotX = pos.x * roomWidth + (prefab.RoomSizeWidth - 1) * roomWidth * 0.5f;
-        float pivotZ = pos.y * roomHeight + (prefab.RoomSizeHeight - 1) * roomHeight * 0.5f;
-        Vector3 worldPos = new Vector3(pivotX, 0f, pivotZ);
+        Vector3 worldPos = new Vector3(pos.x * roomWidth, 0f, pos.y * roomHeight);
 
         Room room = Instantiate(prefab, worldPos, Quaternion.identity);
         room.position = pos;
@@ -677,17 +539,7 @@ public class RoomGenerator : MonoBehaviour
 
         AlignRoomToNeighborExit(room, pos);
 
-        float hx = room.RoomSizeWidth * roomWidth * 0.5f;
-        float hz = room.RoomSizeHeight * roomHeight * 0.5f;
-        var centre = room.transform.position;
-        for (int dx = 0; dx < room.RoomSizeWidth; dx++)
-            for (int dz = 0; dz < room.RoomSizeHeight; dz++)
-            {
-                var cell = pos + new Vector2Int(dx, dz);
-                placedRooms[cell] = room;
-                roomBounds[cell] = (centre, hx, hz);
-            }
-
+        placedRooms[pos] = room;
         Debug.Log($"[RoomGenerator] {roomType} room placed at grid {pos}.");
     }
 
@@ -782,34 +634,21 @@ public class RoomGenerator : MonoBehaviour
         }
 
         Room oldRoom = placedRooms[bossPos];
-        // Remove every cell the old room occupied.
-        var toRemove = placedRooms.Where(kvp => kvp.Value == oldRoom).Select(kvp => kvp.Key).ToList();
-        foreach (var cell in toRemove) { placedRooms.Remove(cell); roomBounds.Remove(cell); }
+        Vector3 oldWorldPos = oldRoom.transform.position;
         Destroy(oldRoom.gameObject);
+        placedRooms.Remove(bossPos);
 
         Room prefab = bossRoomPrefab != null
             ? bossRoomPrefab
             : PickCompatibleNormalPrefab(bossPos);
 
-        float bossPivotX = bossPos.x * roomWidth + (prefab.RoomSizeWidth - 1) * roomWidth * 0.5f;
-        float bossPivotZ = bossPos.y * roomHeight + (prefab.RoomSizeHeight - 1) * roomHeight * 0.5f;
-        Room bossRoom = Instantiate(prefab, new Vector3(bossPivotX, 0f, bossPivotZ), Quaternion.identity);
+        Room bossRoom = Instantiate(prefab, new Vector3(oldWorldPos.x, 0f, oldWorldPos.z), Quaternion.identity);
         bossRoom.position = bossPos;
         bossRoom.roomType = RoomType.Boss;
 
         AlignRoomToNeighborExit(bossRoom, bossPos);
 
-        float hx = bossRoom.RoomSizeWidth * roomWidth * 0.5f;
-        float hz = bossRoom.RoomSizeHeight * roomHeight * 0.5f;
-        var centre = bossRoom.transform.position;
-        for (int dx = 0; dx < bossRoom.RoomSizeWidth; dx++)
-            for (int dz = 0; dz < bossRoom.RoomSizeHeight; dz++)
-            {
-                var cell = bossPos + new Vector2Int(dx, dz);
-                placedRooms[cell] = bossRoom;
-                roomBounds[cell] = (centre, hx, hz);
-            }
-
+        placedRooms[bossPos] = bossRoom;
         Debug.Log($"[RoomGenerator] Boss room at grid {bossPos} (Manhattan {bestManhattan}).");
     }
 
@@ -886,11 +725,11 @@ public class RoomGenerator : MonoBehaviour
             {
                 Vector2Int neighborPos = pos + dir;
                 if (!placedRooms.TryGetValue(neighborPos, out Room neighbor)) continue;
-                if (neighbor == room) continue; // same large room, not a real connection
 
-                Transform myExit = GetExitFacing(room, dir, neighborPos);
-                Transform neighborExit = GetExitFacing(neighbor, -dir, pos);
+                Transform myExit = GetExitFacing(room, dir);
+                Transform neighborExit = GetExitFacing(neighbor, -dir);
 
+                // Both exits must exist and be at the same Y level.
                 if (myExit == null || neighborExit == null) continue;
                 if (Mathf.Abs(myExit.position.y - neighborExit.position.y) <= 0.1f)
                     validConnections.Add((pos, dir));
@@ -898,77 +737,30 @@ public class RoomGenerator : MonoBehaviour
         }
 
         // Now do the usual door/wall finalization.
-        // Use UniqueRooms so each room is processed exactly once even when it
-        // spans multiple grid cells.
-        var seen = new HashSet<Room>();
         foreach (var kvp in placedRooms)
         {
+            Vector2Int pos = kvp.Key;
             Room room = kvp.Value;
-            if (!seen.Add(room)) continue; // already handled
 
-            Vector2Int pos = room.position; // canonical (leftmost/bottommost) cell
-
-            foreach (var dir in directions)
-            {
-                Vector2Int neighborPos = pos + dir;
-                // For wide/tall rooms, exits on the top/bottom face multiple cells.
-                // Iterate all exits for this direction; HandleExit picks the right neighbor cell.
-                foreach (var exit in room.ExitsForDir(dir))
-                {
-                    // Find which neighbor cell this specific exit is closest to.
-                    Vector2Int exitNeighborCell = ClosestNeighborCell(exit, pos, dir, room);
-                    HandleExit(room, pos, dir, exitNeighborCell, exit);
-                }
-            }
+            HandleExit(room, pos, Vector2Int.up, room.exitTop);
+            HandleExit(room, pos, Vector2Int.down, room.exitBottom);
+            HandleExit(room, pos, Vector2Int.left, room.exitLeft);
+            HandleExit(room, pos, Vector2Int.right, room.exitRight);
         }
 
         if (MinimapUI.Instance != null)
             MinimapUI.Instance.BuildMinimap(placedRooms, validConnections);
     }
 
-    /// <summary>
-    /// For a given exit transform, find the grid cell on the other side of the wall
-    /// that this exit is physically adjacent to.
-    /// For a 1×1 room this is always just pos+dir.
-    /// For a 2×1 room with two top exits, each exit points to a different cell.
-    /// </summary>
-    Vector2Int ClosestNeighborCell(Transform exit, Vector2Int canonicalPos, Vector2Int dir, Room room)
-    {
-        // Project the exit's world position onto the axis perpendicular to dir.
-        // That tells us which "column" or "row" of neighbor cells it belongs to.
-        if (dir == Vector2Int.right || dir == Vector2Int.left)
-        {
-            // Moving horizontally: exit's Z tells us which row.
-            int dz = Mathf.RoundToInt((exit.position.z - canonicalPos.y * roomHeight) / roomHeight);
-            dz = Mathf.Clamp(dz, 0, room.RoomSizeHeight - 1);
-            return new Vector2Int(
-                dir == Vector2Int.right ? canonicalPos.x + room.RoomSizeWidth : canonicalPos.x - 1,
-                canonicalPos.y + dz
-            );
-        }
-        else
-        {
-            // Moving vertically: exit's X tells us which column.
-            int dx = Mathf.RoundToInt((exit.position.x - canonicalPos.x * roomWidth) / roomWidth);
-            dx = Mathf.Clamp(dx, 0, room.RoomSizeWidth - 1);
-            return new Vector2Int(
-                canonicalPos.x + dx,
-                dir == Vector2Int.up ? canonicalPos.y + room.RoomSizeHeight : canonicalPos.y - 1
-            );
-        }
-    }
-
-
-    void HandleExit(Room room, Vector2Int pos, Vector2Int dir, Vector2Int neighborPos, Transform exit)
+    void HandleExit(Room room, Vector2Int pos, Vector2Int dir, Transform exit)
     {
         if (exit == null) return;
 
+        Vector2Int neighborPos = pos + dir;
+
         if (placedRooms.TryGetValue(neighborPos, out Room neighbor))
         {
-            if (neighbor == room) { room.DisableExit(exit); return; } // interior cell of same room
-
-            // Pick the neighbor's exit that is closest to this specific exit.
-            Transform neighborExit = GetExitFacing(neighbor, -dir, pos);
+            Transform neighborExit = GetExitFacing(neighbor, -dir);
 
             if (neighborExit == null)
             {
@@ -1119,22 +911,10 @@ public class RoomGenerator : MonoBehaviour
             }
         }
     }
-    public Vector2Int WorldToGrid(Vector3 worldPos)
-    {
-        // First check actual room bounds — handles large rooms correctly.
-        foreach (var kvp in roomBounds)
-        {
-            var (centre, hx, hz) = kvp.Value;
-            if (Mathf.Abs(worldPos.x - centre.x) <= hx &&
-                Mathf.Abs(worldPos.z - centre.z) <= hz)
-                return kvp.Key;
-        }
-        // Fallback: standard grid snap for positions between rooms.
-        return new Vector2Int(
-            Mathf.RoundToInt(worldPos.x / roomWidth),
-            Mathf.RoundToInt(worldPos.z / roomHeight)
-        );
-    }
+    public Vector2Int WorldToGrid(Vector3 worldPos) => new Vector2Int(
+        Mathf.RoundToInt(worldPos.x / roomWidth),
+        Mathf.RoundToInt(worldPos.z / roomHeight)
+    );
 
     bool IsSpecialRoomPriority(RoomType mine, RoomType theirs) =>
         mine != RoomType.Normal && theirs == RoomType.Normal;
