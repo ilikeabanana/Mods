@@ -77,21 +77,13 @@ public class Room : MonoBehaviour
     public Transform GetExit(Vector2Int direction)
     {
         if (direction == Vector2Int.up)
-        {
-            return exitsTop[0];
-        }
+            return (exitsTop != null && exitsTop.Length > 0) ? exitsTop[0] : exitTop;
         if (direction == Vector2Int.down)
-        {
-            return exitsBottom[0];
-        }
+            return (exitsBottom != null && exitsBottom.Length > 0) ? exitsBottom[0] : exitBottom;
         if (direction == Vector2Int.left)
-        {
-            return exitsLeft[0];
-        }
+            return (exitsLeft != null && exitsLeft.Length > 0) ? exitsLeft[0] : exitLeft;
         if (direction == Vector2Int.right)
-        {
-            return exitsRight[0];
-        }
+            return (exitsRight != null && exitsRight.Length > 0) ? exitsRight[0] : exitRight;
         return null;
     }
 

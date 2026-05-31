@@ -404,6 +404,8 @@ public class RoomGenerator : MonoBehaviour
     /// </summary>
     void ExpandLargeRoom(Room source, Vector2Int anchorPos, bool isStart)
     {
+        Vector3 worldPosPeak = new Vector3(anchorPos.x * roomWidth, 0f, anchorPos.y * roomHeight);
+        Room actualRoom = Instantiate(source, worldPosPeak, Quaternion.identity);
         int w = source.RoomSizeWidth;
         int h = source.RoomSizeHeight;
 
@@ -426,16 +428,16 @@ public class RoomGenerator : MonoBehaviour
                 // Copy shared data from the source prefab.
                 sub.position = cell;
                 sub.roomType = RoomType.Normal;
-                sub.SpawnCredits = isStart ? 0 : source.SpawnCredits;
-                sub.spawnChance = source.spawnChance;
-                sub.doorPrefab = source.doorPrefab;
-                sub.wallPrefab = source.wallPrefab;
+                sub.SpawnCredits = isStart ? 0 : actualRoom.SpawnCredits;
+                sub.spawnChance = actualRoom.spawnChance;
+                sub.doorPrefab = actualRoom.doorPrefab;
+                sub.wallPrefab = actualRoom.wallPrefab;
                 sub.RoomSizeWidth = 1;
                 sub.RoomSizeHeight = 1;
 
                 // Copy spawn points: create new child Transforms at the same world positions
                 // so SpawnEnemies has valid points to pick from.
-                foreach (Transform srcPt in source.spawnPoints)
+                foreach (Transform srcPt in actualRoom.spawnPoints)
                 {
                     if (srcPt == null) continue;
                     GameObject ptGo = new GameObject("SpawnPoint");
@@ -453,10 +455,10 @@ public class RoomGenerator : MonoBehaviour
                 // Otherwise pull the real exit from the source's exit arrays,
                 // indexed by the sub-room's position along that wall.
 
-                sub.exitLeft = AssignSubExit(sub, source, Vector2Int.left, lx, ly, w, h);
-                sub.exitRight = AssignSubExit(sub, source, Vector2Int.right, lx, ly, w, h);
-                sub.exitTop = AssignSubExit(sub, source, Vector2Int.up, lx, ly, w, h);
-                sub.exitBottom = AssignSubExit(sub, source, Vector2Int.down, lx, ly, w, h);
+                sub.exitLeft = AssignSubExit(sub, actualRoom, Vector2Int.left, lx, ly, w, h);
+                sub.exitRight = AssignSubExit(sub, actualRoom, Vector2Int.right, lx, ly, w, h);
+                sub.exitTop = AssignSubExit(sub, actualRoom, Vector2Int.up, lx, ly, w, h);
+                sub.exitBottom = AssignSubExit(sub, actualRoom, Vector2Int.down, lx, ly, w, h);
 
                 placedRooms[cell] = sub;
                 path.Add(cell);
@@ -470,6 +472,7 @@ public class RoomGenerator : MonoBehaviour
             foreach (var (cell, sub) in subRooms)
                 AlignRoomToNeighborExit(sub, cell);
         }
+        
     }
 
     /// <summary>
