@@ -29,6 +29,11 @@ public class RoomGenerator : MonoBehaviour
     [Tooltip("SECRET ROOOMMMS")]
     public List<Room> SecretRoomPrefabs = new List<Room>();
 
+    [Tooltip("Large room prefabs (RoomSizeWidth > 1 or RoomSizeHeight > 1). " +
+             "These are never instantiated directly — they are used as data sources " +
+             "to spawn sub-room GameObjects that each occupy one grid cell.")]
+    public List<Room> largeRoomPrefabs = new List<Room>();
+
     [Header("Boss Room Settings")]
     [Tooltip("EnemyType spawned in the boss room.")]
     public EnemyType bossEnemyType = EnemyType.MinosPrime;
@@ -332,6 +337,23 @@ public class RoomGenerator : MonoBehaviour
             // other already-placed neighbour it will touch.
             List<Room> pool = prefabPool ?? roomPrefabs;
 
+            // Give large room prefabs a chance to be picked if any are defined
+            // and all cells they would occupy are free.
+            if (largeRoomPrefabs != null && largeRoomPrefabs.Count > 0)
+            {
+                List<Room> largeCandidates = largeRoomPrefabs.FindAll(p =>
+                    LargeRoomCellsFree(gridPos, p.RoomSizeWidth, p.RoomSizeHeight));
+
+                if (largeCandidates.Count > 0 && RogueDifficultyManager.RoomRNG.Next(0, 4) == 0)
+                {
+                    prefab = largeCandidates[RogueDifficultyManager.RoomRNG.Next(0, largeCandidates.Count)];
+
+                    // Large rooms are expanded separately — skip the normal flow.
+                    ExpandLargeRoom(prefab, gridPos, isStart);
+                    return;
+                }
+            }
+
             // Further narrow to prefabs that satisfy all existing neighbours.
             List<Room> fullyCompatible = pool.FindAll(p => PrefabFitsNeighbours(p, gridPos));
 
@@ -346,6 +368,13 @@ public class RoomGenerator : MonoBehaviour
                                   "falling back to partially-compatible pool.");
                 prefab = pool[RogueDifficultyManager.RoomRNG.Next(0, pool.Count)];
             }
+        }
+
+        // Large rooms: spawn sub-room GameObjects instead of instantiating the prefab directly.
+        if (prefab.RoomSizeWidth > 1 || prefab.RoomSizeHeight > 1)
+        {
+            ExpandLargeRoom(prefab, gridPos, isStart);
+            return;
         }
 
         Vector3 worldPos = new Vector3(gridPos.x * roomWidth, 0f, gridPos.y * roomHeight);
@@ -365,6 +394,133 @@ public class RoomGenerator : MonoBehaviour
 
         placedRooms[gridPos] = room;
         path.Add(gridPos);
+    }
+
+    /// <summary>
+    /// Decomposes a large room prefab into individual 1x1 sub-room GameObjects,
+    /// one per grid cell. Each sub-room gets the outer exits from the source prefab's
+    /// exit arrays; any edge shared with another sub-room of the same large room gets
+    /// a fake exit Transform parented far away so the door/wall system ignores it.
+    /// </summary>
+    void ExpandLargeRoom(Room source, Vector2Int anchorPos, bool isStart)
+    {
+        int w = source.RoomSizeWidth;
+        int h = source.RoomSizeHeight;
+
+        // We collect all sub-rooms first so we can run alignment afterwards.
+        var subRooms = new List<(Vector2Int cell, Room sub)>();
+
+        for (int lx = 0; lx < w; lx++)
+        {
+            for (int ly = 0; ly < h; ly++)
+            {
+                Vector2Int cell = anchorPos + new Vector2Int(lx, ly);
+                Vector3 worldPos = new Vector3(cell.x * roomWidth, 0f, cell.y * roomHeight);
+
+                // Create a fresh GameObject for this sub-room.
+                GameObject go = new GameObject($"Room_{cell.x}_{cell.y}");
+                go.transform.position = worldPos;
+
+                Room sub = go.AddComponent<Room>();
+
+                // Copy shared data from the source prefab.
+                sub.position = cell;
+                sub.roomType = RoomType.Normal;
+                sub.SpawnCredits = isStart ? 0 : source.SpawnCredits;
+                sub.spawnChance = source.spawnChance;
+                sub.doorPrefab = source.doorPrefab;
+                sub.wallPrefab = source.wallPrefab;
+                sub.RoomSizeWidth = 1;
+                sub.RoomSizeHeight = 1;
+
+                // Copy spawn points: create new child Transforms at the same world positions
+                // so SpawnEnemies has valid points to pick from.
+                foreach (Transform srcPt in source.spawnPoints)
+                {
+                    if (srcPt == null) continue;
+                    GameObject ptGo = new GameObject("SpawnPoint");
+                    ptGo.transform.SetParent(go.transform);
+                    ptGo.transform.position = srcPt.position;
+                    sub.spawnPoints.Add(ptGo.transform);
+                }
+                // Fallback: if the source had no spawn points, use the room centre.
+                if (sub.spawnPoints.Count == 0)
+                    sub.spawnPoints.Add(go.transform);
+
+                // ── Assign exits ──────────────────────────────────────────────
+                // Rule: if the neighbor in a given direction is another sub-room
+                // of this same large room, put a fake Transform far away.
+                // Otherwise pull the real exit from the source's exit arrays,
+                // indexed by the sub-room's position along that wall.
+
+                sub.exitLeft = AssignSubExit(sub, source, Vector2Int.left, lx, ly, w, h);
+                sub.exitRight = AssignSubExit(sub, source, Vector2Int.right, lx, ly, w, h);
+                sub.exitTop = AssignSubExit(sub, source, Vector2Int.up, lx, ly, w, h);
+                sub.exitBottom = AssignSubExit(sub, source, Vector2Int.down, lx, ly, w, h);
+
+                placedRooms[cell] = sub;
+                path.Add(cell);
+                subRooms.Add((cell, sub));
+            }
+        }
+
+        // Align all sub-rooms to their real outer neighbours (same logic as normal rooms).
+        if (!isStart)
+        {
+            foreach (var (cell, sub) in subRooms)
+                AlignRoomToNeighborExit(sub, cell);
+        }
+    }
+
+    /// <summary>
+    /// Returns the correct exit Transform for one face of a sub-room inside a large room.
+    /// <para>
+    /// If the face is internal (the tile on that side is another sub-room of the same large
+    /// room), a dummy Transform is created and placed at (1000, 1000, 1000) so the
+    /// door/wall system will never find a matching grid neighbour there.
+    /// </para>
+    /// <para>
+    /// If the face is external, we pick the real exit from the source prefab's exit array.
+    /// Left/Right arrays are indexed bottom-to-top (by ly).
+    /// Top/Bottom arrays are indexed left-to-right (by lx).
+    /// </para>
+    /// </summary>
+    Transform AssignSubExit(Room sub, Room source, Vector2Int dir, int lx, int ly, int w, int h)
+    {
+        // Is the neighbour in this direction another tile of the same large room?
+        int nx = lx + dir.x;
+        int ny = ly + dir.y;
+        bool isInternal = (nx >= 0 && nx < w && ny >= 0 && ny < h);
+
+        if (isInternal)
+        {
+            // Fake exit — park it far away so HandleExit never matches a grid cell there.
+            GameObject fake = new GameObject("FakeExit_" + dir);
+            fake.transform.SetParent(sub.transform);
+            fake.transform.position = new Vector3(1000f, 1000f, 1000f);
+            return fake.transform;
+        }
+
+        // External face — pull from the source prefab's exit arrays.
+        // Left/Right: indexed by ly (bottom = 0, top = h-1).
+        // Top/Bottom: indexed by lx (left = 0, right = w-1).
+        if (dir == Vector2Int.left)
+            return (source.exitsLeft != null && ly < source.exitsLeft.Length)
+                ? source.exitsLeft[ly] : null;
+
+        if (dir == Vector2Int.right)
+            return (source.exitsRight != null && ly < source.exitsRight.Length)
+                ? source.exitsRight[ly] : null;
+
+        if (dir == Vector2Int.up)
+            return (source.exitsTop != null && lx < source.exitsTop.Length)
+                ? source.exitsTop[lx] : null;
+
+        if (dir == Vector2Int.down)
+            return (source.exitsBottom != null && lx < source.exitsBottom.Length)
+                ? source.exitsBottom[lx] : null;
+
+        return null;
     }
 
     // ─── Special rooms ────────────────────────────────────────────────────────
@@ -917,4 +1073,17 @@ public class RoomGenerator : MonoBehaviour
 
     bool IsPrimary(Vector2Int a, Vector2Int b) =>
         a.x != b.x ? a.x < b.x : a.y < b.y;
+
+    /// <summary>
+    /// Returns true when every grid cell that a large room (w × h) would occupy
+    /// starting at <paramref name="anchor"/> is currently unoccupied.
+    /// </summary>
+    bool LargeRoomCellsFree(Vector2Int anchor, int w, int h)
+    {
+        for (int lx = 0; lx < w; lx++)
+            for (int ly = 0; ly < h; ly++)
+                if (placedRooms.ContainsKey(anchor + new Vector2Int(lx, ly)))
+                    return false;
+        return true;
+    }
 }
