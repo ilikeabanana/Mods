@@ -2,6 +2,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using ULTRAKILL.Portal;
 using ULTRAKILL.Portal.Geometry;
 using Ultrarogue;
@@ -88,10 +89,17 @@ public class RoomGenerator : MonoBehaviour
         StopAllCoroutines();
         StatsManager.Instance.StopTimer();
         MusicManager.Instance.StopMusic();
+
         foreach (var room in placedRooms.Values)
         {
             if (room != null)
                 Destroy(room.gameObject);
+        }
+
+        foreach (var geometry in _largeRoomGeometry.Values)
+        {
+            if (geometry != null)
+                Destroy(geometry);
         }
 
         placedRooms.Clear();
@@ -105,7 +113,6 @@ public class RoomGenerator : MonoBehaviour
         RogueDifficultyManager.Instance.MoveStage();
         StartCoroutine(GenerateRooms(false));
     }
-
     IEnumerator GenerateRooms(bool firstTime = true)
     {
         canDoTheErrorRoom = false;
@@ -127,7 +134,7 @@ public class RoomGenerator : MonoBehaviour
         );
 
         Vector2Int current = Vector2Int.zero;
-        PlaceRoom(current, isStart: true, direction: Vector2Int.zero);
+        _ = PlaceRoom(current, isStart: true, direction: Vector2Int.zero);
 
         int placed = 1;
         int safetyBreak = 0;
@@ -149,8 +156,7 @@ public class RoomGenerator : MonoBehaviour
                 List<Room> compatible = CompatiblePrefabs(-dir);
                 if (compatible.Count == 0) break;
 
-                PlaceRoom(next, prefabPool: compatible, direction: dir);
-                current = next;
+                current = PlaceRoom(next, prefabPool: compatible, direction: dir);
                 placed++;
             }
 
@@ -322,8 +328,18 @@ public class RoomGenerator : MonoBehaviour
 
     // ─── PlaceRoom ────────────────────────────────────────────────────────────
 
-    void PlaceRoom(Vector2Int gridPos, Vector2Int direction, bool isStart = false, List<Room> prefabPool = null)
+    // Returns the furthest grid cell that was actually occupied in the placement
+    // direction. For a 1x1 room this is just gridPos. For a large room it's the
+    // far edge cell in `direction` so the generation loop doesn't walk into it.
+    Vector2Int PlaceRoom(Vector2Int gridPos, Vector2Int direction, bool isStart = false, List<Room> prefabPool = null)
     {
+        // Hard guard: never place anything at a cell that's already occupied.
+        if (!isStart && placedRooms.ContainsKey(gridPos))
+        {
+            Debug.LogError($"[RoomGenerator] PlaceRoom called on already-occupied cell {gridPos} — skipping!");
+            return gridPos;
+        }
+
         Room prefab;
 
         if (isStart)
@@ -345,7 +361,7 @@ public class RoomGenerator : MonoBehaviour
                 {
                     prefab = largeCandidates[RogueDifficultyManager.RoomRNG.Next(0, largeCandidates.Count)];
                     ExpandLargeRoom(prefab, gridPos, isStart);
-                    return;
+                    return FarEdgeCell(gridPos, prefab.RoomSizeWidth, prefab.RoomSizeHeight, direction);
                 }
             }
 
@@ -365,7 +381,7 @@ public class RoomGenerator : MonoBehaviour
         if (prefab.RoomSizeWidth > 1 || prefab.RoomSizeHeight > 1)
         {
             ExpandLargeRoom(prefab, gridPos, isStart);
-            return;
+            return FarEdgeCell(gridPos, prefab.RoomSizeWidth, prefab.RoomSizeHeight, direction);
         }
 
         Vector3 worldPos = new Vector3(gridPos.x * roomWidth, 0f, gridPos.y * roomHeight);
@@ -378,6 +394,7 @@ public class RoomGenerator : MonoBehaviour
 
         placedRooms[gridPos] = room;
         path.Add(gridPos);
+        return gridPos;
     }
 
     // ─── Large room expansion ─────────────────────────────────────────────────
@@ -396,6 +413,9 @@ public class RoomGenerator : MonoBehaviour
         int w = source.RoomSizeWidth;
         int h = source.RoomSizeHeight;
 
+        Debug.Log($"[RoomGenerator] ExpandLargeRoom: placing {source.name} ({w}x{h}) at anchor {anchorPos}. " +
+                  $"Cells to claim: {string.Join(", ", System.Linq.Enumerable.Range(0, w).SelectMany(lx => System.Linq.Enumerable.Range(0, h).Select(ly => $"({anchorPos.x + lx},{anchorPos.y + ly})")))}");
+
         var subRooms = new List<(Vector2Int cell, Room sub)>();
         var cellList = new List<Vector2Int>();
 
@@ -404,6 +424,24 @@ public class RoomGenerator : MonoBehaviour
             for (int ly = 0; ly < h; ly++)
             {
                 Vector2Int cell = anchorPos + new Vector2Int(lx, ly);
+
+                // Hard guard: if this cell is already taken, abort the whole large room.
+                if (placedRooms.ContainsKey(cell))
+                {
+                    Debug.LogError($"[RoomGenerator] ExpandLargeRoom: cell {cell} (lx={lx},ly={ly}) is already " +
+                                   $"occupied by '{placedRooms[cell].gameObject.name}' — aborting large room placement at {anchorPos}!");
+                    // Clean up any sub-rooms we already created in this loop.
+                    foreach (var (c, s) in subRooms)
+                    {
+                        Destroy(s.gameObject);
+                        placedRooms.Remove(c);
+                        _largeRoomAnchorOf.Remove(c);
+                        path.Remove(c);
+                    }
+                    Destroy(actualRoom.gameObject);
+                    return;
+                }
+
                 Vector3 worldPos = new Vector3(cell.x * roomWidth, 0f, cell.y * roomHeight);
 
                 GameObject go = new GameObject($"Room_{cell.x}_{cell.y}");
@@ -1086,4 +1124,17 @@ public class RoomGenerator : MonoBehaviour
 
     bool IsPrimary(Vector2Int a, Vector2Int b) =>
         a.x != b.x ? a.x < b.x : a.y < b.y;
+
+    /// <summary>
+    /// Returns the cell at the far edge of a large room footprint in the given
+    /// travel direction, so the generation loop's next step starts just outside
+    /// the large room rather than inside it.
+    /// For directions with no component on an axis, we just return the anchor.
+    /// </summary>
+    Vector2Int FarEdgeCell(Vector2Int anchor, int w, int h, Vector2Int dir)
+    {
+        int dx = dir.x > 0 ? w - 1 : 0;
+        int dy = dir.y > 0 ? h - 1 : 0;
+        return anchor + new Vector2Int(dx, dy);
+    }
 }
