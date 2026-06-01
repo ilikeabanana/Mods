@@ -54,3 +54,14 @@ public class ItemPickup : MonoBehaviour
         pickup.transform.parent = position;
     }
 }
+public enum DroptableType
+{
+    Shop,
+    RationShop,
+    Planetarium,
+    RandomDrop,
+    Boss,
+    LegendaryOnly,
+    UncommonOnly,
+    CommonOnly
+}

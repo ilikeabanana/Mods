@@ -11,7 +11,7 @@ public class ItemPedestal : MonoBehaviour
     public float offset = 3;
     public bool forceItem;
     public bool forceWeapon;
-    public Plugin.DroptableType tableType;
+    public DroptableType tableType;
     BaseItem chosenItem;
 
     void Start()
@@ -40,7 +40,7 @@ public class ItemPedestal : MonoBehaviour
 
     public void SpawnItem()
     {
-        chosenItem = Plugin.GiveRandomItem();
+        chosenItem = Plugin.GiveRandomItem(table: tableType);
         ItemPickup.CreatePickupConditional(chosenItem, transform, () =>
         {
             onPickup.Invoke();

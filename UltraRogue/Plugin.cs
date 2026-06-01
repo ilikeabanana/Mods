@@ -654,17 +654,6 @@ namespace Ultrarogue
             return table.weights.Keys.Last();
         }
 
-        public enum DroptableType
-        {
-            Shop,
-            RationShop,
-            Planetarium,
-            RandomDrop,
-            Boss,
-            LegendaryOnly,
-            UncommonOnly,
-            CommonOnly
-        }
         #region Tables
         public static DropTable NormalTable = new DropTable(new Dictionary<Rarity, float>()
         {

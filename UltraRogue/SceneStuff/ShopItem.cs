@@ -9,7 +9,7 @@ public class ShopItem : MonoBehaviour
 {
     public BaseItem item;
     public int cost = 3;
-    public Plugin.DroptableType tableType;
+    public DroptableType tableType;
 
     bool purchased = false;
     float messageCooldown = 0f;
@@ -43,7 +43,7 @@ public class ShopItem : MonoBehaviour
     /// Picks a random item that no other shop slot on this floor has already reserved.
     /// Falls back to any item after 30 failed attempts (e.g. tiny item pool).
     /// </summary>
-    static BaseItem PickUniqueItem(Plugin.DroptableType table)
+    static BaseItem PickUniqueItem(DroptableType table)
     {
         const int maxAttempts = 30;
 
