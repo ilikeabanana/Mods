@@ -19,10 +19,12 @@ public enum RoomType
     Normal,
     Start,
     Boss,
+    Planetarium,
     Treasure,
     Shop,
     Gambling,
-    Secret
+    Secret,
+    OtherSpecialRoom
 }
 
 public class Room : MonoBehaviour
@@ -164,6 +166,8 @@ public class Room : MonoBehaviour
                 break;
 
             case RoomType.Treasure:
+                RoomGenerator.Instance.planetChance -= 0.2f;
+                break;
             case RoomType.Shop:
             case RoomType.Gambling:
             case RoomType.Start:

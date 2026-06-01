@@ -7,20 +7,53 @@ using UnityEngine;
 
 public class ItemPedestal : MonoBehaviour
 {
+    public UltrakillEvent onPickup;
+    public float offset = 3;
+    public bool forceItem;
+    public bool forceWeapon;
     BaseItem chosenItem;
 
     void Start()
     {
+        if (forceItem)
+        {
+            SpawnItem();
+            return;
+        }
+        else if(forceWeapon)
+        {
+            SpawnWeapon();
+            return;
+        }
+
         if((float)RogueDifficultyManager.ItemRNG.NextDouble() <= 0.5f)
         {
-            chosenItem = Plugin.GiveRandomItem();
-            ItemPickup.CreatePickup(chosenItem, transform);
+            SpawnItem();
         }
         else
         {
-            WeaponPickupRogue.CreatePickup(transform);
+            SpawnWeapon();
         }
         
+    }
+
+    public void SpawnItem()
+    {
+        chosenItem = Plugin.GiveRandomItem();
+        ItemPickup.CreatePickupConditional(chosenItem, transform, () =>
+        {
+            onPickup.Invoke();
+            return true;
+        }, offset);
+    }
+
+    public void SpawnWeapon()
+    {
+        WeaponPickupRogue.CreatePickupConditional(transform, () =>
+        {
+            onPickup.Invoke();
+            return true;
+        }, offset);
     }
 
 }

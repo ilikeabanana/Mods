@@ -26,7 +26,10 @@ public class RoomGenerator : MonoBehaviour
     public Room shopRoomPrefab;
     public Room gamblingRoomPrefab;
     public Room bossRoomPrefab;
+    public Room planetariumPrefab;
     public Room startRoomPrefab;
+    [Tooltip("Other special rooms")]
+    public List<Room> specialRoomPrefabs = new List<Room>();
     [Tooltip("SECRET ROOOMMMS")]
     public List<Room> SecretRoomPrefabs = new List<Room>();
 
@@ -76,6 +79,8 @@ public class RoomGenerator : MonoBehaviour
     private int guaranteedCombatRoomsWithCredits;
     private const int MinCombatRoomsWithCredits = 4;
 
+    public float planetChance = 0.01f;
+
     void Awake()
     {
         Room.roomIndex = 0;
@@ -87,6 +92,7 @@ public class RoomGenerator : MonoBehaviour
     public void RegenerateRooms()
     {
         StopAllCoroutines();
+        planetChance += 0.2f;
         StatsManager.Instance.StopTimer();
         MusicManager.Instance.StopMusic();
 
@@ -593,9 +599,22 @@ public class RoomGenerator : MonoBehaviour
             (candidates[i], candidates[j]) = (candidates[j], candidates[i]);
         }
 
-        TryPlaceSpecialRoom(ref candidates, RoomType.Treasure);
-        TryPlaceSpecialRoom(ref candidates, RoomType.Shop);
-        TryPlaceSpecialRoom(ref candidates, RoomType.Gambling);
+        TryPlaceSpecialRoom(ref candidates, treasureRoomPrefab);
+        TryPlaceSpecialRoom(ref candidates, shopRoomPrefab);
+        TryPlaceSpecialRoom(ref candidates, gamblingRoomPrefab);
+
+        if (RogueDifficultyManager.RoomRNG.NextDouble() <= planetChance)
+        {
+            TryPlaceSpecialRoom(ref candidates, planetariumPrefab); // planetarium spawning
+        }
+
+        foreach (Room prefab in specialRoomPrefabs)
+        {
+            if(RogueDifficultyManager.RoomRNG.NextDouble() <= prefab.spawnChance)
+            {
+                TryPlaceSpecialRoom(ref candidates, prefab);
+            }
+        }
     }
 
     List<Vector2Int> FindDeadEndCandidates()
@@ -626,10 +645,12 @@ public class RoomGenerator : MonoBehaviour
         return deadEnds;
     }
 
-    void TryPlaceSpecialRoom(ref List<Vector2Int> candidates, RoomType roomType)
+    void TryPlaceSpecialRoom(ref List<Vector2Int> candidates, Room prefabRoom)
     {
         Vector2Int pos = Vector2Int.zero;
         bool found = false;
+
+        RoomType roomType = prefabRoom.roomType;
 
         while (candidates.Count > 0)
         {
@@ -659,13 +680,7 @@ public class RoomGenerator : MonoBehaviour
                 continue;
             }
 
-            Room specialPrefab = roomType switch
-            {
-                RoomType.Treasure => treasureRoomPrefab,
-                RoomType.Shop => shopRoomPrefab,
-                RoomType.Gambling => gamblingRoomPrefab,
-                _ => null,
-            };
+            Room specialPrefab = prefabRoom;
 
             bool exitCompatible = true;
 
@@ -710,19 +725,7 @@ public class RoomGenerator : MonoBehaviour
             return;
         }
 
-        Room prefab = roomType switch
-        {
-            RoomType.Treasure => treasureRoomPrefab != null
-                                    ? treasureRoomPrefab
-                                    : PickCompatibleNormalPrefab(pos),
-            RoomType.Shop => shopRoomPrefab != null
-                                    ? shopRoomPrefab
-                                    : PickCompatibleNormalPrefab(pos),
-            RoomType.Gambling => gamblingRoomPrefab != null
-                                    ? gamblingRoomPrefab
-                                    : PickCompatibleNormalPrefab(pos),
-            _ => PickCompatibleNormalPrefab(pos),
-        };
+        Room prefab = prefabRoom;
 
         if (prefab == null)
         {
