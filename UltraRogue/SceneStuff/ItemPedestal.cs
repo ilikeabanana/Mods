@@ -11,6 +11,7 @@ public class ItemPedestal : MonoBehaviour
     public float offset = 3;
     public bool forceItem;
     public bool forceWeapon;
+    public Plugin.DroptableType tableType;
     BaseItem chosenItem;
 
     void Start()

@@ -135,7 +135,7 @@ public class RoomGenerator : MonoBehaviour
         float floor = RogueDifficultyManager.Instance.floor;
 
         int count = Mathf.RoundToInt(
-            5f + Mathf.Log(floor + 1f, 2f) * 2f
+            6f + Mathf.Log(floor + 1f, 2f) * 2f
             + RogueDifficultyManager.RoomRNG.Next(-1, 2)
         );
 
@@ -363,7 +363,7 @@ public class RoomGenerator : MonoBehaviour
                 List<Room> largeCandidates = largeRoomPrefabs.FindAll(p =>
                     LargeRoomCellsFree(gridPos, p.RoomSizeWidth, p.RoomSizeHeight));
 
-                if (largeCandidates.Count > 0 && RogueDifficultyManager.RoomRNG.Next(0, 4) == 0)
+                if (largeCandidates.Count > 0 && RogueDifficultyManager.RoomRNG.Next(0, roomPrefabs.Count) == 0)
                 {
                     prefab = largeCandidates[RogueDifficultyManager.RoomRNG.Next(0, largeCandidates.Count)];
                     ExpandLargeRoom(prefab, gridPos, isStart);

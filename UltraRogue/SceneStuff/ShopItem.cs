@@ -9,6 +9,7 @@ public class ShopItem : MonoBehaviour
 {
     public BaseItem item;
     public int cost = 3;
+    public Plugin.DroptableType tableType;
 
     bool purchased = false;
     float messageCooldown = 0f;
@@ -42,7 +43,7 @@ public class ShopItem : MonoBehaviour
     /// Picks a random item that no other shop slot on this floor has already reserved.
     /// Falls back to any item after 30 failed attempts (e.g. tiny item pool).
     /// </summary>
-    static BaseItem PickUniqueItem(DropTable table)
+    static BaseItem PickUniqueItem(Plugin.DroptableType table)
     {
         const int maxAttempts = 30;
 
@@ -130,12 +131,6 @@ public class ShopItem : MonoBehaviour
         return GetScaledCost(baseCost);
     }
 
-    public static DropTable rationTable = new DropTable(new Dictionary<Rarity, float>()
-    {
-        { Rarity.Common,    0.25f },
-        { Rarity.Uncommon,  0.65f },
-        { Rarity.Legendary, 0.1f  }
-    });
 
     void Start()
     {
@@ -143,8 +138,7 @@ public class ShopItem : MonoBehaviour
 
         if ((float)RogueDifficultyManager.ItemRNG.NextDouble() >= 0.5f)
         {
-            DropTable table = gameObject.name.Contains("Ration") ? rationTable : null;
-            BaseItem chosenItem = PickUniqueItem(table);
+            BaseItem chosenItem = PickUniqueItem(tableType);
 
             cost = getCost(chosenItem.Rarity);
             price.text = $"${cost}";

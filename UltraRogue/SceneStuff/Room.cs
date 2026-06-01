@@ -504,6 +504,7 @@ public class Room : MonoBehaviour
         {
             door.SetActive(true);
             if (roomType == RoomType.Normal || roomType == RoomType.Boss || roomType == RoomType.Start) return;
+            if (RogueDifficultyManager.Instance.floor == 1) return;
             if (Random.value <= 0.75f && Plugin.CurrentDifficulty != 2) return;
             door.GetComponentInChildren<Door>().gameObject.AddComponent<Lockable>();
         }

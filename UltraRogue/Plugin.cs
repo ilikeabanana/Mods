@@ -551,12 +551,6 @@ namespace Ultrarogue
             }
         }
 
-        public static DropTable testTable = new DropTable(new Dictionary<Rarity, float>()
-        {
-            {Rarity.Common, 0.80f },
-            {Rarity.Uncommon, 0.15f },
-            {Rarity.Legendary, 0.05f }
-        });
         public static float LogarithmicChance(int stacks, float scaling, float startValue, float maxValue)
         {
             // scaling = how fast the curve rises
@@ -660,13 +654,84 @@ namespace Ultrarogue
             return table.weights.Keys.Last();
         }
 
-        public static BaseItem GiveRandomItem(System.Random rng = null, DropTable table = null)
+        public enum DroptableType
         {
-            if (table == null)
-                table = testTable;
+            Shop,
+            RationShop,
+            Planetarium,
+            RandomDrop,
+            Boss,
+            LegendaryOnly,
+            UncommonOnly,
+            CommonOnly
+        }
+        #region Tables
+        public static DropTable NormalTable = new DropTable(new Dictionary<Rarity, float>()
+        {
+            {Rarity.Common, 0.80f },
+            {Rarity.Uncommon, 0.15f },
+            {Rarity.Legendary, 0.05f }
+        });
+
+        public static DropTable CommonTable = new DropTable(new Dictionary<Rarity, float>()
+        {
+            {Rarity.Common, 1f }
+        });
+
+        public static DropTable UnCommonTable = new DropTable(new Dictionary<Rarity, float>()
+        {
+            {Rarity.Uncommon, 1f }
+        });
+
+        public static DropTable LegendaryTable = new DropTable(new Dictionary<Rarity, float>()
+        {
+            {Rarity.Legendary, 1f }
+        });
+
+        public static DropTable PlanetTable = new DropTable(new Dictionary<Rarity, float>()
+        {
+            {Rarity.Alchemy, 1f }
+        });
+
+        public static DropTable RationTable = new DropTable(new Dictionary<Rarity, float>()
+        {
+            { Rarity.Common,    0.25f },
+            { Rarity.Uncommon,  0.65f },
+            { Rarity.Legendary, 0.1f  }
+        });
+        #endregion Tables
+
+        static DropTable getDroptable(DroptableType type)
+        {
+            switch (type)
+            {
+                case DroptableType.Planetarium:
+                    return PlanetTable;
+                case DroptableType.CommonOnly:
+                    return CommonTable;
+                case DroptableType.UncommonOnly:
+                    return UnCommonTable;
+                case DroptableType.LegendaryOnly:
+                    return LegendaryTable;
+                case DroptableType.RationShop:
+                    return RationTable;
+
+                case DroptableType.Boss:
+                case DroptableType.RandomDrop:
+                case DroptableType.Shop:
+                default:
+                    return NormalTable;
+            }
+        }
+
+
+        public static BaseItem GiveRandomItem(System.Random rng = null, DroptableType table = DroptableType.RandomDrop)
+        {
+            DropTable dTable = getDroptable(table);
+            
             if (rng == null)
                 rng = RogueDifficultyManager.ItemRNG;
-            List<BaseItem> tiems = getRarityItems(getRarityBasedOnDropTable(testTable, rng));
+            List<BaseItem> tiems = getRarityItems(getRarityBasedOnDropTable(dTable, rng));
             return tiems[rng.Next(0, tiems.Count)];
         }
 
@@ -931,7 +996,8 @@ namespace Ultrarogue
     {
         Common,
         Uncommon,
-        Legendary
+        Legendary,
+        Alchemy
     }
 
     public enum Team
