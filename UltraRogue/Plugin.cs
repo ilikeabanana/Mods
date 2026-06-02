@@ -36,6 +36,7 @@ namespace Ultrarogue
 
         public static List<DeathEffect> deathEffects = new List<DeathEffect>();
         public static List<HitEffect> hitEffects = new List<HitEffect>();
+        public static List<DamageTakenEffect> onDamageEffects = new List<DamageTakenEffect>();
         public static List<DamageModifier> dmgModifiers = new List<DamageModifier>();
 
         public static List<BaseItem> possibleItems = new List<BaseItem>();
@@ -134,6 +135,7 @@ namespace Ultrarogue
         float normalJumpHeight = 0f;
         public static int MaxHealth = 100;
         public static Change AttackSpeed;
+        public static Change DamageReduction;
         public static Change cooldownReduction = new Change();
         public static Plugin Instance { get; private set;  }
 
@@ -510,6 +512,7 @@ namespace Ultrarogue
             Change atkSpeedChange = new Change();
             Change globalDamageChange = new Change();
             Change cooldownChange = new Change();
+            Change dRedChange = new Change();
             Dictionary<Weapon, DamageChange> damageChanges = new Dictionary<Weapon, DamageChange>();
 
             foreach (var changes in playerChanges)
@@ -523,6 +526,8 @@ namespace Ultrarogue
                 atkSpeedChange.ApplyChangeToChange(changes.attackSpeed);
 
                 cooldownChange.ApplyChangeToChange(changes.cooldownRed);
+
+                dRedChange.ApplyChangeToChange(changes.damageReduction);
 
                 globalDamageChange.ApplyChangeToChange(changes.globalDamageMult);
 
@@ -541,6 +546,7 @@ namespace Ultrarogue
             globalDamageMult = globalDamageChange;
             MaxHealth = Mathf.RoundToInt(hpChange.CalculateChanges(100f));
             AttackSpeed = atkSpeedChange;
+            DamageReduction = dRedChange;
             cooldownReduction = cooldownChange;
             foreach (var key in damageMultipliers.Keys.ToList())
                 damageMultipliers[key] = new Change();
@@ -1210,6 +1216,18 @@ namespace Ultrarogue
         }
 
         [HarmonyPatch(typeof(NewMovement), nameof(NewMovement.GetHurt))]
+        [HarmonyPrefix]
+        public static void DamageLess(ref int damage, NewMovement __instance)
+        {
+            if(damage > 0)
+                damage = (int)Mathf.Max(DamageReduction.CalculateChanges(damage), 1); // cannot go below 1
+            foreach(var effect in Plugin.onDamageEffects)
+            {
+                effect.effect.Invoke(damage);
+            }
+        }
+
+        [HarmonyPatch(typeof(NewMovement), nameof(NewMovement.GetHurt))]
         [HarmonyPostfix]
         public static void Damage(NewMovement __instance)
         {
@@ -1799,6 +1817,19 @@ namespace Ultrarogue
             Plugin.hitEffects.Add(this);
         }
     }
+    public class DamageTakenEffect
+    {
+        public string itemName;
+        public Action<int> effect;
+
+        public DamageTakenEffect(string itemName, Action<int> effect)
+        {
+            this.itemName = itemName;
+            this.effect = effect;
+
+            Plugin.onDamageEffects.Add(this);
+        }
+    }
 
     public class DropTable
     {
@@ -1817,10 +1848,11 @@ namespace Ultrarogue
         public Change maxHealth;
         public Change attackSpeed;
         public Change cooldownRed;
+        public Change damageReduction;
         public List<DamageChange> damageChanges;
         public Change globalDamageMult;
 
-        public PlayerChange(Change moveSpeed = null, Change jumpHeight = null, Change maxHealth = null, Change attackSpeed = null, Change cooldownReduction = null, List<DamageChange> damageChanges = null, Change globalDamageMult = null)
+        public PlayerChange(Change moveSpeed = null, Change jumpHeight = null, Change maxHealth = null, Change attackSpeed = null, Change cooldownReduction = null, Change damageReduction = null, List<DamageChange> damageChanges = null, Change globalDamageMult = null)
         {
             if (moveSpeed == null) moveSpeed = new Change();
             if (jumpHeight == null) jumpHeight = new Change();
@@ -1829,6 +1861,7 @@ namespace Ultrarogue
             if(maxHealth == null) maxHealth = new Change();
             if(attackSpeed == null) attackSpeed = new Change();
             if(cooldownReduction == null) cooldownReduction = new Change(); 
+            if(damageReduction == null) damageReduction = new Change(); 
 
             this.moveSpeed = moveSpeed;
             this.jumpHeight = jumpHeight;
@@ -1836,6 +1869,7 @@ namespace Ultrarogue
             this.globalDamageMult = globalDamageMult;
             this.maxHealth = maxHealth;
             this.attackSpeed = attackSpeed;
+            this.damageReduction = damageReduction;
             this.cooldownRed = cooldownReduction;
 
             Plugin.playerChanges.Add(this);

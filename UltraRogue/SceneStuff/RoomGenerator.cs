@@ -1,4 +1,5 @@
 ﻿using BepInEx.Bootstrap;
+using Steamworks.Ugc;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -71,7 +72,7 @@ public class RoomGenerator : MonoBehaviour
 
     [Header("Performance")]
     [Tooltip("How many grid cells away from the player rooms stay active (1 = current + immediate neighbors).")]
-    int activationRadius = 50;
+    int activationRadius = 2;
 
     private bool _generationComplete = false;
     private float _nextActivationCheck = 0f;
@@ -263,6 +264,11 @@ public class RoomGenerator : MonoBehaviour
 
         MusicManager.Instance.StartMusic();
         canDoTheErrorRoom = true;
+
+        foreach (var item in Plugin.items)
+        { // ok
+            item.Key.OnNewFloor(item.Value);
+        }
     }
 
     // ─── Exit helpers ────────────────────────────────────────────────────────
@@ -603,7 +609,7 @@ public class RoomGenerator : MonoBehaviour
         TryPlaceSpecialRoom(ref candidates, shopRoomPrefab);
         TryPlaceSpecialRoom(ref candidates, gamblingRoomPrefab);
 
-        if (RogueDifficultyManager.RoomRNG.NextDouble() <= planetChance)
+        if (RogueDifficultyManager.RoomRNG.NextDouble() <= planetChance && planetariumPrefab != null)
         {
             TryPlaceSpecialRoom(ref candidates, planetariumPrefab); // planetarium spawning
         }

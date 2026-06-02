@@ -366,6 +366,11 @@ public class Room : MonoBehaviour
                     for (int b = 0; b < planned.radianceBuffs; b++)
                         eid.BuffAll();
                 }
+                int curseCount = Plugin.GetItemCount("Curse of Ra");
+                if((RogueDifficultyManager.Instance.floor >= 6 && enemyRando.NextDouble() <= 0.3f) || curseCount >= 1)
+                {
+                    eid.Sandify();
+                }
             }
 
             waveStart = waveEnd;

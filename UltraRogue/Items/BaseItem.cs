@@ -5,6 +5,7 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Ultrarogue.Items
 {
@@ -22,6 +23,10 @@ namespace Ultrarogue.Items
 
         }
         public virtual void OnStart()
+        {
+
+        }
+        public virtual void OnNewFloor(int count)
         {
 
         }

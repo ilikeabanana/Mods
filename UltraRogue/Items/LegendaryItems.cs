@@ -398,7 +398,7 @@ namespace Ultrarogue.Items
     public class Soulcatcher : BaseItem
     {
         public override string ItemName => "Soulcatcher";
-        public override string itemDescription => "Each kill permanently increases damage by 1% up to +150% (+150% per stack)";
+        public override string itemDescription => "Each kill permanently increases damage by 1% up to +90% (+90% per stack)";
         public override Rarity Rarity => Rarity.Legendary;
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         Change dmgChange;
@@ -413,7 +413,7 @@ namespace Ultrarogue.Items
             {
                 int count = Plugin.GetItemCount(this);
                 if (count <= 0) return;
-                if (killBonus >= 1.5f * count) return;
+                if (killBonus >= 0.9f * count) return;
                 killBonus += 0.01f;
             });
         }
