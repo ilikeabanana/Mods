@@ -21,7 +21,7 @@ namespace Ultrarogue.SceneStuff
         void Update()
         {
             if (Room.isFighting) return;
-            if (Vector3.Distance(NewMovement.Instance.transform.position, transform.position) <= 2f && locked && RogueDifficultyManager.Instance.Keys >= 1)
+            if (Vector3.Distance(NewMovement.Instance.transform.position, transform.position) <= 3f && locked && RogueDifficultyManager.Instance.Keys >= 1)
             {
                 locked = false;
                 RogueDifficultyManager.Instance.Keys--;

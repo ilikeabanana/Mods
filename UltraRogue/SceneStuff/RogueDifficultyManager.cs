@@ -361,11 +361,11 @@ public class RogueDifficultyManager : MonoBehaviour
                 options.Add(new BossPick(new List<List<BossEntry>>()
             {
                 new List<BossEntry> {
-                    new BossEntry(AssetsManager.funnyPowerIntroSpawn, radianceBuffs: 1)
+                    new BossEntry(AssetsManager.funnyPowerIntroSpawn)
                 },
                 new List<BossEntry> {
-                    new BossEntry(AssetsManager.funnyPowerIntroSpawn, radianceBuffs: 1),
-                    new BossEntry(AssetsManager.funnyPowerIntroSpawn, radianceBuffs: 1)
+                    new BossEntry(AssetsManager.funnyPowerIntroSpawn, healthAddition: 10),
+                    new BossEntry(AssetsManager.funnyPowerIntroSpawn, healthAddition: 5)
                 }
             }));
                 break;

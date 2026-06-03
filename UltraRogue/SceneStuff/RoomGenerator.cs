@@ -7,6 +7,7 @@ using System.Linq;
 using ULTRAKILL.Portal;
 using ULTRAKILL.Portal.Geometry;
 using Ultrarogue;
+using Ultrarogue.Curses;
 using Ultrarogue.SceneStuff;
 using Unity.AI.Navigation;
 using UnityEngine;
@@ -96,7 +97,7 @@ public class RoomGenerator : MonoBehaviour
         planetChance += 0.2f;
         StatsManager.Instance.StopTimer();
         MusicManager.Instance.StopMusic();
-
+        CurseManager.FloorExit();
         foreach (var room in placedRooms.Values)
         {
             if (room != null)
@@ -171,6 +172,7 @@ public class RoomGenerator : MonoBehaviour
             current = path[path.Count - 1 - Mathf.Min(back, path.Count - 1)];
         }
 
+        RepairConnectivity();
         DesignateBossRoom();
         PlaceSpecialRooms();
         EnforceEmptyRoomConnectivity();
@@ -269,6 +271,8 @@ public class RoomGenerator : MonoBehaviour
         { // ok
             item.Key.OnNewFloor(item.Value);
         }
+        CurseManager.GiveRandomCurse(RogueDifficultyManager.RoomRNG);
+        CurseManager.FloorEnter();
     }
 
     // ─── Exit helpers ────────────────────────────────────────────────────────
@@ -612,6 +616,7 @@ public class RoomGenerator : MonoBehaviour
         if (RogueDifficultyManager.RoomRNG.NextDouble() <= planetChance && planetariumPrefab != null)
         {
             TryPlaceSpecialRoom(ref candidates, planetariumPrefab); // planetarium spawning
+            planetChance = 0.01f; // Reset back to 1% chance
         }
 
         foreach (Room prefab in specialRoomPrefabs)
@@ -966,6 +971,161 @@ public class RoomGenerator : MonoBehaviour
         if (MinimapUI.Instance != null)
             MinimapUI.Instance.BuildMinimap(placedRooms, validConnections);
     }
+    // ─── Connectivity repair ──────────────────────────────────────────────────────
+
+    /// <summary>
+    /// BFS from the start cell (Vector2Int.zero). Any room not reached is part of a
+    /// disconnected island. For each island we find the closest pair of cells
+    /// (one in the island, one already connected) that are exactly 1 step apart but
+    /// have no room between them, then insert a bridge room in the gap so every
+    /// room in the layout is reachable from the start.
+    /// </summary>
+    void RepairConnectivity()
+    {
+        if (placedRooms.Count == 0) return;
+
+        // BFS from origin to find the connected set.
+        var connected = new HashSet<Vector2Int>();
+        var queue = new Queue<Vector2Int>();
+
+        Vector2Int origin = Vector2Int.zero;
+        if (!placedRooms.ContainsKey(origin))
+            origin = path.Count > 0 ? path[0] : placedRooms.Keys.First();
+
+        connected.Add(origin);
+        queue.Enqueue(origin);
+
+        while (queue.Count > 0)
+        {
+            Vector2Int cur = queue.Dequeue();
+            foreach (var dir in directions)
+            {
+                Vector2Int nb = cur + dir;
+                if (!connected.Contains(nb) && placedRooms.ContainsKey(nb))
+                {
+                    connected.Add(nb);
+                    queue.Enqueue(nb);
+                }
+            }
+        }
+
+        int repairPasses = 0;
+        const int MaxRepairPasses = 200; // safety cap
+
+        while (repairPasses++ < MaxRepairPasses)
+        {
+            // Collect all cells NOT yet connected.
+            var disconnected = new HashSet<Vector2Int>();
+            foreach (var k in placedRooms.Keys)
+                if (!connected.Contains(k))
+                    disconnected.Add(k);
+
+            if (disconnected.Count == 0) break; // all rooms reachable — done
+
+            // Find the pair (disconnectedCell, connectedCell) that are exactly
+            // 2 grid steps apart (one empty cell between them) so we can bridge them.
+            Vector2Int bestDisc = Vector2Int.zero, bestConn = Vector2Int.zero, bestGap = Vector2Int.zero;
+            bool found = false;
+
+            foreach (var dc in disconnected)
+            {
+                foreach (var dir in directions)
+                {
+                    // One-step gap: the immediate neighbour is empty and the cell
+                    // beyond that is in the connected set.
+                    Vector2Int gap = dc + dir;
+                    Vector2Int cc = dc + dir * 2;
+
+                    if (placedRooms.ContainsKey(gap)) continue;   // already occupied
+                    if (!connected.Contains(cc)) continue;   // not in main graph
+
+                    bestDisc = dc;
+                    bestConn = cc;
+                    bestGap = gap;
+                    found = true;
+                    break;
+                }
+                if (found) break;
+            }
+
+            if (!found)
+            {
+                // Fallback: islands that are already adjacent (gap == 0) — just flood
+                // them into the connected set directly.
+                bool anyMerged = false;
+                foreach (var dc in disconnected)
+                {
+                    foreach (var dir in directions)
+                    {
+                        if (connected.Contains(dc + dir))
+                        {
+                            connected.Add(dc);
+                            anyMerged = true;
+                            break;
+                        }
+                    }
+                }
+                if (!anyMerged)
+                {
+                    Debug.LogWarning("[RoomGenerator] RepairConnectivity: could not bridge all disconnected rooms.");
+                    break;
+                }
+                // Re-flood from newly merged cells so indirect neighbours pick up.
+                var requeue = new Queue<Vector2Int>(connected);
+                while (requeue.Count > 0)
+                {
+                    Vector2Int cur = requeue.Dequeue();
+                    foreach (var dir in directions)
+                    {
+                        Vector2Int nb = cur + dir;
+                        if (!connected.Contains(nb) && placedRooms.ContainsKey(nb))
+                        {
+                            connected.Add(nb);
+                            requeue.Enqueue(nb);
+                        }
+                    }
+                }
+                continue;
+            }
+
+            // Insert a bridge room at bestGap.
+            List<Room> bridgeCandidates = roomPrefabs.FindAll(p => PrefabFitsNeighbours(p, bestGap));
+            if (bridgeCandidates.Count == 0) bridgeCandidates = roomPrefabs;
+
+            Room bridgePrefab = bridgeCandidates[RogueDifficultyManager.RoomRNG.Next(0, bridgeCandidates.Count)];
+            Vector3 bridgeWorld = new Vector3(bestGap.x * roomWidth, 0f, bestGap.y * roomHeight);
+            Room bridge = Instantiate(bridgePrefab, bridgeWorld, Quaternion.identity);
+            bridge.position = bestGap;
+            bridge.roomType = RoomType.Normal;
+            bridge.SpawnCredits = 3;
+
+            AlignRoomToNeighborExit(bridge, bestGap);
+
+            placedRooms[bestGap] = bridge;
+            path.Add(bestGap);
+
+            // Flood the newly connected island into the connected set.
+            var flood = new Queue<Vector2Int>();
+            flood.Enqueue(bestGap);
+            connected.Add(bestGap);
+            while (flood.Count > 0)
+            {
+                Vector2Int cur = flood.Dequeue();
+                foreach (var dir in directions)
+                {
+                    Vector2Int nb = cur + dir;
+                    if (!connected.Contains(nb) && placedRooms.ContainsKey(nb))
+                    {
+                        connected.Add(nb);
+                        flood.Enqueue(nb);
+                    }
+                }
+            }
+
+            Debug.Log($"[RoomGenerator] RepairConnectivity: inserted bridge at {bestGap} " +
+                      $"to connect {bestDisc} → {bestConn}.");
+        }
+    }
 
     void HandleExit(Room room, Vector2Int pos, Vector2Int dir, Transform exit)
     {
@@ -984,7 +1144,7 @@ public class RoomGenerator : MonoBehaviour
             }
 
             float yDiff = Mathf.Abs(exit.position.y - neighborExit.position.y);
-            const float yTolerance = 0.1f;
+            const float yTolerance = 0.5f;
 
             if (yDiff > yTolerance)
             {

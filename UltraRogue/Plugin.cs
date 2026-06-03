@@ -14,6 +14,7 @@ using System.Reflection.Emit;
 using TMPro;
 using ULTRAKILL.Enemy;
 using Ultrarogue.Characters;
+using Ultrarogue.Curses;
 using Ultrarogue.Items;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
@@ -132,6 +133,7 @@ namespace Ultrarogue
         }
 
         public float normalMoveSpeed = 0f;
+        public float normalairAccelaration = 0f;
         float normalJumpHeight = 0f;
         public static int MaxHealth = 100;
         public static Change AttackSpeed;
@@ -149,6 +151,7 @@ namespace Ultrarogue
             gameObject.hideFlags = HideFlags.DontSaveInEditor;
             Harmony.PatchAll();
             GatherItems();
+            CurseManager.LoadCurses();
             //LoadBundle();
             SceneManager.sceneLoaded += SceneManager_sceneLoaded;
             weapons.Clear();
@@ -405,6 +408,7 @@ namespace Ultrarogue
 
             if (NewMovement.Instance == null) return;
             normalMoveSpeed = NewMovement.Instance.walkSpeed;
+            normalairAccelaration = NewMovement.Instance.airAcceleration;
             normalJumpHeight = NewMovement.Instance.jumpPower;
            
             
@@ -490,6 +494,8 @@ namespace Ultrarogue
                 item.Key.OnUpdate(item.Value);
             }
 
+            CurseManager.Update();
+
             ApplyPlayerChanges();
             ApplyWeaponSpeeds();
         }
@@ -542,6 +548,7 @@ namespace Ultrarogue
             }
 
             NewMovement.Instance.walkSpeed = moveChange.CalculateChanges(normalMoveSpeed);
+            NewMovement.Instance.airAcceleration = moveChange.CalculateChanges(normalairAccelaration);
             NewMovement.Instance.jumpPower = jumpChange.CalculateChanges(normalJumpHeight);
             globalDamageMult = globalDamageChange;
             MaxHealth = Mathf.RoundToInt(hpChange.CalculateChanges(100f));

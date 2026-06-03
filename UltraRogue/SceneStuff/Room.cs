@@ -6,6 +6,7 @@ using ULTRAKILL.Portal;
 using ULTRAKILL.Portal.Geometry;
 using Ultrarogue;
 using Ultrarogue.Characters;
+using Ultrarogue.Curses;
 using Ultrarogue.Items;
 using Ultrarogue.SceneStuff;
 using UnityEngine;
@@ -221,21 +222,57 @@ public class Room : MonoBehaviour
 
         var enemyCounts = new Dictionary<EnemyType, int>();
 
-        while (SpawnCredits > 0)
+        if (CurseManager.HasCurse("Curse of The Champion"))
         {
-            EnemyType randomEnemy = (EnemyType)enemyRando.Next(0, System.Enum.GetValues(typeof(EnemyType)).Length);
-            if (!RogueDifficultyManager.Instance.CanSpawn(randomEnemy)) continue;
+            // Build a list of all spawnable enemy types sorted most expensive -> cheapest.
+            // Apply curse remapping first, deduplicate, then filter & sort.
+            var allTypes = System.Enum.GetValues(typeof(EnemyType))
+                .Cast<EnemyType>()
+                .Where(t => RogueDifficultyManager.Instance.CanSpawn(t))
+                .Select(t => CurseManager.getCursedEnemy(t))
+                .Distinct()
+                .Where(t => RogueDifficultyManager.Instance.CanSpawn(t))
+                .OrderByDescending(t => RogueDifficultyManager.Instance.GetCost(t))
+                .ToList();
 
-            int cost = RogueDifficultyManager.Instance.GetCost(randomEnemy);
-            if (SpawnCredits - cost < 0) continue;
+            // Walk the sorted list, spending as many credits as possible on each type in order.
+            foreach (EnemyType enemyType in allTypes)
+            {
+                if (SpawnCredits <= 0) break;
 
-            int amountCanSpawn = Mathf.FloorToInt(SpawnCredits / cost);
-            int amountToSpawn = enemyRando.Next(1, Mathf.Max(1, (amountCanSpawn + 1) / 2));
-            SpawnCredits -= amountToSpawn * cost;
+                int cost = RogueDifficultyManager.Instance.GetCost(enemyType);
+                if (cost <= 0 || SpawnCredits < cost) continue;
 
-            if (!enemyCounts.ContainsKey(randomEnemy))
-                enemyCounts[randomEnemy] = 0;
-            enemyCounts[randomEnemy] += amountToSpawn;
+                int amountToSpawn = Mathf.FloorToInt(SpawnCredits / cost);
+                SpawnCredits -= amountToSpawn * cost;
+
+                if (!enemyCounts.ContainsKey(enemyType))
+                    enemyCounts[enemyType] = 0;
+                enemyCounts[enemyType] += amountToSpawn;
+            }
+        }
+        else
+        {
+            int attempts = 0;
+            while (SpawnCredits > 0 || attempts >= 250)
+            {
+                attempts++;
+                EnemyType randomEnemy = (EnemyType)enemyRando.Next(0, System.Enum.GetValues(typeof(EnemyType)).Length);
+
+                randomEnemy = CurseManager.getCursedEnemy(randomEnemy);
+                if (!RogueDifficultyManager.Instance.CanSpawn(randomEnemy)) continue;
+
+                int cost = RogueDifficultyManager.Instance.GetCost(randomEnemy);
+                if (SpawnCredits - cost < 0) continue;
+
+                int amountCanSpawn = Mathf.FloorToInt(SpawnCredits / cost);
+                int amountToSpawn = enemyRando.Next(1, Mathf.Max(1, (amountCanSpawn + 1) / 2));
+                SpawnCredits -= amountToSpawn * cost;
+
+                if (!enemyCounts.ContainsKey(randomEnemy))
+                    enemyCounts[randomEnemy] = 0;
+                enemyCounts[randomEnemy] += amountToSpawn;
+            }
         }
 
         var spawnPlan = new List<PlannedSpawn>();
@@ -366,11 +403,8 @@ public class Room : MonoBehaviour
                     for (int b = 0; b < planned.radianceBuffs; b++)
                         eid.BuffAll();
                 }
-                int curseCount = Plugin.GetItemCount("Curse of Ra");
-                if((RogueDifficultyManager.Instance.floor >= 6 && enemyRando.NextDouble() <= 0.3f) || curseCount >= 1)
-                {
-                    eid.Sandify();
-                }
+
+                CurseManager.OnEnemySpawn(eid);
             }
 
             waveStart = waveEnd;
@@ -639,14 +673,8 @@ public class Room : MonoBehaviour
 
                 if (currentHp < maxHp)
                 {
-                    float missingRatio = 1f - ((float)currentHp / maxHp);
-                    float healChance = Mathf.Lerp(0.10f, 0.65f, missingRatio);
-
-                    if (Random.value <= healChance)
-                    {
-                        int healAmt = Random.Range(25, 50);
-                        MonoSingleton<NewMovement>.Instance.GetHealth(healAmt, false);
-                    }
+                    int healAmt = Random.Range(25, 50);
+                    MonoSingleton<NewMovement>.Instance.GetHealth(healAmt, false);
                 }
             }
 
