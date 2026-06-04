@@ -6,7 +6,14 @@ using UnityEngine;
 
 public class BloodMachine : MonoBehaviour
 {
-    
+    public GameObject BloodObject;
+    public int PartiallyFullThreshold = 3;
+    public int FullThreshold = 5;
+    public Vector3 localPositionPartial;
+    public Vector3 localPositionFull;
+
+    int bloodDonated;
+
     public void BLOOD()
     {
         int damage = Mathf.RoundToInt(Plugin.MaxHealth * 0.10f);
@@ -19,6 +26,15 @@ public class BloodMachine : MonoBehaviour
         {
             HudMessageReceiver.Instance.SendHudMessage("<color=red>NOT ENOUGH BLOOD</color>");
             return;
+        }
+        bloodDonated++;
+
+        if(bloodDonated == PartiallyFullThreshold)
+        {
+            BloodObject.transform.localPosition = localPositionPartial;
+        } else if(bloodDonated == FullThreshold)
+        {
+            BloodObject.transform.localPosition = localPositionFull;
         }
 
         NewMovement.Instance.GetHurt(damage, false, ignoreInvincibility: true);

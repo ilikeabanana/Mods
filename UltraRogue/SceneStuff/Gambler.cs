@@ -14,10 +14,15 @@ public class Gambler : MonoBehaviour
     bool exploded = false;
 
     Transform itemPlacementThing;
+
+    public GameObject Slot1;
+    public GameObject Slot2;
+    public GameObject Slot3;
     public void Gamble()
     {
         if (exploded) return;
-        Activate();
+        //Activate();
+        Spin();
     }
         
 
@@ -29,8 +34,17 @@ public class Gambler : MonoBehaviour
             itemPlacementThing.transform.parent = transform.parent;
             itemPlacementThing.position = transform.position;
         }
+
+
+
     }
 
+    public void Spin()
+    {
+
+    }
+
+    /* Old Gamble Code
     public void Activate()
     {
         var mgr = RogueDifficultyManager.Instance;
@@ -62,7 +76,7 @@ public class Gambler : MonoBehaviour
         {
             HudMessageReceiver.Instance?.SendHudMessage("You lost... try again?");
         }
-    }
+    }*/
 
     void Explode()
     {
