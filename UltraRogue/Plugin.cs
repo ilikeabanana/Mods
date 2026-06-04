@@ -164,6 +164,7 @@ namespace Ultrarogue
             characters.Add(new Ultrarogue.Characters.V2());
             characters.Add(new Ultrarogue.Characters.Streetcleaner());
             characters.Add(new Ultrarogue.Characters.RandomCharacter());
+            characters.Add(new Ultrarogue.Characters.Filth());
 
 #if RUNTIME_ROOMS
             var genObj = new GameObject("DebugRoomGenerator");
@@ -253,10 +254,7 @@ namespace Ultrarogue
 
             if (SelectedChar.StartingWeapons == null || SelectedChar.StartingWeapons.Count == 0)
             {
-                Logger.LogWarning($"[Play] {SelectedChar.Name} has no StartingWeapons — falling back to defaults.");
-                weapons.Add(new AWeapon(Weapon.Revolver, Variant.Blue));
-                weapons.Add(new AWeapon(Weapon.Arm, Variant.Blue));
-
+                Logger.LogWarning($"[Play] {SelectedChar.Name} has no StartingWeapons.");
 
             }
             else
@@ -1716,7 +1714,7 @@ namespace Ultrarogue
             public override Branch BuildTree(GameConsole.Console con)
             {
                 string name = "ultrarogue";
-                Node[] array = new Node[3];
+                Node[] array = new Node[4];
 
                 List<Node> list = new List<Node>();
 
@@ -1762,6 +1760,21 @@ namespace Ultrarogue
                         RoomGenerator.Instance.RegenerateRooms();
                     }, true),
                 });
+                List<Node> listC = new List<Node>();
+                foreach (var curse in CurseManager.possibleCurses)
+                {
+                    listC.Add(CommandRoot.Leaf("add_" + curse.CurseName.Replace(" ", "_"), () =>
+                    {
+                        CurseManager.FloorExit();
+                        CurseManager.ActiveCurse = curse;
+                        CurseManager.FloorEnter();
+                        Log.Info($"Gave curse {curse.CurseName}");
+                    }, true));
+                }
+
+                // Now build the branch with the complete array
+                GameConsole.CommandTree.Branch brC = CommandRoot.Branch("curses", listC.ToArray());
+                array[2] = brC;
 
                 return CommandRoot.Branch(name, array);
             }
@@ -1889,12 +1902,14 @@ namespace Ultrarogue
         public float addition;
         public float percentage;
         public float multiplier;
+        public float postMultiplier;
 
-        public Change(float addition = 0, float percentage = 0, float multiplier = 1)
+        public Change(float addition = 0, float percentage = 0, float multiplier = 1, float postMultiplier = 1)
         {
             this.addition = addition;
             this.percentage = percentage;
             this.multiplier = multiplier;
+            this.postMultiplier = postMultiplier;
         }
 
         public void ApplyChangeToChange(Change change)
@@ -1902,6 +1917,7 @@ namespace Ultrarogue
             this.addition += change.addition;
             this.percentage += change.percentage;
             this.multiplier *= change.multiplier;
+            this.postMultiplier *= change.postMultiplier;
         }
 
         public float CalculateChanges(float normalVal)
@@ -1911,6 +1927,7 @@ namespace Ultrarogue
             Val *= fullPercentage;
             Val *= multiplier;
             Val += addition;
+            Val *= postMultiplier;
             return Val;
         }
     }

@@ -21,6 +21,7 @@ public class MinimapUI : MonoBehaviour
     public Color colorTreasure = new Color(0.95f, 0.78f, 0.08f);
     public Color colorShop = new Color(0.22f, 0.52f, 0.95f);
     public Color colorGambling = new Color(0.72f, 0.22f, 0.92f);
+    public Color colorPlanet = new Color(0f, 0f, 0.95f);
 
     [Header("UI Colors")]
     public Color colorSilhouette = new Color(0.28f, 0.28f, 0.30f);
@@ -113,7 +114,9 @@ public class MinimapUI : MonoBehaviour
     // ── Public API ────────────────────────────────────────────────────────────
 
     public void BuildMinimap(Dictionary<Vector2Int, Room> placedRooms,
-                             HashSet<(Vector2Int, Vector2Int)> validConnections)
+                             HashSet<(Vector2Int, Vector2Int)> validConnections,
+                             IReadOnlyDictionary<Vector2Int, Vector2Int> largeRoomAnchorOf = null,
+                             IReadOnlyDictionary<Vector2Int, List<Vector2Int>> largeRoomCells = null)
     {
         DestroyChildren();
         _cells.Clear();
@@ -151,6 +154,8 @@ public class MinimapUI : MonoBehaviour
         );
 
         // Corridors (rendered first, behind everything else).
+        // Skip corridors between cells that belong to the same large room group —
+        // they are interior edges and should not show a connector strip.
         foreach (var kvp in placedRooms)
         {
             Vector2Int pos = kvp.Key;
@@ -159,6 +164,14 @@ public class MinimapUI : MonoBehaviour
             foreach (var dir in new[] { Vector2Int.right, Vector2Int.up })
             {
                 if (!validConnections.Contains((pos, dir))) continue;
+
+                // Skip internal edges of large rooms.
+                Vector2Int neighbor = pos + dir;
+                if (largeRoomAnchorOf != null &&
+                    largeRoomAnchorOf.TryGetValue(pos, out Vector2Int anchorA) &&
+                    largeRoomAnchorOf.TryGetValue(neighbor, out Vector2Int anchorB) &&
+                    anchorA == anchorB)
+                    continue;
 
                 bool horizontal = dir == Vector2Int.right;
                 float cw = horizontal ? corridorLength : corridorThickness;
@@ -177,11 +190,57 @@ public class MinimapUI : MonoBehaviour
         CreateOutline();
 
         // Room cells.
+        // For large rooms, one merged Image is created that spans all grid cells in the
+        // group. Every cell in the group is mapped to that same Image in _cells so that
+        // visit-tracking, the outline, and the arrow all work without any extra logic.
+        var processedAnchors = new HashSet<Vector2Int>();
+
         foreach (var kvp in placedRooms)
         {
             Vector2Int pos = kvp.Key;
-            Vector2 pxPos = GridToPx(pos, step) + originOffset;
 
+            // ── Large room: create one merged rectangle ───────────────────────
+            if (largeRoomAnchorOf != null &&
+                largeRoomAnchorOf.TryGetValue(pos, out Vector2Int anchor) &&
+                largeRoomCells != null &&
+                largeRoomCells.TryGetValue(anchor, out List<Vector2Int> groupCells))
+            {
+                // Only process this group once (keyed on anchor).
+                if (!processedAnchors.Add(anchor)) continue;
+
+                // Compute the bounding box of the group in grid space.
+                int gMinX = int.MaxValue, gMinY = int.MaxValue;
+                int gMaxX = int.MinValue, gMaxY = int.MinValue;
+                foreach (var c in groupCells)
+                {
+                    if (c.x < gMinX) gMinX = c.x; if (c.x > gMaxX) gMaxX = c.x;
+                    if (c.y < gMinY) gMinY = c.y; if (c.y > gMaxY) gMaxY = c.y;
+                }
+
+                int gridW = gMaxX - gMinX + 1;   // number of cells wide
+                int gridH = gMaxY - gMinY + 1;   // number of cells tall
+
+                // Pixel size: each extra cell adds cellSize + one corridor gap.
+                float pxW = gridW * cellSize + (gridW - 1) * corridorLength;
+                float pxH = gridH * cellSize + (gridH - 1) * corridorLength;
+
+                // Centre of the merged rect in minimap pixel space.
+                Vector2 anchorPx = GridToPx(new Vector2Int(gMinX, gMinY), step) + originOffset;
+                Vector2 centre = anchorPx + new Vector2((pxW - cellSize) / 2f, (pxH - cellSize) / 2f);
+
+                Image mergedCell = MakeImage($"Room_{anchor}_Large", minimapPanel,
+                    centre, new Vector2(pxW, pxH));
+                mergedCell.color = Color.clear;
+
+                // Map every sub-cell to this single Image.
+                foreach (var c in groupCells)
+                    _cells[c] = mergedCell;
+
+                continue;
+            }
+
+            // ── Normal 1×1 room ───────────────────────────────────────────────
+            Vector2 pxPos = GridToPx(pos, step) + originOffset;
             Image cell = MakeImage($"Room_{pos}", minimapPanel,
                 pxPos, new Vector2(cellSize, cellSize));
             cell.color = Color.clear;
@@ -217,6 +276,7 @@ public class MinimapUI : MonoBehaviour
     /// </summary>
     void CreateOutline()
     {
+        // Start at single-cell size; UpdateOutline resizes it to match the current room.
         float size = cellSize + outlinePadding * 2f;
         _outlineImg = MakeImage("CurrentOutline", minimapPanel, Vector2.zero,
                                 new Vector2(size, size));
@@ -229,6 +289,7 @@ public class MinimapUI : MonoBehaviour
 
     /// <summary>
     /// Snaps the outline to the current cell and pulses its alpha.
+    /// Resizes to match merged large-room cells.
     /// </summary>
     void UpdateOutline()
     {
@@ -236,8 +297,13 @@ public class MinimapUI : MonoBehaviour
 
         if (_cells.TryGetValue(_currentPos, out var cellImg))
         {
-            _outlineRT.anchoredPosition =
-                cellImg.GetComponent<RectTransform>().anchoredPosition;
+            var cellRT = cellImg.GetComponent<RectTransform>();
+            _outlineRT.anchoredPosition = cellRT.anchoredPosition;
+
+            // Match the cell's size plus the padding border on every side.
+            Vector2 cellSz = cellRT.sizeDelta;
+            _outlineRT.sizeDelta = cellSz + new Vector2(outlinePadding * 2f, outlinePadding * 2f);
+
             _outlineRT.gameObject.SetActive(true);
 
             // Pulse alpha between ~0.45 and 1.0.
@@ -382,25 +448,44 @@ public class MinimapUI : MonoBehaviour
     }
     void RefreshAll()
     {
+        // Track which Image objects have already been assigned a color this frame
+        // so that large-room cells (which share one Image) are only written once.
+        var refreshed = new HashSet<Image>();
+
         foreach (var kvp in _cells)
         {
             Vector2Int pos = kvp.Key;
             Image cell = kvp.Value;
 
+            // Determine the desired color for this logical cell.
+            Color desired;
             if (pos == _currentPos)
             {
-                // Current room shows its actual room color — the outline handles
-                // the "you are here" indicator, so no special tinting needed.
-                cell.color = _placedRooms.TryGetValue(pos, out var r)
-                             ? RoomColor(r.roomType) * 0.90f
-                             : colorNormal * 0.90f;
+                desired = _placedRooms.TryGetValue(pos, out var r)
+                          ? RoomColor(r.roomType) * 0.90f
+                          : colorNormal * 0.90f;
             }
             else if (_visited.Contains(pos))
-                cell.color = RoomColor(_placedRooms[pos].roomType) * 0.90f;
+                desired = RoomColor(_placedRooms[pos].roomType) * 0.90f;
             else if (_scouted.Contains(pos))
-                cell.color = colorSilhouette;
+                desired = colorSilhouette;
             else
-                cell.color = Color.clear;
+                desired = Color.clear;
+
+            // For shared Images: only upgrade visibility, never downgrade.
+            // Priority: current > visited > scouted > clear.
+            // We achieve this by only writing if we haven't touched this Image yet,
+            // OR if the new color is "more visible" than what's already set.
+            if (!refreshed.Contains(cell))
+            {
+                cell.color = desired;
+                refreshed.Add(cell);
+            }
+            else
+            {
+                // Merge: keep the more prominent color.
+                cell.color = MergeRoomColor(cell.color, desired);
+            }
         }
 
         foreach (var kvp in _corridors)
@@ -415,6 +500,30 @@ public class MinimapUI : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Returns whichever of the two colors is considered more "prominent" on the minimap.
+    /// Priority: current-room color (high saturation) > visited > scouted (grey) > clear.
+    /// </summary>
+    static Color MergeRoomColor(Color existing, Color incoming)
+    {
+        // Clear is least prominent — always prefer the other.
+        if (existing.a < 0.01f) return incoming;
+        if (incoming.a < 0.01f) return existing;
+
+        // Scouted silhouette (low saturation grey) loses to any visited/current color.
+        float existingSat = ColorSaturation(existing);
+        float incomingSat = ColorSaturation(incoming);
+
+        return incomingSat >= existingSat ? incoming : existing;
+    }
+
+    static float ColorSaturation(Color c)
+    {
+        float max = Mathf.Max(c.r, c.g, c.b);
+        float min = Mathf.Min(c.r, c.g, c.b);
+        return max < 0.001f ? 0f : (max - min) / max;
+    }
+
     Color RoomColor(RoomType type) => type switch
     {
         RoomType.Start => colorStart,
@@ -422,6 +531,7 @@ public class MinimapUI : MonoBehaviour
         RoomType.Treasure => colorTreasure,
         RoomType.Shop => colorShop,
         RoomType.Gambling => colorGambling,
+        RoomType.Planetarium => colorPlanet,
         _ => colorNormal,
     };
 

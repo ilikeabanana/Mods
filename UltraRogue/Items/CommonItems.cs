@@ -34,6 +34,17 @@ namespace Ultrarogue.Items
         }
     }
 
+    public class Monocle : BaseItem
+    {
+        public override string ItemName => "Monocle";
+        public override string itemDescription => "Gain 2 (+2 per stack) gold when entering a new floor.";
+        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Utility };
+        public override void OnNewFloor(int count)
+        {
+            RogueDifficultyManager.Instance.Gold += 2 * count;
+        }
+    }
+
     [HarmonyPatch]
     public class BiggerShells : BaseItem
     {

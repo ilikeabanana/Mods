@@ -254,7 +254,7 @@ public class Room : MonoBehaviour
         else
         {
             int attempts = 0;
-            while (SpawnCredits > 0 || attempts >= 250)
+            while (SpawnCredits > 0 && attempts < 250)
             {
                 attempts++;
                 EnemyType randomEnemy = (EnemyType)enemyRando.Next(0, System.Enum.GetValues(typeof(EnemyType)).Length);
@@ -444,6 +444,17 @@ public class Room : MonoBehaviour
         CloseOffRoom();
         yield return new WaitForSeconds(0.5f);
         isFighting = true;
+        if(bossEnemyType == null)
+        {
+            try
+            {
+                bossEnemyType = RogueDifficultyManager.Instance.GetBoss();
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"GetBoss failed: {e}");
+            }
+        }
         if (bossEnemyType == null || bossEnemyType.waves == null || bossEnemyType.waves.Count == 0)
         {
             Debug.LogError("[Room] BossPick has no waves defined.");
@@ -608,7 +619,14 @@ public class Room : MonoBehaviour
         enemyRando = new System.Random(Plugin.GameSeed.GetHashCode() ^ roomIndex + 1);
         roomIndex++;
         gameObject.AddComponent<GoreZone>();
-        bossEnemyType = RogueDifficultyManager.Instance.GetBoss();
+        try
+        {
+            bossEnemyType = RogueDifficultyManager.Instance.GetBoss();
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"GetBoss failed: {e}");
+        }
 
         foreach (var zone in GetComponentsInChildren<DeathZone>())
         {
@@ -752,11 +770,12 @@ public class Room : MonoBehaviour
 
     IEnumerator SpawnPortalWhenClear()
     {
+        yield return new WaitForSeconds(1f);
         GameObject portalPlace = GameObject.Find("PortalPlace");
         if (portalPlace == null) yield break;
 
         const float halfExtent = 5f;
-        const float aboveThreshold = 4f;
+        const float aboveThreshold = 40f;
 
         Vector3 portalPos = portalPlace.transform.position;
 

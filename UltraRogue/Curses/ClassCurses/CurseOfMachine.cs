@@ -1,0 +1,30 @@
+﻿using System.Collections.Generic;
+using System.Text;
+using UnityEngine;
+
+namespace Ultrarogue.Curses.ClassCurses
+{
+    public class CurseOfMachines : BaseCurse
+    {
+        public override string CurseName => "Curse of Machinery";
+        public override bool OverrideEnemySpawning => true;
+
+        public override bool CanApply()
+        {
+            foreach (SpawnableObject obj in AssetsManager.enemiesByClass["Machine"])
+            {
+                if (RogueDifficultyManager.Instance.CanSpawn(obj.enemyType) &&
+                    ((3 * RogueDifficultyManager.Instance.Difficulty) >= RogueDifficultyManager.Instance.GetCost(obj.enemyType)))
+                    return true;
+            }
+            return false;
+        }
+
+        public override EnemyType EnemyToSpawnInstead()
+        {
+            SpawnableObject[] objects = AssetsManager.enemiesByClass["Machine"].ToArray();
+
+            return objects[Random.Range(0, objects.Length)].enemyType;
+        }
+    }
+}

@@ -9,7 +9,7 @@ namespace Ultrarogue.Items
     {
         public override string ItemName => "Reaper's Scythe";
         public override string itemDescription => "Double your damage, <color=red>BUT LOSE 50% OF YOUR MAXIMUM HP</color>.";
-        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage, ItemTag.Healing }; // Healing purely to prevent V1 from getting it
+        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         public override Rarity Rarity => Rarity.Alchemy;
         Change dmg = new Change();
         Change HP = new Change();
@@ -20,13 +20,13 @@ namespace Ultrarogue.Items
         public override void OnUpdate(int count)
         {
             float amountToThing = Mathf.Pow(0.5f, count);
-            dmg.multiplier = count + 1;
-            HP.multiplier = amountToThing;
+            dmg.postMultiplier = count + 1;
+            HP.postMultiplier = amountToThing;
         }
         public override void OnRemoval()
         {
-            dmg.multiplier = 1;
-            HP.multiplier = 1;
+            dmg.postMultiplier = 1;
+            HP.postMultiplier = 1;
         }
     }
     public class FragileParts : BaseItem
@@ -47,7 +47,7 @@ namespace Ultrarogue.Items
                 int c = Plugin.GetItemCount(ItemName);
                 if (c <= 0 || d <= 0) return;
 
-                amazingChange.percentage = Mathf.Max(-0.9f, amazingChange.percentage - (0.05f * c));
+                amazingChange.percentage = Mathf.Max(-0.5f, amazingChange.percentage - (0.05f * c));
             });
             new PlayerChange(amazingChange, attackSpeed: amazingChange, cooldownReduction: amazingChange, globalDamageMult: amazingChange);
         }

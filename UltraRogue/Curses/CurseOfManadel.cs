@@ -16,7 +16,7 @@ namespace Ultrarogue.Curses
         public override bool CanApply()
         {
             return RogueDifficultyManager.Instance.CanSpawn(EnemyType.Power) && 
-                (3 * RogueDifficultyManager.Instance.Difficulty >= RogueDifficultyManager.Instance.GetCost(EnemyType.Power));
+                ((3 * RogueDifficultyManager.Instance.Difficulty) >= RogueDifficultyManager.Instance.GetCost(EnemyType.Power));
         }
     }
 }

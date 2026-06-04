@@ -55,6 +55,17 @@ public class RoomGenerator : MonoBehaviour
     // Maps anchor → the actual instantiated room geometry GameObject.
     private Dictionary<Vector2Int, GameObject> _largeRoomGeometry = new Dictionary<Vector2Int, GameObject>();
 
+    /// <summary>
+    /// Maps every cell of a large room back to its anchor cell.
+    /// Single-cell rooms are not present in this dictionary.
+    /// </summary>
+    public IReadOnlyDictionary<Vector2Int, Vector2Int> LargeRoomAnchorOf => _largeRoomAnchorOf;
+
+    /// <summary>
+    /// Maps a large room's anchor cell to the list of all grid cells it occupies.
+    /// </summary>
+    public IReadOnlyDictionary<Vector2Int, List<Vector2Int>> LargeRoomCells => _largeRoomCells;
+
     List<Vector2Int> path = new List<Vector2Int>();
 
     readonly Vector2Int[] directions =
@@ -271,7 +282,11 @@ public class RoomGenerator : MonoBehaviour
         { // ok
             item.Key.OnNewFloor(item.Value);
         }
-        CurseManager.GiveRandomCurse(RogueDifficultyManager.RoomRNG);
+        if (RogueDifficultyManager.RoomRNG.NextDouble() <= (Plugin.CurrentDifficulty == 1 ? 0.05 : 0.25))
+        {
+            CurseManager.GiveRandomCurse(RogueDifficultyManager.RoomRNG);
+        }
+
         CurseManager.FloorEnter();
     }
 
@@ -621,7 +636,7 @@ public class RoomGenerator : MonoBehaviour
 
         foreach (Room prefab in specialRoomPrefabs)
         {
-            if(RogueDifficultyManager.RoomRNG.NextDouble() <= prefab.spawnChance)
+            if (RogueDifficultyManager.RoomRNG.NextDouble() <= prefab.spawnChance)
             {
                 TryPlaceSpecialRoom(ref candidates, prefab);
             }
@@ -969,7 +984,8 @@ public class RoomGenerator : MonoBehaviour
         }
 
         if (MinimapUI.Instance != null)
-            MinimapUI.Instance.BuildMinimap(placedRooms, validConnections);
+            MinimapUI.Instance.BuildMinimap(placedRooms, validConnections,
+                                            _largeRoomAnchorOf, _largeRoomCells);
     }
     // ─── Connectivity repair ──────────────────────────────────────────────────────
 

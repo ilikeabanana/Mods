@@ -14,8 +14,13 @@ namespace Ultrarogue.Curses
 
         public static void GiveRandomCurse(System.Random rng)
         {
-            List<BaseCurse> options = possibleCurses.Where((x) => x.CanApply()).ToList();
-            BaseCurse curse = possibleCurses[rng.Next(0, possibleCurses.Count)];
+            List<BaseCurse> options = possibleCurses.Where(x => x.CanApply()).ToList();
+
+            if (options.Count == 0)
+                return; // or handle this however you want
+
+            BaseCurse curse = options[rng.Next(options.Count)];
+
             ActiveCurse = curse;
             HudMessageReceiver.Instance.SendHudMessage($"You've gotten the {curse.CurseName}");
         }

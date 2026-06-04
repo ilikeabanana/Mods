@@ -22,6 +22,8 @@ public class AssetsManager
     // Enemies grouped by their EnemyType enum
     public static Dictionary<EnemyType, List<SpawnableObject>> enemiesByType
         = new Dictionary<EnemyType, List<SpawnableObject>>();
+    public static Dictionary<string, List<SpawnableObject>> enemiesByClass
+        = new Dictionary<string, List<SpawnableObject>>();
 
     // Tracks how many of our two load coroutines have finished
     private static int _loadsDone = 0;
@@ -230,7 +232,13 @@ public class AssetsManager
             if (!enemiesByType.ContainsKey(obj.enemyType))
                 enemiesByType[obj.enemyType] = new List<SpawnableObject>();
 
+            if (!enemiesByClass.ContainsKey(GetClassName(obj.type)))
+                enemiesByClass[GetClassName(obj.type)] = new List<SpawnableObject>();
+
             enemiesByType[obj.enemyType].Add(obj);
+            enemiesByClass[GetClassName(obj.type)].Add(obj);
+                
+
             enemyCount++;
         }
 
@@ -242,7 +250,13 @@ public class AssetsManager
 
         OnLoadComplete();
     }
-
+    public static string GetClassName(string type)
+    {
+        type = type.Replace("Supreme ", "");
+        type = type.Replace("Lesser ", "");
+        type = type.Replace("Greater ", "");
+        return type;
+    }
     // ── Weapon lookup (unchanged) ─────────────────────────────────────────────
     public static Sprite prefToDescriptor(string pref, bool alternate)
     {
