@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using Ultrarogue;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class BloodMachine : MonoBehaviour
 {
@@ -12,6 +13,8 @@ public class BloodMachine : MonoBehaviour
     public int FullThreshold = 10;
     public Vector3 localPositionPartial;
     public Vector3 localPositionFull;
+    public UnityEvent onUse;
+    public UnityEvent onFill;
 
     int bloodDonated;
 
@@ -22,6 +25,7 @@ public class BloodMachine : MonoBehaviour
 
     public void BLOOD()
     {
+        if (bloodDonated == FullThreshold) return;
         int damage = Mathf.RoundToInt(Plugin.MaxHealth * 0.10f);
         if (Plugin.SelectedChar.HasPassive(Ultrarogue.Characters.Passive.HealFromBlood))
         {
@@ -34,6 +38,7 @@ public class BloodMachine : MonoBehaviour
             return;
         }
         bloodDonated++;
+        onUse.Invoke();
 
         if(bloodDonated == 1)
         {
@@ -41,6 +46,7 @@ public class BloodMachine : MonoBehaviour
         } else if(bloodDonated == FullThreshold)
         {
             BloodObject.transform.localPosition = localPositionFull;
+            onFill.Invoke();
         }
 
         NewMovement.Instance.GetHurt(damage, false, ignoreInvincibility: true);
