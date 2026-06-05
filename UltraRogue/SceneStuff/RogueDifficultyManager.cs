@@ -34,6 +34,7 @@ public class RogueDifficultyManager : MonoBehaviour
     public static System.Random GambleItemRNG;
     public static System.Random RoomRNG;
     public static System.Random BossRNG;
+    public static System.Random BloodRNG;
     bool keepOpen;
     float doubleTap;
     void Awake()
@@ -43,6 +44,7 @@ public class RogueDifficultyManager : MonoBehaviour
         GambleItemRNG = new System.Random(Plugin.GameSeed.GetHashCode() * 2); // Considering you can infinitely gamble, it might cause rng issues.
         RoomRNG = new System.Random(Plugin.GameSeed.GetHashCode() / 2);
         BossRNG = new System.Random(Plugin.GameSeed.GetHashCode() ^ 2);
+        BossRNG = new System.Random((int)Mathf.Log(Plugin.GameSeed.GetHashCode(), 2));
         Instance = this;
         Difficulty = Plugin.CurrentDifficulty;
 

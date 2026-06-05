@@ -26,6 +26,10 @@ namespace Ultrarogue.Items
         {
 
         }
+        public virtual void RoomEnter()
+        {
+
+        }
         public virtual void OnNewFloor(int count)
         {
 

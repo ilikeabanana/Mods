@@ -52,6 +52,100 @@ namespace Ultrarogue.Items
             new PlayerChange(amazingChange, attackSpeed: amazingChange, cooldownReduction: amazingChange, globalDamageMult: amazingChange);
         }
     }
+    public class WildCard : BaseItem
+    {
+        public override string ItemName => "Wild Card";
+        public override string itemDescription => "Each room, <color=yellow>one random stat doubles</color>. <color=red>Another random stat is halved</color>.";
+        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage, ItemTag.Utility };
+        public override Rarity Rarity => Rarity.Alchemy;
+        Change buffedStat = new Change();
+        Change nerfedStat = new Change();
+        readonly Change[] allChanges;
+        public WildCard()
+        {
+            allChanges = new Change[] { buffedStat, nerfedStat };
+        }
+        public override void OnStart()
+        {
+            new PlayerChange(allChanges[0], attackSpeed: allChanges[1]);
+            
+        }
+        public override void RoomEnter()
+        {
+            Reroll();
+        }
+        void Reroll()
+        {
+            int count = Plugin.GetItemCount(ItemName);
+            buffedStat.postMultiplier = 1f + (1f * count);
+            nerfedStat.postMultiplier = Mathf.Pow(0.5f, count);
+        }
+        public override void OnRemoval()
+        {
+            buffedStat.postMultiplier = 1;
+            nerfedStat.postMultiplier = 1;
+        }
+    }
+    public class Overclock : BaseItem
+    {
+        public override string ItemName => "Overclock";
+        public override string itemDescription => "Gain +50% attack speed and damage, but <color=red>-50% cooldown reduction</color>.";
+        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage, ItemTag.Utility };
+        public override Rarity Rarity => Rarity.Alchemy;
+        Change speedAndDmg = new Change();
+        Change cooldownPenalty = new Change();
+        public override void OnStart()
+        {
+            new PlayerChange(attackSpeed: speedAndDmg, globalDamageMult: speedAndDmg, cooldownReduction: cooldownPenalty);
+        }
+        public override void OnUpdate(int count)
+        {
+            speedAndDmg.percentage = 0.5f * count;
+            cooldownPenalty.percentage = -1 * (0.50f * count);
+        }
+        public override void OnRemoval()
+        {
+            speedAndDmg.percentage = 0;
+            cooldownPenalty.percentage = 0;
+        }
+    }
+    public class DecayingEmpowerment : BaseItem
+    {
+        public override string ItemName => "Decaying Empowerment";
+        public override string itemDescription => "Start with +100% to all stats, but they <color=red>decay over time</color>. Kills reset the decay.";
+        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage, ItemTag.Utility };
+        public override Rarity Rarity => Rarity.Alchemy;
+        Change allStats = new Change();
+        float decayTimer = 0f;
+        const float decayRate = 0.02f;
+        const float decayInterval = 1f;
+        float nextDecayTime = 0f;
+        public override void OnStart()
+        {
+            new PlayerChange(allStats, attackSpeed: allStats, cooldownReduction: allStats, globalDamageMult: allStats);
+            new DeathEffect(ItemName, (enemy) =>
+            {
+                int c = Plugin.GetItemCount(ItemName);
+                allStats.percentage = c * 1.0f;
+            });
+        }
+        public override void OnUpdate(int count)
+        {
+            if (Time.time >= nextDecayTime)
+            {
+                allStats.percentage = Mathf.Max(-0.7f, allStats.percentage - (decayRate * count));
+                nextDecayTime = Time.time + decayInterval;
+            }
+        }
+        public override void OnRemoval()
+        {
+            allStats.percentage = 0;
+        }
+        public override void OnGotten(int count, bool firstPickup)
+        {
+            allStats.percentage = count * 1.0f;
+        }
+    }
     public class Gluttony : BaseItem
     {
         public override string ItemName => "Gluttony";

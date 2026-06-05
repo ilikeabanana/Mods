@@ -114,6 +114,10 @@ public class Room : MonoBehaviour
 
     public void OnRoomEnter()
     {
+        foreach (var item in Plugin.items)
+        { // ok
+            item.Key.RoomEnter();
+        }
         switch (roomType)
         {
             case RoomType.Boss:

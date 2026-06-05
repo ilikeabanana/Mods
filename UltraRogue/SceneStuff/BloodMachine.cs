@@ -7,12 +7,18 @@ using UnityEngine;
 public class BloodMachine : MonoBehaviour
 {
     public GameObject BloodObject;
-    public int PartiallyFullThreshold = 3;
-    public int FullThreshold = 5;
+    public int MinFullThreshold = 3;
+    public int MaxFullThreshold = 10;
+    public int FullThreshold = 10;
     public Vector3 localPositionPartial;
     public Vector3 localPositionFull;
 
     int bloodDonated;
+
+    void Awake()
+    {
+        FullThreshold = RogueDifficultyManager.BloodRNG.Next(MinFullThreshold, MaxFullThreshold);
+    }
 
     public void BLOOD()
     {
@@ -29,7 +35,7 @@ public class BloodMachine : MonoBehaviour
         }
         bloodDonated++;
 
-        if(bloodDonated == PartiallyFullThreshold)
+        if(bloodDonated == 1)
         {
             BloodObject.transform.localPosition = localPositionPartial;
         } else if(bloodDonated == FullThreshold)
