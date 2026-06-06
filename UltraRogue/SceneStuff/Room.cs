@@ -562,6 +562,7 @@ public class Room : MonoBehaviour
             if (Random.value <= 0.75f && Plugin.CurrentDifficulty != 2) return;
             door.GetComponentInChildren<Door>().gameObject.AddComponent<Lockable>();
         }
+
     }
 
     public void CreateWall(Transform exit)
@@ -707,6 +708,7 @@ public class Room : MonoBehaviour
                 Vector3 itemPos = spawnPoints[Random.Range(0, spawnPoints.Count)].position;
                 GameObject plc = new GameObject("ItemDropAnchor");
                 plc.transform.position = itemPos;
+                plc.transform.parent = transform;
                 StartCoroutine(spawnItem(plc.transform));
             }
             else

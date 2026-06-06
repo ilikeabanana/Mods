@@ -21,7 +21,8 @@ public class Gambler : MonoBehaviour
     public GameObject Slot1;
     public GameObject Slot2;
     public GameObject Slot3;
-
+    public Texture2D coinText;
+    public Texture2D keyText;
     List<GameObject> slots = new List<GameObject>();
     public void Gamble()
     {

@@ -23,14 +23,15 @@ public class BloodMachine : MonoBehaviour
         FullThreshold = RogueDifficultyManager.BloodRNG.Next(MinFullThreshold, MaxFullThreshold);
     }
 
+
     public void BLOOD()
     {
         Debug.Log($"bloodDonated: {bloodDonated}, FullThreshold: {FullThreshold}");
         if (bloodDonated == FullThreshold) return;
-        int damage = Mathf.RoundToInt(Plugin.MaxHealth * 0.10f);
+        int damage = Mathf.FloorToInt(Plugin.MaxHealth * 0.35f); // 35% of the hp
         if (Plugin.SelectedChar.HasPassive(Ultrarogue.Characters.Passive.HealFromBlood))
         {
-            damage = Mathf.RoundToInt(Plugin.MaxHealth * 0.55f);
+            damage = Mathf.RoundToInt(55f);
         }
 
         if(NewMovement.Instance.hp - damage <= 0)
@@ -48,6 +49,15 @@ public class BloodMachine : MonoBehaviour
         {
             BloodObject.transform.localPosition = localPositionFull;
             onFill.Invoke();
+            if (Plugin.SelectedChar.HasPassive(Ultrarogue.Characters.Passive.HealFromBlood))
+            {
+                ItemPickup.CreatePickup(Plugin.GiveRandomItem(RogueDifficultyManager.BloodRNG, DroptableType.CommonOnly), transform, 5);
+            }
+            else
+            {
+                ItemPickup.CreatePickup(Plugin.GiveRandomItem(RogueDifficultyManager.BloodRNG, DroptableType.BloodMachine), transform, 5);
+            }
+            
         }
 
         NewMovement.Instance.GetHurt(damage, false, ignoreInvincibility: true);

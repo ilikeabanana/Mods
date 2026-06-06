@@ -59,7 +59,7 @@ namespace Ultrarogue
 
         public enum Weapon
         {
-            Revolver,  
+            Revolver,
             Shotgun,
             Nailgun,
             Railcannon,
@@ -115,12 +115,12 @@ namespace Ultrarogue
             if (!nameToItem.ContainsKey(name)) return null;
             return nameToItem[name];
         }
-        
+
         public static int GetItemCount(string name)
         {
             BaseItem item = getItem(name);
-            if(item == null) return 0;
-            if(items.ContainsKey(item)) return items[item];
+            if (item == null) return 0;
+            if (items.ContainsKey(item)) return items[item];
 
             return 0;
         }
@@ -139,7 +139,7 @@ namespace Ultrarogue
         public static Change AttackSpeed;
         public static Change DamageReduction;
         public static Change cooldownReduction = new Change();
-        public static Plugin Instance { get; private set;  }
+        public static Plugin Instance { get; private set; }
 
         private void Awake()
         {
@@ -231,7 +231,7 @@ namespace Ultrarogue
         {
             const string pool = "abcdefghijklmnopqrstuvwxyz0123456789";
             var chars = Enumerable.Range(0, length)
-                .Select(_ => pool[Random.Range(0,pool.Length)])
+                .Select(_ => pool[Random.Range(0, pool.Length)])
                 .ToArray();
             return new string(chars).ToUpper();
         }
@@ -353,8 +353,8 @@ namespace Ultrarogue
                 Next(info, cName);
             });
 
-            butt.onClick.AddListener(() => 
-            { 
+            butt.onClick.AddListener(() =>
+            {
                 men.SetActive(true);
                 GameObject.Find("Chapter Select").SetActive(false);
             });
@@ -389,7 +389,7 @@ namespace Ultrarogue
                 RogueMode = true;
             else
                 RogueMode = false;
-            if(SceneHelper.CurrentScene == "Main Menu")
+            if (SceneHelper.CurrentScene == "Main Menu")
             {
                 if (!AssetsManager.IsReady)
                     AssetsManager.Init();
@@ -408,8 +408,8 @@ namespace Ultrarogue
             normalMoveSpeed = NewMovement.Instance.walkSpeed;
             normalairAccelaration = NewMovement.Instance.airAcceleration;
             normalJumpHeight = NewMovement.Instance.jumpPower;
-           
-            
+
+
 
         }
 
@@ -622,7 +622,7 @@ namespace Ultrarogue
 
 
 
-        public static List<BaseItem> getRarityItems(Rarity rarity)
+        public static List<BaseItem> getRarityItems(Rarity rarity, List<ItemTag> allowedTags = null)
         {
             return possibleItems.Where(x =>
                 x.Rarity == rarity &&
@@ -643,6 +643,12 @@ namespace Ultrarogue
                 ) && (
                     x.ItemName != "Thunder Boomerang" ||
                     weapons.Any(w => w.weapon == Weapon.Revolver && w.variant == Variant.Green)
+                ) && (
+                    // If allowedTags is null or empty, allow everything.
+                    // Otherwise, the item must share at least one tag with the allowed list.
+                    allowedTags == null ||
+                    allowedTags.Count == 0 ||
+                    x.itemTags.Any(tag => allowedTags.Contains(tag))
                 )
             ).ToList();
         }
@@ -699,6 +705,13 @@ namespace Ultrarogue
             { Rarity.Uncommon,  0.65f },
             { Rarity.Legendary, 0.1f  }
         });
+
+        public static DropTable BloodTable = new DropTable(new Dictionary<Rarity, float>()
+        {
+            { Rarity.Common,    0.25f },
+            { Rarity.Uncommon,  0.65f },
+            { Rarity.Legendary, 0.1f  }
+        }, new List<ItemTag>() { ItemTag.Healing });
         #endregion Tables
 
         static DropTable getDroptable(DroptableType type)
@@ -715,6 +728,8 @@ namespace Ultrarogue
                     return LegendaryTable;
                 case DroptableType.RationShop:
                     return RationTable;
+                case DroptableType.BloodMachine:
+                    return BloodTable;
 
                 case DroptableType.Boss:
                 case DroptableType.RandomDrop:
@@ -728,10 +743,23 @@ namespace Ultrarogue
         public static BaseItem GiveRandomItem(System.Random rng = null, DroptableType table = DroptableType.RandomDrop)
         {
             DropTable dTable = getDroptable(table);
-            
+
             if (rng == null)
                 rng = RogueDifficultyManager.ItemRNG;
-            List<BaseItem> tiems = getRarityItems(getRarityBasedOnDropTable(dTable, rng));
+
+            Rarity rarity = getRarityBasedOnDropTable(dTable, rng);
+
+            // Use the drop table's allowedTags to restrict the item pool.
+            // An empty allowedTags list on DropTable means "all tags allowed".
+            List<BaseItem> tiems = getRarityItems(rarity, dTable.allowedTags);
+
+            // Safety fallback: if the tag filter produced an empty pool, ignore tags and pick from everything.
+            if (tiems.Count == 0)
+            {
+                Plugin.Logger.LogWarning($"[GiveRandomItem] Tag-filtered pool for rarity {rarity} was empty — falling back to unfiltered pool.");
+                tiems = getRarityItems(rarity);
+            }
+
             return tiems[rng.Next(0, tiems.Count)];
         }
 
@@ -835,7 +863,7 @@ namespace Ultrarogue
                 default:
                     result.Add("none");
                     break;
-                
+
             }
 
             return result;
@@ -945,7 +973,7 @@ namespace Ultrarogue
                 GUI.Label(new Rect(x, y, 300, lineHeight), $"{kvp.Key}: x{weaponMult:F2}", labelStyle);
                 y += lineHeight;
             }
-            if(RogueDifficultyManager.Instance != null)
+            if (RogueDifficultyManager.Instance != null)
             {
                 y += 4;
                 labelStyle.normal.textColor = Color.white;
@@ -957,7 +985,7 @@ namespace Ultrarogue
                 GUI.Label(new Rect(x, y, 300, lineHeight), $"Gold: {RogueDifficultyManager.Instance.Gold}", labelStyle);
                 y += lineHeight;
             }
-           
+
 
 
 
@@ -1102,7 +1130,7 @@ namespace Ultrarogue
         [HarmonyPostfix]
         public static void ModifyGuns(ref int __result, string key, int fallback = 0)
         {
-            if(!Plugin.isInRogueMode()) return;
+            if (!Plugin.isInRogueMode()) return;
             if (key.StartsWith("weapon."))
             {
                 if (Plugin.weapons.Any((x) => key.StartsWith(x.ToString())))
@@ -1181,7 +1209,7 @@ namespace Ultrarogue
                     //        slider.maxValue = Plugin.MaxHealth;
                     //    }
                     //}
-                    
+
                 }
             }
             if (__instance.afterImageSliders != null)
@@ -1224,9 +1252,9 @@ namespace Ultrarogue
         [HarmonyPrefix]
         public static void DamageLess(ref int damage, NewMovement __instance)
         {
-            if(damage > 0)
+            if (damage > 0)
                 damage = (int)Mathf.Max(DamageReduction.CalculateChanges(damage), 1); // cannot go below 1
-            foreach(var effect in Plugin.onDamageEffects)
+            foreach (var effect in Plugin.onDamageEffects)
             {
                 effect.effect.Invoke(damage);
             }
@@ -1274,7 +1302,7 @@ namespace Ultrarogue
         [HarmonyPrefix]
         public static bool DontHealIfV2(Bloodsplatter __instance, Collider other)
         {
-            if(!Plugin.isInRogueScene()) return true;
+            if (!Plugin.isInRogueScene()) return true;
             if (__instance.ready)
             {
                 if (__instance.bsm == null)
@@ -1325,7 +1353,7 @@ namespace Ultrarogue
             {
                 __instance.shud.AddPoints(100, (customParryText != "") ? ("<color=green>" + customParryText + "</color>") : "ultrakill.parry", null, null, -1, "", "");
             }
-            
+
             return false;
         }
         [HarmonyPatch(typeof(NewMovement), nameof(NewMovement.GetHealth))]
@@ -1509,11 +1537,11 @@ namespace Ultrarogue
         public static void ActivateDeathEffects(EnemyIdentifier __instance)
         {
             if (!Plugin.isInRogueMode()) return;
-            if(__instance.dead) return;
+            if (__instance.dead) return;
 
             TeamComponent tComp = __instance.GetComponent<TeamComponent>();
 
-            if(tComp.teamId == Team.Enemies)
+            if (tComp.teamId == Team.Enemies)
             {
                 /*
                 bool rogueScene = Plugin.isInRogueScene();
@@ -1679,7 +1707,7 @@ namespace Ultrarogue
         {
             if (!isInRogueScene())
             {
-                
+
                 return;
             }
 
@@ -1854,10 +1882,24 @@ namespace Ultrarogue
     public class DropTable
     {
         public Dictionary<Rarity, float> weights = new Dictionary<Rarity, float>();
+        public List<ItemTag> allowedTags = new List<ItemTag>();
 
-        public DropTable(Dictionary<Rarity, float> weights)
+        /// <summary>
+        /// Creates a DropTable.
+        /// </summary>
+        /// <param name="weights">Rarity weights that sum to 1.</param>
+        /// <param name="allowedTags">
+        /// Optional tag whitelist. When null or empty the table may drop ANY item
+        /// (no tag filter). When populated, only items whose itemTags share at
+        /// least one entry with this list will be eligible for selection.
+        /// Example: new List&lt;ItemTag&gt; { ItemTag.Healing } restricts drops to
+        /// healing items only.
+        /// </param>
+        public DropTable(Dictionary<Rarity, float> weights, List<ItemTag> allowedTags = null)
         {
             this.weights = weights;
+            // Null means no filter; store an empty list so Count == 0 checks work cleanly.
+            this.allowedTags = allowedTags ?? new List<ItemTag>();
         }
     }
 
@@ -1877,11 +1919,11 @@ namespace Ultrarogue
             if (moveSpeed == null) moveSpeed = new Change();
             if (jumpHeight == null) jumpHeight = new Change();
             if (damageChanges == null) damageChanges = new List<DamageChange>();
-            if(globalDamageMult == null) globalDamageMult = new Change();
-            if(maxHealth == null) maxHealth = new Change();
-            if(attackSpeed == null) attackSpeed = new Change();
-            if(cooldownReduction == null) cooldownReduction = new Change(); 
-            if(damageReduction == null) damageReduction = new Change(); 
+            if (globalDamageMult == null) globalDamageMult = new Change();
+            if (maxHealth == null) maxHealth = new Change();
+            if (attackSpeed == null) attackSpeed = new Change();
+            if (cooldownReduction == null) cooldownReduction = new Change();
+            if (damageReduction == null) damageReduction = new Change();
 
             this.moveSpeed = moveSpeed;
             this.jumpHeight = jumpHeight;
@@ -1893,7 +1935,7 @@ namespace Ultrarogue
             this.cooldownRed = cooldownReduction;
 
             Plugin.playerChanges.Add(this);
-            
+
         }
     }
 

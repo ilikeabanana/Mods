@@ -19,24 +19,21 @@ namespace Ultrarogue.Characters
         public override List<Passive> Passives => new List<Passive>() { Passive.TripleShot };
 
         Change HPChange = new Change(addition: 300);
-        Change DChange = new Change(percentage: -0.25f);
 
         PlayerChange change;
 
         public override void Update(bool selected)
         {
             if (change == null)
-                change = new PlayerChange(maxHealth: HPChange, damageReduction: DChange);
+                change = new PlayerChange(maxHealth: HPChange);
 
             if (selected)
             {
-                HPChange.addition = 300;
-                DChange.percentage = -0.25f;
+                HPChange.addition = 200;
             }
             else
             {
                 HPChange.addition = 0;
-                DChange.percentage = -0.25f;
             }
         }
     }

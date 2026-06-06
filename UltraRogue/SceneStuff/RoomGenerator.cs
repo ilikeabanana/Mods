@@ -626,7 +626,10 @@ public class RoomGenerator : MonoBehaviour
 
         TryPlaceSpecialRoom(ref candidates, treasureRoomPrefab);
         TryPlaceSpecialRoom(ref candidates, shopRoomPrefab);
-        TryPlaceSpecialRoom(ref candidates, gamblingRoomPrefab);
+        if (RogueDifficultyManager.Instance.floor % 2 == 0 && RogueDifficultyManager.Instance.Gold >= 5)
+        {
+            TryPlaceSpecialRoom(ref candidates, gamblingRoomPrefab);
+        }
 
         if (RogueDifficultyManager.RoomRNG.NextDouble() <= planetChance && planetariumPrefab != null)
         {
