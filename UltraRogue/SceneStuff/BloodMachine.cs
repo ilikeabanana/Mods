@@ -25,6 +25,7 @@ public class BloodMachine : MonoBehaviour
 
     public void BLOOD()
     {
+        Debug.Log($"bloodDonated: {bloodDonated}, FullThreshold: {FullThreshold}");
         if (bloodDonated == FullThreshold) return;
         int damage = Mathf.RoundToInt(Plugin.MaxHealth * 0.10f);
         if (Plugin.SelectedChar.HasPassive(Ultrarogue.Characters.Passive.HealFromBlood))
