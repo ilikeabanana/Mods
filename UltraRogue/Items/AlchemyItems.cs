@@ -112,21 +112,20 @@ namespace Ultrarogue.Items
     public class DecayingEmpowerment : BaseItem
     {
         public override string ItemName => "Decaying Empowerment";
-        public override string itemDescription => "Start with +100% to all stats, but they <color=red>decay over time</color>. Kills reset the decay.";
+        public override string itemDescription => "Start with +100% to all stats, but they <color=red>decay over time</color>. Kills <color=green>restore some power</color>.";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage, ItemTag.Utility };
         public override Rarity Rarity => Rarity.Alchemy;
         Change allStats = new Change();
-        float decayTimer = 0f;
         const float decayRate = 0.02f;
         const float decayInterval = 1f;
         float nextDecayTime = 0f;
         public override void OnStart()
-        {
+        { 
             new PlayerChange(allStats, attackSpeed: allStats, cooldownReduction: allStats, globalDamageMult: allStats);
             new DeathEffect(ItemName, (enemy) =>
             {
                 int c = Plugin.GetItemCount(ItemName);
-                allStats.percentage = c * 1.0f;
+                allStats.percentage = Mathf.Min(c * 1.0f, allStats.percentage + (0.05f * c));
             });
         }
         public override void OnUpdate(int count)

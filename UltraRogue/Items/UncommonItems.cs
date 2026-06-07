@@ -102,7 +102,7 @@ namespace Ultrarogue.Items
     public class Combatblood : BaseItem
     {
         public override string ItemName => "Combat blood";
-        public override string itemDescription => "On kill, restore 3 HP (+3 per stack)";
+        public override string itemDescription => "On kill, restore 6 HP (+6 per stack)";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Healing };
         public override Rarity Rarity => Rarity.Uncommon;
         public override void OnStart()
@@ -112,7 +112,7 @@ namespace Ultrarogue.Items
                 int count = Plugin.GetItemCount(this);
                 if (count <= 0 || NewMovement.Instance == null) return;
 
-                int heal = 3 * count;
+                int heal = 6 * count;
                 NewMovement.Instance.hp = Mathf.Min(NewMovement.Instance.hp + heal, Plugin.MaxHealth);
             });
         }

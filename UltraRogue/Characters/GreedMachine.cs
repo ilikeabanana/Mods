@@ -1,0 +1,24 @@
+﻿using Steamworks.Ugc;
+using System;
+using System.Collections.Generic;
+using System.Text;
+using static Ultrarogue.Plugin;
+
+namespace Ultrarogue.Characters
+{
+    public class GreedMachine : BaseCharacter
+    {
+        public override string Name => "Greed Machine";
+        public override string Description => "Start with the marksman. <color=yellow>YOUR GOLD IS YOUR HEALTH, YOUR MARKSMAN HAS INFINITE COINS BUT COSTS GOLD</color>";
+        public override List<AWeapon> StartingWeapons => new List<AWeapon>()
+        {
+            new AWeapon(Plugin.Weapon.Revolver, Plugin.Variant.Red)
+        };
+        public override List<string> StartingItems => new List<string>() { "Ration Card", "Monocle" }; // Two monocles
+
+        public override List<Passive> Passives => new List<Passive>()
+        {
+            Passive.Greedy
+        };
+    }
+}

@@ -120,6 +120,7 @@ public static class SceneLoader
                 }
             }
             SceneHelper.SetLoadingSubtext(randomMessage);
+            yield return null;
         }
 
         // if the bundle isnt loaded yet then like load it :P oh yea and wait for it to load
@@ -127,6 +128,7 @@ public static class SceneLoader
         {
             Load();
             yield return new WaitForSeconds(1f);
+            Loaded = true;
         }
 
         AssetsManager.weaponMat = Addressables.LoadAssetAsync<Material>("Assets/Modding/RogueMode/WeaponPickup.mat").WaitForCompletion();

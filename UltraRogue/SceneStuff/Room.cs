@@ -104,7 +104,7 @@ public class Room : MonoBehaviour
         }
 
         return Plugin.weapons.Any(w =>
-            (w.weapon == Weapon.Revolver && (w.variant == Variant.Blue || w.variant == Variant.Red)) ||
+            (w.weapon == Weapon.Revolver && (w.variant == Variant.Blue || w.variant == Variant.Green)) ||
             (w.weapon == Weapon.Shotgun && (w.variant == Variant.Blue || w.variant == Variant.Green)) ||
             (w.weapon == Weapon.Railcannon && (w.variant == Variant.Blue || w.variant == Variant.Red)) ||
             (w.weapon == Weapon.RocketLauncher) ||

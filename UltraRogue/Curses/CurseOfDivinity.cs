@@ -10,6 +10,11 @@ namespace Ultrarogue.Curses
     {
         public override string CurseName => "Curse of Divinity";
         bool _happenin;
+
+        public override bool CanApply()
+        {
+            return RogueDifficultyManager.Instance.floor >= 9;
+        }
         public override void OnApply()
         {
             RogueDifficultyManager.Instance.StartCoroutine(SpawnGabe());
@@ -28,11 +33,8 @@ namespace Ultrarogue.Curses
 
             while (_happenin)
             {
-                if (gab == null)
-                    gab = CreateGabe();
+                yield return null;
 
-                if (gab.GetComponent<EnemyIdentifier>() != null && gab.GetComponent<EnemyIdentifier>().dead)
-                    gab = CreateGabe();
             }
 
             GameObject.Destroy(gab);
@@ -46,6 +48,8 @@ namespace Ultrarogue.Curses
             eid.health = int.MaxValue;
             e.health = int.MaxValue;
             e.originalHealth = int.MaxValue;
+
+            eid.Bless();
             return gabriel;
         }
     }

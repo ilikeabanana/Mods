@@ -28,6 +28,7 @@ namespace Ultrarogue.Characters
         TripleShot,
         GasolineFire,
         HealSetOnFire,
+        Greedy
     }
 
 }

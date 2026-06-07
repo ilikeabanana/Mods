@@ -163,6 +163,7 @@ namespace Ultrarogue
             characters.Add(new V1());
             characters.Add(new Ultrarogue.Characters.V2());
             characters.Add(new Ultrarogue.Characters.Streetcleaner());
+            characters.Add(new Ultrarogue.Characters.GreedMachine());
             characters.Add(new Ultrarogue.Characters.RandomCharacter());
             characters.Add(new Ultrarogue.Characters.Filth());
 
@@ -1034,10 +1035,6 @@ namespace Ultrarogue
         Enemies
     }
 
-    public class TeamComponent : MonoBehaviour
-    {
-        public Team teamId = Team.Player;
-    }
     public class AWeapon
     {
         public Plugin.Weapon weapon;
@@ -1272,6 +1269,23 @@ namespace Ultrarogue
             }
 
         }
+
+        [HarmonyPatch(typeof(NewMovement), nameof(NewMovement.GetHurt))]
+        [HarmonyPostfix]
+        public static void DamageGreed(ref int damage, NewMovement __instance)
+        {
+            if (SelectedChar?.HasPassive(Passive.Greedy) != true) return;
+            if (damage > 0)
+                RogueDifficultyManager.Instance.Gold -= damage / 10;
+            __instance.ResetHardDamage();
+            __instance.hp = 100;
+            
+            if(RogueDifficultyManager.Instance.Gold <= 0)
+            {
+                damage = 999;
+            }
+        }
+
         [HarmonyPatch(typeof(GasolineStain), nameof(GasolineStain.AttachTo))]
         [HarmonyPostfix]
         public static void Stret(GasolineStain __instance)
@@ -1470,6 +1484,34 @@ namespace Ultrarogue
                 }
             }
         }
+        [HarmonyPatch(typeof(Revolver), nameof(Revolver.ThrowCoin))]
+        public static class Revolver_ThrowCoin_Greed_Patch
+        {
+
+            [HarmonyPostfix]
+            public static void GreedCoin(Revolver __instance)
+            {
+                if (SelectedChar?.HasPassive(Passive.Greedy) != true) return;
+
+                __instance.wc.rev1charge = 400f;
+                RogueDifficultyManager.Instance.Gold -= 1;
+
+            }
+        }
+        [HarmonyPatch(typeof(Coin), nameof(Coin.GetDeleted))]
+        public static class Coin_GetDeleted_Greed_Patch
+        {
+            private static readonly HashSet<Coin> RefundedCoins = new();
+            [HarmonyPostfix]
+            public static void GreedRefund(Coin __instance)
+            {
+                if (SelectedChar?.HasPassive(Passive.Greedy) != true) return;
+                if (!RefundedCoins.Add(__instance)) return;
+                RogueDifficultyManager.Instance.Gold += 1;
+
+            }
+        }
+
         [HarmonyPatch(typeof(Nailgun), nameof(Nailgun.Update))]
         public static class Nailgun_Update_Patch
         {
@@ -1539,11 +1581,7 @@ namespace Ultrarogue
             if (!Plugin.isInRogueMode()) return;
             if (__instance.dead) return;
 
-            TeamComponent tComp = __instance.GetComponent<TeamComponent>();
-
-            if (tComp.teamId == Team.Enemies)
-            {
-                /*
+            /*
                 bool rogueScene = Plugin.isInRogueScene();
                 bool canExec = Plugin.canExecute(25f, "");
 
@@ -1569,14 +1607,13 @@ namespace Ultrarogue
 
                 }*/
 
-                foreach (var deathEffect in Plugin.deathEffects)
+            foreach (var deathEffect in Plugin.deathEffects)
+            {
+                if (Plugin.GetItemCount(deathEffect.itemName) <= 0)
                 {
-                    if (Plugin.GetItemCount(deathEffect.itemName) <= 0)
-                    {
-                        continue;
-                    }
-                    deathEffect.effect.Invoke(__instance);
+                    continue;
                 }
+                deathEffect.effect.Invoke(__instance);
             }
 
 
@@ -1585,21 +1622,17 @@ namespace Ultrarogue
 
         [HarmonyPatch(typeof(Enemy), nameof(Enemy.GetHurt))]
         [HarmonyPrefix]
-        public static void ActivateHitEffects(ref float multiplier, Enemy __instance)
+        public static void ActivateHitEffects(ref float multiplier, GameObject sourceWeapon, Enemy __instance)
         {
             if (!Plugin.isInRogueMode()) return;
             if (__instance.eid.dead) return;
-            Plugin.Logger.LogInfo($"Damage taken: {multiplier}");
             Weapon weaponUsed = Plugin.HitterToWeapon(__instance.eid.hitter);
             if (Plugin.damageMultipliers.ContainsKey(weaponUsed))
                 multiplier = Plugin.damageMultipliers[weaponUsed].CalculateChanges(multiplier);
-            Plugin.Logger.LogInfo($"Hitter Mult added: {multiplier}");
             multiplier = Plugin.globalDamageMult.CalculateChanges(multiplier);
-            Plugin.Logger.LogInfo($"Global Mult added: {multiplier}");
             foreach (var mod in Plugin.dmgModifiers)
             {
                 float mult = mod.damageModifier(__instance.eid);
-                Plugin.Logger.LogInfo($"Mult added: {mult}");
                 multiplier *= mult;
             }
 
@@ -1611,82 +1644,26 @@ namespace Ultrarogue
                 }
                 hitEffect.effect.Invoke(__instance.eid, multiplier);
             }
-            Plugin.Logger.LogInfo($"Damage taken after everything: {multiplier}");
-        }
-    }
 
-    [HarmonyPatch(typeof(EnemyIdentifier), nameof(EnemyIdentifier.UpdateTarget))]
-    public static class EnemyIdentifier_UpdateTarget_Patch
-    {
-        static bool Prefix(EnemyIdentifier __instance)
-        {
-            if (!Plugin.isInRogueMode()) return true;
-
-            var myTeam = __instance.GetComponent<TeamComponent>();
-            if (myTeam == null)
+            if (Plugin.SelectedChar.HasPassive(Passive.Greedy))
             {
-                myTeam = __instance.gameObject.AddComponent<TeamComponent>();
-                myTeam.teamId = Team.Enemies;
-            }
+                if (sourceWeapon == null) return;
+                Revolver r = null;
+                if (!sourceWeapon.TryGetComponent<Revolver>(out r)) return;
 
-            if (__instance.target != null && !__instance.target.isValid)
-                __instance.target = null;
-
-            if (__instance.dead) return false;
-
-            if (myTeam.teamId == Team.Player)
-                __instance.ignorePlayer = true;
-
-            EnemyIdentifier bestTarget = null;
-            float bestDist = float.MaxValue;
-
-            foreach (var eid in MonoSingleton<EnemyTracker>.Instance.GetCurrentEnemies())
-            {
-                if (eid == __instance || eid.dead) continue;
-
-                var theirTeam = eid.GetComponent<TeamComponent>();
-                Team theirTeamId = theirTeam != null ? theirTeam.teamId : Team.Enemies;
-
-                if (theirTeamId == myTeam.teamId) continue;
-
-                float dist = Vector3.Distance(__instance.transform.position, eid.transform.position);
-                if (dist < bestDist)
+      
+                if(__instance.eid.health - multiplier <= 0)
                 {
-                    bestDist = dist;
-                    bestTarget = eid;
+                    if (r.gunVariation == 1)
+                    {
+                        if (RogueDifficultyManager.Instance != null) RogueDifficultyManager.Instance.Gold++;
+                    }
                 }
-            }
-
-            if (bestTarget != null)
-            {
-                __instance.target = new EnemyTarget(bestTarget.transform);
-                return false;
-            }
-
-            if (myTeam.teamId == Team.Player)
-            {
-                __instance.target = null;
-                return false;
-            }
-
-            return true;
-        }
-    }
-
-    [HarmonyPatch(typeof(EnemyIdentifier), "Start")]
-    public static class EnemyIdentifier_Awake_Patch
-    {
-        static void Postfix(EnemyIdentifier __instance)
-        {
-            if (!Plugin.isInRogueMode()) return;
-
-            if (__instance.GetComponent<TeamComponent>() == null)
-            {
-                var team = __instance.gameObject.AddComponent<TeamComponent>();
-                team.teamId = Team.Enemies;
+                
             }
         }
     }
+
 
     [HarmonyPatch(typeof(EnemyIdentifier), nameof(EnemyIdentifier.StartBurning))]
     public static class BurningHeal

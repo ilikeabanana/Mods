@@ -69,7 +69,7 @@ public class Missle : MonoBehaviour
     {
         if (col.gameObject.GetComponent<NewMovement>()) return;
 
-        if (!LayerMaskDefaults.IsMatchingLayer(col.gameObject.layer, LMD.EnemiesAndEnvironment)) return;
+        if (!LayerMaskDefaults.IsMatchingLayer(col.gameObject.layer, LMD.Enemies)) return;
 
         if (kaboomed) return;
         kaboomed = true;
