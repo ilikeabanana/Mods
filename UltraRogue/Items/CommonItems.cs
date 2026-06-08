@@ -7,6 +7,8 @@ using System.Text;
 using ULTRAKILL.Portal;
 using ULTRAKILL.Portal.Native;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
+using UnityEngine.UIElements;
 
 namespace Ultrarogue.Items
 {
@@ -42,6 +44,69 @@ namespace Ultrarogue.Items
         public override void OnNewFloor(int count)
         {
             RogueDifficultyManager.Instance.Gold += 2 * count;
+        }
+    }
+
+    public class StyleChst : BaseItem
+    {
+        public override string ItemName => "Style Chest";
+        public override string itemDescription => "After gaining 10000 style remove this and spawn 1 random uncommon item.";
+        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Utility };
+        int styleStart = 0;
+        public override void OnGotten(int count, bool firstPickup)
+        {
+            if (firstPickup)
+                styleStart = StatsManager.Instance.stylePoints;
+        }
+
+        public override void OnUpdate(int count)
+        {
+            base.OnUpdate(count);
+            if (!Room.isFighting) return;
+            if (count == 0) return;
+            int gainedStyle = StatsManager.Instance.stylePoints - styleStart;
+            if (gainedStyle >= 10000)
+            {
+                styleStart = StatsManager.Instance.stylePoints;
+                SpawnItem();
+                Plugin.RemoveItem(this, 1);
+            }
+        }
+
+        public void SpawnItem()
+        {
+            Transform playerTransform = NewMovement.Instance.transform;
+            Vector3 spawnDirection = playerTransform.right;
+            float checkDistance = 2f;
+            float raycastHeightOffset = 1f;
+
+            // Check if there's a wall to the right
+            Vector3 rayOrigin = playerTransform.position + Vector3.up * raycastHeightOffset;
+            bool wallHit = Physics.Raycast(rayOrigin, spawnDirection, out RaycastHit wallCheck, checkDistance, LayerMaskDefaults.Get(LMD.Environment));
+
+            if (wallHit)
+                return;
+
+            // Find the floor below the spawn position
+            Vector3 sidePosition = playerTransform.position + spawnDirection * checkDistance;
+            bool floorHit = Physics.Raycast(sidePosition + Vector3.up * 2f, Vector3.down, out RaycastHit floorCheck, 10f, LayerMaskDefaults.Get(LMD.Environment));
+
+            Vector3 spawnPosition = floorHit ? floorCheck.point : sidePosition;
+
+            GameObject plc = new GameObject("ItemDropAnchor");
+            plc.transform.position = spawnPosition;
+            plc.transform.parent = Room.getObjectInsideRoom(spawnPosition).transform;
+            // Spawn a random uncommon item
+            ItemPickup.CreatePickup(Plugin.GiveRandomItem(RogueDifficultyManager.ChestRNG, DroptableType.UncommonOnly), plc.transform);
+
+            if (Room.pedestalItem == null)
+                Room.pedestalItem = Addressables.LoadAssetAsync<GameObject>("Assets/Modding/RogueMode/Draghtnim/Pedestal.prefab").WaitForCompletion();
+            Object.Instantiate(AssetsManager.spawnEffect, plc.transform.position, Quaternion.identity);
+            if (Room.pedestalItem != null)
+            {
+                GameObject ped = Object.Instantiate(Room.pedestalItem, plc.transform.position + Vector3.up, Quaternion.identity);
+                ped.transform.parent = Room.getObjectInsideRoom(spawnPosition).transform;
+            }
         }
     }
 

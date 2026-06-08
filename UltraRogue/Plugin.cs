@@ -22,6 +22,7 @@ using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using static Ultrarogue.Plugin;
+using static UnityEngine.GraphicsBuffer;
 using Random = UnityEngine.Random;
 
 // gffg
@@ -787,6 +788,44 @@ namespace Ultrarogue
             GiveItem(itemToGive);
         }
 
+        /// <summary>
+        /// Removes <paramref name="stacksToRemove"/> stacks of <paramref name="item"/> from the player's inventory.
+        /// Calls <see cref="BaseItem.OnRemoval"/> once per stack removed, then fully removes the entry
+        /// when the stack count reaches zero.
+        /// </summary>
+        /// <param name="item">The item to remove.</param>
+        /// <param name="stacksToRemove">Number of stacks to remove. Defaults to 1. Pass -1 to remove all stacks.</param>
+        public static void RemoveItem(BaseItem item, int stacksToRemove = 1)
+        {
+            if (item == null || !items.ContainsKey(item)) return;
+
+            int currentStacks = items[item];
+
+            // -1 means "remove everything"
+            if (stacksToRemove < 0 || stacksToRemove >= currentStacks)
+                stacksToRemove = currentStacks;
+
+            for (int i = 0; i < stacksToRemove; i++)
+                item.OnRemoval();
+
+            int remaining = currentStacks - stacksToRemove;
+            if (remaining <= 0)
+                items.Remove(item);
+            else
+                items[item] = remaining;
+
+            RogueDifficultyManager.Instance?.RemoveItem(item, stacksToRemove);
+        }
+
+        /// <summary>
+        /// Removes <paramref name="stacksToRemove"/> stacks of the item with the given <paramref name="name"/>.
+        /// </summary>
+        public static void RemoveItem(string name, int stacksToRemove = 1)
+        {
+            BaseItem item = getItem(name);
+            RemoveItem(item, stacksToRemove);
+        }
+
         public void GatherItems()
         {
             possibleItems = Assembly.GetExecutingAssembly()
@@ -1279,8 +1318,8 @@ namespace Ultrarogue
                 RogueDifficultyManager.Instance.Gold -= damage / 10;
             __instance.ResetHardDamage();
             __instance.hp = 100;
-            
-            if(RogueDifficultyManager.Instance.Gold <= 0)
+
+            if (RogueDifficultyManager.Instance.Gold <= 0)
             {
                 damage = 999;
             }
@@ -1332,12 +1371,12 @@ namespace Ultrarogue
                 if (!SelectedChar.HasPassive(Passive.HealFromBlood))
                 {
                     int c = GetItemCount("Blood Flowing Plating");
-                    if(c >= 0)
+                    if (c > 0)
                     {
                         MonoSingleton<NewMovement>.Instance.GetHealth(Mathf.FloorToInt(__instance.hpAmount * (0.1f * c)), false, __instance.fromExplosion, true);
                         __instance.DisableCollider();
                     }
-                    
+
                     return false;
                 }
                 if (__instance.canCollide && other.gameObject.CompareTag("Player"))
@@ -1661,15 +1700,20 @@ namespace Ultrarogue
                 Revolver r = null;
                 if (!sourceWeapon.TryGetComponent<Revolver>(out r)) return;
 
-      
-                if(__instance.eid.health - multiplier <= 0)
+                float otherMult = multiplier;
+
+                if (__instance.IsZombie() && !__instance.gc.onGround && __instance.eid.hitter != "fire")
+                {
+                    otherMult *= 1.5f;
+                }
+                if (__instance.eid.health - otherMult <= 0)
                 {
                     if (r.gunVariation == 1)
                     {
                         if (RogueDifficultyManager.Instance != null) RogueDifficultyManager.Instance.Gold++;
                     }
                 }
-                
+
             }
         }
     }
@@ -1750,6 +1794,23 @@ namespace Ultrarogue
                     {
                         Plugin.GiveItem(item.Value);
                         Log.Info($"Gave item {item.Value.ItemName}");
+                    }, true));
+                }
+
+                // Remove commands
+                list.Add(CommandRoot.Leaf("removeall", delegate ()
+                {
+                    foreach (var item in Plugin.items.Keys.ToList())
+                        Plugin.RemoveItem(item, -1);
+                    Log.Info("Removed all items.");
+                }, true));
+
+                foreach (var item in Plugin.nameToItem)
+                {
+                    list.Add(CommandRoot.Leaf("remove_" + item.Value.ItemName.Replace(" ", "_"), () =>
+                    {
+                        Plugin.RemoveItem(item.Value);
+                        Log.Info($"Removed 1 stack of {item.Value.ItemName}");
                     }, true));
                 }
 

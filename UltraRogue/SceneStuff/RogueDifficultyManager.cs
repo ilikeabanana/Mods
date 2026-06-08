@@ -35,6 +35,7 @@ public class RogueDifficultyManager : MonoBehaviour
     public static System.Random RoomRNG;
     public static System.Random BossRNG;
     public static System.Random BloodRNG;
+    public static System.Random ChestRNG;
     bool keepOpen;
     float doubleTap;
     void Awake()
@@ -45,6 +46,7 @@ public class RogueDifficultyManager : MonoBehaviour
         RoomRNG = new System.Random(Plugin.GameSeed.GetHashCode() / 2);
         BossRNG = new System.Random(Plugin.GameSeed.GetHashCode() ^ 2);
         BloodRNG = new System.Random((int)Mathf.Log(Plugin.GameSeed.GetHashCode(), 2));
+        ChestRNG = new System.Random((int)Mathf.PingPong(Plugin.GameSeed.GetHashCode(), 2)); // Im using random calculations
         Instance = this;
         Difficulty = Plugin.CurrentDifficulty;
 
@@ -100,7 +102,42 @@ public class RogueDifficultyManager : MonoBehaviour
         statCooldownText.text = $"x{cd:F2}";
         statFloorText.text = $"{floor}";
     }
+    // Paste this method into RogueDifficultyManager, alongside AddItem().
 
+    public void RemoveItem(BaseItem item, int stacksRemoved = 1)
+    {
+        if (item == null) return;
+
+        string itemKey = item.ItemName;
+
+        if (!itemCounts.ContainsKey(itemKey)) return;
+
+        itemCounts[itemKey] -= stacksRemoved;
+
+        if (itemCounts[itemKey] <= 0)
+        {
+            // Remove the UI object entirely
+            itemCounts.Remove(itemKey);
+
+            if (itemUIObjects.TryGetValue(itemKey, out GameObject uiObj) && uiObj != null)
+                Destroy(uiObj);
+
+            itemUIObjects.Remove(itemKey);
+        }
+        else
+        {
+            // Update the stack count label
+            if (itemUIObjects.TryGetValue(itemKey, out GameObject uiObj) && uiObj != null)
+            {
+                TMP_Text countLabel = uiObj.GetComponentInChildren<TMP_Text>();
+                if (countLabel != null)
+                {
+                    int remaining = itemCounts[itemKey];
+                    countLabel.text = remaining > 1 ? $"(x{remaining})" : "";
+                }
+            }
+        }
+    }
     public void AddItem(BaseItem item)
     {
         if (item == null)
