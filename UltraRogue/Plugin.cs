@@ -1329,7 +1329,17 @@ namespace Ultrarogue
                     bloodFiller.FillBloodSlider((float)__instance.hpAmount, __instance.transform.position, __instance.eidID);
                     return false;
                 }
-                if (!SelectedChar.HasPassive(Passive.HealFromBlood)) return false;
+                if (!SelectedChar.HasPassive(Passive.HealFromBlood))
+                {
+                    int c = GetItemCount("Blood Flowing Plating");
+                    if(c >= 0)
+                    {
+                        MonoSingleton<NewMovement>.Instance.GetHealth(Mathf.FloorToInt(__instance.hpAmount * (0.1f * c)), false, __instance.fromExplosion, true);
+                        __instance.DisableCollider();
+                    }
+                    
+                    return false;
+                }
                 if (__instance.canCollide && other.gameObject.CompareTag("Player"))
                 {
                     MonoSingleton<NewMovement>.Instance.GetHealth(__instance.hpAmount, false, __instance.fromExplosion, true);

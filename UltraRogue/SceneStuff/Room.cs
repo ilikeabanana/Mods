@@ -74,6 +74,8 @@ public class Room : MonoBehaviour
     public int RoomSizeWidth = 1;
     public int RoomSizeHeight = 1;
 
+    public bool TriggerSoftlockCheck = true;
+
     /// <summary>
     /// Dynamically fetches the correct exit transform based on which grid cell is being checked.
     /// </summary>
@@ -179,16 +181,19 @@ public class Room : MonoBehaviour
             default:
                 break;
         }
-
-        if (!HasAnyWeaponsThatCanBreakThroughGlass())
+        if (TriggerSoftlockCheck)
         {
-            Glass[] allGlass = gameObject.GetComponentsInChildren<Glass>();
-
-            foreach (var glass in allGlass)
+            if (!HasAnyWeaponsThatCanBreakThroughGlass())
             {
-                glass.Shatter();
+                Glass[] allGlass = gameObject.GetComponentsInChildren<Glass>();
+
+                foreach (var glass in allGlass)
+                {
+                    glass.Shatter();
+                }
             }
         }
+
     }
 
     private int playerHealthAtFightStart = -1;

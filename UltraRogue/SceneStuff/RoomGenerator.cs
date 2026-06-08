@@ -385,33 +385,14 @@ public class RoomGenerator : MonoBehaviour
             // cells are free — including cells beyond the anchor).
             if (largeRoomPrefabs != null && largeRoomPrefabs.Count > 0)
             {
-                List<Room> largeCandidates = new List<Room>();
-                Dictionary<Room, Vector2Int> candidateAnchors = new Dictionary<Room, Vector2Int>();
+                List<Room> largeCandidates = largeRoomPrefabs.FindAll(p =>
+                    LargeRoomCellsFree(gridPos, p.RoomSizeWidth, p.RoomSizeHeight));
 
-                foreach (Room p in largeRoomPrefabs)
-                {
-                    // Try all possible anchor offsets so the footprint can expand in any direction
-                    for (int ox = -(p.RoomSizeWidth - 1); ox <= 0; ox++)
-                    {
-                        for (int oy = -(p.RoomSizeHeight - 1); oy <= 0; oy++)
-                        {
-                            Vector2Int tryAnchor = gridPos + new Vector2Int(ox, oy);
-                            if (LargeRoomCellsFree(tryAnchor, p.RoomSizeWidth, p.RoomSizeHeight) &&
-                                !largeCandidates.Contains(p))
-                            {
-                                largeCandidates.Add(p);
-                                candidateAnchors[p] = tryAnchor;
-                            }
-                        }
-                    }
-                }
-
-                if (largeCandidates.Count > 0 && RogueDifficultyManager.RoomRNG.Next(0, largeRoomPrefabs.Count) == 0)
+                if (largeCandidates.Count > 0 && RogueDifficultyManager.RoomRNG.Next(0, roomPrefabs.Count + largeCandidates.Count) == 0)
                 {
                     prefab = largeCandidates[RogueDifficultyManager.RoomRNG.Next(0, largeCandidates.Count)];
-                    Vector2Int anchor = candidateAnchors[prefab];
-                    ExpandLargeRoom(prefab, anchor, isStart);
-                    return FarEdgeCell(anchor, prefab.RoomSizeWidth, prefab.RoomSizeHeight, direction);
+                    ExpandLargeRoom(prefab, gridPos, isStart);
+                    return FarEdgeCell(gridPos, prefab.RoomSizeWidth, prefab.RoomSizeHeight, direction);
                 }
             }
 

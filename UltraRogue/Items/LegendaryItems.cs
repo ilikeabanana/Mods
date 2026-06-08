@@ -89,41 +89,57 @@ namespace Ultrarogue.Items
             }
         }
     }
+
+    public class BloodFlowingPlating : BaseItem
+    {
+        public override string ItemName => "Blood Flowing Plating";
+        public override string itemDescription => "Have 10% of v1's healing (+10% per stack)";
+        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Healing };
+        public override Rarity Rarity => Rarity.Legendary;
+    }
+
     public class StyleBalls : BaseItem
     {
         public override string ItemName => "Hells Opinion";
-        public override string itemDescription => "every 100 style gained, 30% chance to shoot 1 (+1 per stack) homing projectile that does 100% base damage";
+        public override string itemDescription => "every 100 style gotten, gain 50% (+50% per stack) damage for the style orbs. After 5 seconds, if gathered over 200% damage, launch a style orb.";
 
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         public override Rarity Rarity => Rarity.Legendary;
 
-        int styleRequired = 0;
+        int styleStart = 0;
+
+        float timer = 0;
 
         public override void OnGotten(int count, bool firstPickup)
         {
             if (firstPickup)
-                styleRequired = StatsManager.Instance.stylePoints + 100;
+                styleStart = StatsManager.Instance.stylePoints;
         }
 
         public override void OnUpdate(int count)
         {
             base.OnUpdate(count);
+            if (!Room.isFighting) return;
+            if (count == 0) return;
 
-            if(styleRequired <= StatsManager.Instance.stylePoints)
+            timer += Time.deltaTime;
+
+            if(timer >= 5)
             {
-                for (int i = 0; i < count; i++)
+                int gainedStyle = StatsManager.Instance.stylePoints - styleStart;
+                int mult = Mathf.CeilToInt(gainedStyle / 100f);
+                if (mult >= 4)
                 {
-                    Launch();
+                    styleStart = StatsManager.Instance.stylePoints;
+                    Plugin.Logger.LogInfo($"Launching orb with damage {mult * (0.5f * count)}");
+                    Launch(mult * (0.5f * count));
                 }
-                styleRequired += 100;
+                timer = 0;
             }
         }
 
-        public void Launch()
+        public void Launch(float damage)
         {
-            if (!Plugin.canExecute(30, "")) return;
-
-            float damage = 3;
             GameObject missle = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             missle.GetComponent<Collider>().isTrigger = true;
             missle.AddComponent<Rigidbody>().useGravity = false;
@@ -135,7 +151,7 @@ namespace Ultrarogue.Items
     public class PrimeHead : BaseItem
     {
         public override string ItemName => "Prime Head";
-        public override string itemDescription => "Cooldowns reduce by 50%";
+        public override string itemDescription => "Cooldowns reduce by 60%";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Utility };
         public override Rarity Rarity => Rarity.Legendary;
         Change change = new Change(percentage: 0);
@@ -159,7 +175,7 @@ namespace Ultrarogue.Items
     public class VinnyPimpHat : BaseItem
     {
         public override string ItemName => "Vinny's Pimp Hat";
-        public override string itemDescription => "Every 3 seconds fire a purple saw that deals 150% (+150% per stack) damage and stays until the room is cleared.";
+        public override string itemDescription => "Every 5 seconds fire a purple saw that deals 150% (+150% per stack) damage and stays until the room is cleared.";
 
         public override Rarity Rarity => Rarity.Legendary;
         float t = 0;
@@ -189,7 +205,7 @@ namespace Ultrarogue.Items
             {
                 t += Time.deltaTime;
 
-                if (t >= 3)
+                if (t >= 5)
                 {
                     if (sawPrefab == null)
                         sawPrefab = Addressables.LoadAssetAsync<GameObject>("Assets/Modding/RogueMode/SawVinny.prefab").WaitForCompletion();
@@ -250,25 +266,6 @@ namespace Ultrarogue.Items
         public override string ItemName => "Agonized Mask";
         public override string itemDescription => "Have a 25% (+10% per stack) for an enemy to spawn as a puppet (does NOT include bosses)";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Utility };
-    }
-    public class Panopticon : BaseItem
-    {
-        public override Rarity Rarity => Rarity.Legendary;
-        public override string ItemName => "Panopticon";
-        public override string itemDescription => "On damage taken, heal 20 (+5 per stack) hp";
-        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Healing };
-
-        public override void OnStart()
-        {
-            new DamageTakenEffect(ItemName, (dmg) =>
-            {
-                int c = Plugin.GetItemCount(this);
-
-                if (c <= 0) return;
-
-                NewMovement.Instance.GetHealth(20 + (5 * (c - 1)), true, bloodsplatter: false);
-            });
-        }
     }
 
 

@@ -39,6 +39,28 @@ namespace Ultrarogue.Items
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Utility };
         public override bool CanOnlyHaveOne => true;
     }
+
+    public class Panopticon : BaseItem
+    {
+        public override Rarity Rarity => Rarity.Uncommon;
+        public override string ItemName => "Panopticon";
+        public override string itemDescription => "On damage taken, heal 5 (+5 per stack) hp";
+        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Healing };
+
+        public override void OnStart()
+        {
+            new DamageTakenEffect(ItemName, (dmg) =>
+            {
+                int c = Plugin.GetItemCount(this);
+
+                if (c <= 0) return;
+
+                NewMovement.Instance.GetHealth(5 * c, true, bloodsplatter: false);
+            });
+        }
+    }
+
+
     public class Executioner : BaseItem
     {
         public override string ItemName => "Executioner";
