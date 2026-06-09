@@ -76,22 +76,10 @@ namespace Ultrarogue.Items
         public void SpawnItem()
         {
             Transform playerTransform = NewMovement.Instance.transform;
-            Vector3 spawnDirection = playerTransform.right;
-            float checkDistance = 2f;
-            float raycastHeightOffset = 1f;
 
-            // Check if there's a wall to the right
-            Vector3 rayOrigin = playerTransform.position + Vector3.up * raycastHeightOffset;
-            bool wallHit = Physics.Raycast(rayOrigin, spawnDirection, out RaycastHit wallCheck, checkDistance, LayerMaskDefaults.Get(LMD.Environment));
+            bool floorHit = Physics.Raycast(playerTransform.position, Vector3.down, out RaycastHit floorCheck, 40f, LayerMaskDefaults.Get(LMD.Environment));
 
-            if (wallHit)
-                return;
-
-            // Find the floor below the spawn position
-            Vector3 sidePosition = playerTransform.position + spawnDirection * checkDistance;
-            bool floorHit = Physics.Raycast(sidePosition + Vector3.up * 2f, Vector3.down, out RaycastHit floorCheck, 10f, LayerMaskDefaults.Get(LMD.Environment));
-
-            Vector3 spawnPosition = floorHit ? floorCheck.point : sidePosition;
+            Vector3 spawnPosition = floorHit ? floorCheck.point : playerTransform.position;
 
             GameObject plc = new GameObject("ItemDropAnchor");
             plc.transform.position = spawnPosition;

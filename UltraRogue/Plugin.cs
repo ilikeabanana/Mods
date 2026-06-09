@@ -417,6 +417,7 @@ namespace Ultrarogue
 
         void Update()
         {
+            if (!isInRogueScene()) return;
             /*
             if (Input.GetKeyDown(KeyCode.X))
             {
@@ -1294,6 +1295,11 @@ namespace Ultrarogue
             {
                 effect.effect.Invoke(damage);
             }
+            if (SelectedChar?.HasPassive(Passive.Greedy) != true) return;
+            if (RogueDifficultyManager.Instance.Gold <= 0)
+            {
+                damage = 999;
+            }
         }
 
         [HarmonyPatch(typeof(NewMovement), nameof(NewMovement.GetHurt))]
@@ -1316,13 +1322,11 @@ namespace Ultrarogue
             if (SelectedChar?.HasPassive(Passive.Greedy) != true) return;
             if (damage > 0)
                 RogueDifficultyManager.Instance.Gold -= damage / 10;
+            if (RogueDifficultyManager.Instance.Gold <= 0) return;
             __instance.ResetHardDamage();
             __instance.hp = 100;
 
-            if (RogueDifficultyManager.Instance.Gold <= 0)
-            {
-                damage = 999;
-            }
+            
         }
 
         [HarmonyPatch(typeof(GasolineStain), nameof(GasolineStain.AttachTo))]
@@ -1666,6 +1670,11 @@ namespace Ultrarogue
             }
 
 
+            if (Plugin.SelectedChar.HasPassive(Passive.Greedy))
+            {
+                if (RogueDifficultyManager.Instance != null) RogueDifficultyManager.Instance.Gold++;
+
+            }
 
         }
 
@@ -1694,27 +1703,6 @@ namespace Ultrarogue
                 hitEffect.effect.Invoke(__instance.eid, multiplier);
             }
 
-            if (Plugin.SelectedChar.HasPassive(Passive.Greedy))
-            {
-                if (sourceWeapon == null) return;
-                Revolver r = null;
-                if (!sourceWeapon.TryGetComponent<Revolver>(out r)) return;
-
-                float otherMult = multiplier;
-
-                if (__instance.IsZombie() && !__instance.gc.onGround && __instance.eid.hitter != "fire")
-                {
-                    otherMult *= 1.5f;
-                }
-                if (__instance.eid.health - otherMult <= 0)
-                {
-                    if (r.gunVariation == 1)
-                    {
-                        if (RogueDifficultyManager.Instance != null) RogueDifficultyManager.Instance.Gold++;
-                    }
-                }
-
-            }
         }
     }
 

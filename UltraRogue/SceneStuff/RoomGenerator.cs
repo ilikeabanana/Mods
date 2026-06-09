@@ -452,7 +452,7 @@ public class RoomGenerator : MonoBehaviour
 
         for (int lx = 0; lx < w; lx++)
         {
-            for (int ly = 0; ly < h; ly++)
+            for (int ly = 0; ly > -h; ly--)
             {
                 Vector2Int cell = anchorPos + new Vector2Int(lx, ly);
 
@@ -572,7 +572,7 @@ public class RoomGenerator : MonoBehaviour
     bool LargeRoomCellsFree(Vector2Int anchor, int w, int h)
     {
         for (int lx = 0; lx < w; lx++)
-            for (int ly = 0; ly < h; ly++)
+            for (int ly = 0; ly > -h; ly--)
                 if (placedRooms.ContainsKey(anchor + new Vector2Int(lx, ly)))
                     return false;
         return true;
@@ -1322,7 +1322,7 @@ public class RoomGenerator : MonoBehaviour
     Vector2Int FarEdgeCell(Vector2Int anchor, int w, int h, Vector2Int dir)
     {
         int dx = dir.x > 0 ? w - 1 : 0;
-        int dy = dir.y > 0 ? h - 1 : 0;
+        int dy = dir.y < 0 ? -(h - 1) : 0;
         return anchor + new Vector2Int(dx, dy);
     }
 }

@@ -26,9 +26,15 @@ public class BloodMachine : MonoBehaviour
 
     public void BLOOD()
     {
+        if (Plugin.SelectedChar.HasPassive(Ultrarogue.Characters.Passive.Greedy))
+        {
+            HudMessageReceiver.Instance.SendHudMessage("<color=red>INCOMPATIBLE BLOOD</color>");
+            return;
+        }
+
         Debug.Log($"bloodDonated: {bloodDonated}, FullThreshold: {FullThreshold}");
         if (bloodDonated == FullThreshold) return;
-        int damage = Mathf.FloorToInt(Plugin.MaxHealth * 0.35f); // 35% of the hp
+        int damage = Mathf.FloorToInt(Plugin.MaxHealth * 0.25f); // 25% of the hp
         if (Plugin.SelectedChar.HasPassive(Ultrarogue.Characters.Passive.HealFromBlood))
         {
             damage = Mathf.RoundToInt(55f);
