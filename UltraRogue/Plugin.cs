@@ -633,6 +633,12 @@ namespace Ultrarogue
                 (
                     x.ItemName != "Gasoline" ||
                     SelectedChar.GetType() == typeof(Ultrarogue.Characters.Streetcleaner)
+                ) && (
+                    x.ItemName != "Panopticon" ||
+                    SelectedChar.GetType() != typeof(Ultrarogue.Characters.Filth)
+                ) && (
+                    x.ItemName != "Blood Flowing Plating" ||
+                    SelectedChar.GetType() != typeof(Ultrarogue.Characters.Filth)
                 ) &&
 
                 (
@@ -1287,13 +1293,17 @@ namespace Ultrarogue
 
         [HarmonyPatch(typeof(NewMovement), nameof(NewMovement.GetHurt))]
         [HarmonyPrefix]
-        public static void DamageLess(ref int damage, NewMovement __instance)
+        public static void DamageLess(ref int damage, ref bool ignoreInvincibility, NewMovement __instance)
         {
             if (damage > 0)
                 damage = (int)Mathf.Max(DamageReduction.CalculateChanges(damage), 1); // cannot go below 1
             foreach (var effect in Plugin.onDamageEffects)
             {
                 effect.effect.Invoke(damage);
+            }
+            if(SelectedChar.GetType() == typeof(Filth))
+            {
+                ignoreInvincibility = true; // Always ignore invincibility
             }
             if (SelectedChar?.HasPassive(Passive.Greedy) != true) return;
             if (RogueDifficultyManager.Instance.Gold <= 0)
@@ -1734,6 +1744,11 @@ namespace Ultrarogue
 
             __instance.cachedActivity.Details = "Floor: " + RogueDifficultyManager.Instance.floor;
             __instance.cachedActivity.Assets.LargeImage = "level_0-1";
+
+            string LargeText = $"Go: {RogueDifficultyManager.Instance.Gold}" +
+                $"Ke: {RogueDifficultyManager.Instance.Keys}";
+
+            __instance.cachedActivity.Assets.LargeText = LargeText; // ONLY PRELUDE FOR NOW
         }
     }
 

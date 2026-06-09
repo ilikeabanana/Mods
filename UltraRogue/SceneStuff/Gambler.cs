@@ -132,7 +132,7 @@ public class Gambler : MonoBehaviour
         }
 
         float snapTime = 0.35f;
-        float duration = 5f;
+        float duration = 1f;
         float t = 0;
 
         Dictionary<GameObject, float> slotSpeeds = new Dictionary<GameObject, float>();

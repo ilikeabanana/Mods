@@ -15,7 +15,7 @@ namespace Ultrarogue.Curses
         private Coroutine fogCoroutine;
 
         private const float TargetFogStart = 0f;
-        private const float TargetFogEnd = 10f; // Adjust to your scene scale
+        private const float TargetFogEnd = 20f; // Adjust to your scene scale
         private const float LerpDuration = 2f;
 
         public override void OnApply()

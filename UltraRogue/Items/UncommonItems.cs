@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using ULTRAKILL.Enemy;
+using Ultrarogue.Characters;
 using UnityEngine;
 
 namespace Ultrarogue.Items
@@ -124,7 +125,7 @@ namespace Ultrarogue.Items
     public class Combatblood : BaseItem
     {
         public override string ItemName => "Combat blood";
-        public override string itemDescription => "On kill, restore 6 HP (+6 per stack)";
+        public override string itemDescription => Plugin.SelectedChar?.GetType() != typeof(Filth) ? "On kill, restore 6 HP (+6 per stack)" : "On kill, restore 1 HP (+1 per stack)";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Healing };
         public override Rarity Rarity => Rarity.Uncommon;
         public override void OnStart()
@@ -135,6 +136,10 @@ namespace Ultrarogue.Items
                 if (count <= 0 || NewMovement.Instance == null) return;
 
                 int heal = 6 * count;
+                if(Plugin.SelectedChar?.GetType() == typeof(Filth))
+                {
+                    heal = 1 * count;
+                }
                 NewMovement.Instance.hp = Mathf.Min(NewMovement.Instance.hp + heal, Plugin.MaxHealth);
             });
         }
