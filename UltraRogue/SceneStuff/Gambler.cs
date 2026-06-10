@@ -7,14 +7,14 @@ using UnityEngine.UI;
 
 public class Gambler : MonoBehaviour
 {
-    const float GAMBLE_COOLDOWN = 2f;
-    const float EXPLOSION_BASE_CHANCE = 0.08f;   // 8% on first use
-    const float EXPLOSION_CHANCE_RAMP = 0.07f;   // +7% each subsequent use
+    const float EXPLOSION_BASE_CHANCE = 0.02f;   // 2% on first use
+    const float EXPLOSION_CHANCE_RAMP = 0.02f;   // +2% each subsequent use
     public GameObject ExplosionWarningThing;
     public ShopZone zone;
-    float cooldown = 0f;
     int useCount = 0;
     bool exploded = false;
+
+    Coroutine activeRoutine = null;
 
     Transform itemPlacementThing;
 
@@ -27,7 +27,7 @@ public class Gambler : MonoBehaviour
     public void Gamble()
     {
         if (exploded) return;
-        if (cooldown > 0) return; // respect cooldown
+        if (activeRoutine != null) return; // respect cooldown
         var mgr = RogueDifficultyManager.Instance;
         if (mgr == null) return;
 
@@ -38,8 +38,6 @@ public class Gambler : MonoBehaviour
         }
 
         mgr.Gold--;
-        cooldown = GAMBLE_COOLDOWN;
-
         Spin();
     }
 
@@ -78,7 +76,7 @@ public class Gambler : MonoBehaviour
         return transform.Find("Canvas/Background/Text Inset/" + name).gameObject;
     }
 
-    void Spin() => StartCoroutine(SpinRoutine());
+    void Spin() => activeRoutine = StartCoroutine(SpinRoutine());
 
     void AssignImage(int num, Transform parent, Texture2D text)
     {
@@ -92,15 +90,8 @@ public class Gambler : MonoBehaviour
     List<Texture2D> texts = new List<Texture2D>();
     float Threshold = 240; // THIS TOOK SO LONG TO FIND THIS ONE FUCKING NUMBER
 
-
-    void Update()
-    {
-        if (cooldown > 0) cooldown -= Time.deltaTime;
-    }
-
     IEnumerator SpinRoutine()
     {
-        cooldown = 2;
         BaseItem item = null;
         bool willExplode = false;
 
@@ -200,41 +191,8 @@ public class Gambler : MonoBehaviour
         {
             HudMessageReceiver.Instance.SendHudMessage("You lost... try again?");
         }
+        activeRoutine = null; // allow user to gamble again
     }
-    /* Old Gamble Code
-    public void Activate()
-    {
-        var mgr = RogueDifficultyManager.Instance;
-        if (mgr == null) return;
-
-        if (mgr.Gold <= 0)
-        {
-            HudMessageReceiver.Instance?.SendHudMessage("No gold to gamble!");
-            return;
-        }
-
-        mgr.Gold--;
-        useCount++;
-
-        // Check for explosion before resolving the gamble
-        float explosionChance = EXPLOSION_BASE_CHANCE + EXPLOSION_CHANCE_RAMP * (useCount - 1);
-        if (RogueDifficultyManager.GambleItemRNG.NextDouble() <= explosionChance)
-        {
-            Explode();
-            return;
-        }
-
-        if (RogueDifficultyManager.GambleItemRNG.NextDouble() <= 0.35f)
-        {
-            HudMessageReceiver.Instance?.SendHudMessage("You won!");
-            ItemPickup.CreatePickup(Plugin.GiveRandomItem(RogueDifficultyManager.GambleItemRNG), itemPlacementThing, 5);
-        }
-        else
-        {
-            HudMessageReceiver.Instance?.SendHudMessage("You lost... try again?");
-        }
-    }*/
-
     void Explode()
     {
         exploded = true;

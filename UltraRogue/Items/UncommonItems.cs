@@ -46,7 +46,7 @@ namespace Ultrarogue.Items
         public override Rarity Rarity => Rarity.Uncommon;
         public override string ItemName => "Panopticon";
         public override string itemDescription => "On damage taken, heal 5 (+5 per stack) hp";
-        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Healing };
+        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Healing, ItemTag.Health };
 
         public override void OnStart()
         {
@@ -90,7 +90,7 @@ namespace Ultrarogue.Items
         public override string ItemName => "Fusion";
         public override string itemDescription => "Each kill permanently increases your max hp by 1 with a max of 50 (+50 per stack)";
         public override Rarity Rarity => Ultrarogue.Rarity.Uncommon;
-        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Healing };
+        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.MaxHealth, ItemTag.Health };
         Change hpChange;
         float killBonus = 0f;
 
@@ -126,7 +126,7 @@ namespace Ultrarogue.Items
     {
         public override string ItemName => "Combat blood";
         public override string itemDescription => Plugin.SelectedChar?.GetType() != typeof(Filth) ? "On kill, restore 6 HP (+6 per stack)" : "On kill, restore 1 HP (+1 per stack)";
-        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Healing };
+        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Healing, ItemTag.Health };
         public override Rarity Rarity => Rarity.Uncommon;
         public override void OnStart()
         {

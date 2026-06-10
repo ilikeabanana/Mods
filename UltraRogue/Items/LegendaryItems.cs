@@ -62,7 +62,6 @@ namespace Ultrarogue.Items
             static void Postfix(RevolverBeam __instance, PhysicsCastResult hit)
             {
                 if (!taggedBeams.Contains(__instance)) return;
-                if (__instance.hitAmount != 1) return;
 
                 SpawnExplosion(hit.point);
                 taggedBeams.Remove(__instance);
@@ -94,13 +93,13 @@ namespace Ultrarogue.Items
     {
         public override string ItemName => "Blood Flowing Plating";
         public override string itemDescription => "Have 10% of v1's healing (+10% per stack)";
-        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Healing };
+        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Healing, ItemTag.Health };
         public override Rarity Rarity => Rarity.Legendary;
     }
 
     public class StyleBalls : BaseItem
     {
-        public override string ItemName => "Hells Opinion";
+        public override string ItemName => "Hell's Opinion";
         public override string itemDescription => "every 100 style gotten, gain 50% (+50% per stack) damage for the style orbs. After 5 seconds, if gathered over 200% damage, launch a style orb.";
 
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
@@ -393,6 +392,8 @@ namespace Ultrarogue.Items
         public override string ItemName => "Jumper Cable";
         public override string itemDescription => "Enemies have a 10% chance to be shocked when a saw blade hits them. (+5% per stack)";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
+
+        public override List<Plugin.Weapon> WeaponRequirements => new List<Plugin.Weapon>() { Plugin.Weapon.Nailgun };
 
         public override Rarity Rarity => Rarity.Legendary;
         public override void OnStart()

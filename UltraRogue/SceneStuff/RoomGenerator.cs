@@ -45,6 +45,7 @@ public class RoomGenerator : MonoBehaviour
     public EnemyType bossEnemyType = EnemyType.MinosPrime;
 
     public Dictionary<Vector2Int, Room> placedRooms = new Dictionary<Vector2Int, Room>();
+    public List<GameObject> Doors = new List<GameObject>();
 
     // Tracks which grid cells are part of a large room group, mapping every cell
     // back to the anchor cell of that group. Used to avoid partial overlaps and
@@ -84,7 +85,7 @@ public class RoomGenerator : MonoBehaviour
 
     [Header("Performance")]
     [Tooltip("How many grid cells away from the player rooms stay active (1 = current + immediate neighbors).")]
-    int activationRadius = 2;
+    int activationRadius = 1; // less lag :P
 
     private bool _generationComplete = false;
     private float _nextActivationCheck = 0f;
@@ -113,6 +114,12 @@ public class RoomGenerator : MonoBehaviour
         {
             if (room != null)
                 Destroy(room.gameObject);
+        }
+        
+        foreach (var door in Doors)
+        {
+            if (door != null)
+                Destroy(door);
         }
 
         foreach (var geometry in _largeRoomGeometry.Values)
@@ -1231,32 +1238,44 @@ public class RoomGenerator : MonoBehaviour
     void CheckOutOfBounds()
     {
         var player = NewMovement.Instance;
-        if (player == null) return;
-        if (_isTeleportingToErrorRoom) return;
+        GameObject errorRoom = GameObject.Find("ErrorRoom");
+        Vector2Int playerGrid = WorldToGrid(player.transform.position);
+        if (!OOB()) return;
+        Debug.LogWarning($"[RoomGenerator] Player is out of bounds at grid {playerGrid} " +
+                         $"(world {player.transform.position}). Teleporting to ErrorRoom.");
+        StartCoroutine(TeleportPlayerToErrorRoom(player, errorRoom));
+    }
+
+    bool OOB()
+    {
+        var player = NewMovement.Instance;
+        if (player == null) return false;
+        if (_isTeleportingToErrorRoom) return false;
 
         Vector2Int playerGrid = WorldToGrid(player.transform.position);
 
-        if (placedRooms.ContainsKey(playerGrid)) return;
+        if (placedRooms.ContainsKey(playerGrid)) return false;
 
         GameObject errorRoom = GameObject.Find("ErrorRoom");
         if (errorRoom != null)
         {
             float dist = Vector3.Distance(player.transform.position, errorRoom.transform.position);
-            if (dist <= ErrorRoomRadius) return;
+            if (dist <= ErrorRoomRadius) return false;
         }
-        if (!canDoTheErrorRoom) return;
-        Debug.LogWarning($"[RoomGenerator] Player is out of bounds at grid {playerGrid} " +
-                         $"(world {player.transform.position}). Teleporting to ErrorRoom.");
-        TeleportPlayerToErrorRoom(player, errorRoom);
+        if (!canDoTheErrorRoom) return false;
+
+        return true;
     }
 
-    void TeleportPlayerToErrorRoom(NewMovement player, GameObject errorRoom = null)
+    IEnumerator TeleportPlayerToErrorRoom(NewMovement player, GameObject errorRoom = null)
     {
+        yield return new WaitForSeconds(0.15f);
+        if (!OOB()) yield break;
         if (errorRoom == null) errorRoom = GameObject.Find("ErrorRoom");
         if (errorRoom == null)
         {
             Debug.LogError("[RoomGenerator] Could not find a GameObject named 'ErrorRoom' to teleport the player to!");
-            return;
+            yield break;
         }
 
         _isTeleportingToErrorRoom = true;

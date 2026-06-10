@@ -60,6 +60,9 @@ public class Room : MonoBehaviour
     public GameObject doorPrefab;
     public GameObject wallPrefab;
 
+    private readonly List<GameObject> _boundaryObstacles = new List<GameObject>();
+    private float _obstacleCheckTimer = 0f;
+    private const float ObstacleCheckInterval = 0.2f;
     private bool hasSpawnedEnemies = false;
     private bool rewardGiven = false;
 
@@ -90,6 +93,53 @@ public class Room : MonoBehaviour
         if (direction == Vector2Int.right)
             return (exitsRight != null && exitsRight.Length > 0) ? exitsRight[0] : exitRight;
         return null;
+    }
+
+
+
+    private void SpawnBoundaryObstacles()
+    {
+        // Room half-extents (matching the gizmo: Width*60 x Height*30)
+        float halfW = RoomSizeWidth * 30f;   // half-width  on X
+        float halfH = RoomSizeHeight * 15f;   // half-depth  on Z
+
+        // How far outside the room edge each obstacle is placed (centre of obstacle)
+        const float offset = 5f;
+        // Thickness of the obstacle slab
+        const float thickness = 4f;
+        // Tall enough to block navmesh agents in any vertical situation
+        const float height = 20f;
+
+        // (localPos, size) pairs for Left / Right / Front / Back
+        var walls = new (Vector3 localPos, Vector3 size)[]
+        {
+            // Left  (-X)
+            (new Vector3(-(halfW + offset),       0f, (halfH - halfH) * 0.5f), new Vector3(thickness, height, halfH * 2f * RoomSizeHeight)),
+            // Right (+X)
+            (new Vector3( (halfW + offset),       0f, (halfH - halfH) * 0.5f), new Vector3(thickness, height, halfH * 2f * RoomSizeHeight)),
+            // Front (-Z)
+            (new Vector3(0f, 0f, -(halfH + offset)), new Vector3(halfW * 2f * RoomSizeWidth, height, thickness)),
+            // Back  (+Z)
+            (new Vector3(0f, 0f,  (halfH + offset)), new Vector3(halfW * 2f * RoomSizeWidth, height, thickness)),
+        };
+
+        string[] names = { "BoundaryObstacle_Left", "BoundaryObstacle_Right", "BoundaryObstacle_Front", "BoundaryObstacle_Back" };
+
+        for (int i = 0; i < walls.Length; i++)
+        {
+            GameObject obs = new GameObject(names[i]);
+            obs.transform.SetParent(transform, false);
+            obs.transform.localPosition = walls[i].localPos;
+
+            NavMeshObstacle obstacle = obs.AddComponent<NavMeshObstacle>();
+            obstacle.carving = true;
+            obstacle.shape = NavMeshObstacleShape.Box;
+            obstacle.size = walls[i].size;
+            obstacle.center = Vector3.zero;
+
+            obs.SetActive(false);
+            _boundaryObstacles.Add(obs);
+        }
     }
 
     void OnGizmosDraw()
@@ -453,7 +503,7 @@ public class Room : MonoBehaviour
         CloseOffRoom();
         yield return new WaitForSeconds(0.5f);
         isFighting = true;
-        if(bossEnemyType == null)
+        if (bossEnemyType == null)
         {
             try
             {
@@ -558,16 +608,18 @@ public class Room : MonoBehaviour
 #endif
         GameObject door = null;
         if (doorPrefab != null) door = Instantiate(doorPrefab, exit.position, exit.rotation * Quaternion.Euler(0, 90, 0), transform);
-
+        
         if (door != null)
         {
+            RoomGenerator.Instance.Doors.Add(door);
+            door.transform.parent = null;
             door.SetActive(true);
             if (roomType == RoomType.Normal || roomType == RoomType.Boss || roomType == RoomType.Start) return;
             if (RogueDifficultyManager.Instance.floor == 1) return;
             if (Random.value <= 0.75f && Plugin.CurrentDifficulty != 2) return;
             door.GetComponentInChildren<Door>().gameObject.AddComponent<Lockable>();
         }
-
+        
     }
 
     public void CreateWall(Transform exit)
@@ -576,7 +628,7 @@ public class Room : MonoBehaviour
     var rh = GetComponent<RuntimeRoomDoorHandler>();
     if (rh != null) { rh.PlaceWall(exit); return; }
 #endif
-        if (wallPrefab != null) Instantiate(wallPrefab, exit.position, exit.rotation, transform);
+        if (wallPrefab != null) RoomGenerator.Instance.Doors.Add(Instantiate(wallPrefab, exit.position, exit.rotation));
     }
 
     public void DisableExit(Transform exit) => exit.gameObject.SetActive(false);
@@ -626,6 +678,8 @@ public class Room : MonoBehaviour
 
     void Awake()
     {
+        SpawnBoundaryObstacles();
+
         enemyRando = new System.Random(Plugin.GameSeed.GetHashCode() ^ roomIndex + 1);
         roomIndex++;
         gameObject.AddComponent<GoreZone>();
@@ -647,6 +701,25 @@ public class Room : MonoBehaviour
 
     void Update()
     {
+        // Throttled boundary obstacle toggle — avoids per-frame overhead
+        if (_boundaryObstacles.Count > 0 && NewMovement.Instance != null)
+        {
+            _obstacleCheckTimer -= Time.deltaTime;
+            if (_obstacleCheckTimer <= 0f)
+            {
+                _obstacleCheckTimer = ObstacleCheckInterval;
+
+                // Cheap local-space bounds check — no FindObjectsByType
+                Vector3 local = transform.InverseTransformPoint(NewMovement.Instance.transform.position);
+                bool playerIsHere = local.x >= -(RoomSizeWidth * 30f) && local.x <= (RoomSizeWidth * 30f) &&
+                                    local.z >= -(RoomSizeHeight * 15f) && local.z <= (RoomSizeHeight * 15f);
+
+                foreach (GameObject obs in _boundaryObstacles)
+                    if (obs != null && obs.activeSelf != playerIsHere)
+                        obs.SetActive(playerIsHere);
+            }
+        }
+
         foreach (var zone in GetComponentsInChildren<DeathZone>())
         {
             if (zone.respawnTarget.y == 0)

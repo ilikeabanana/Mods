@@ -101,6 +101,8 @@ namespace Ultrarogue.Items
     {
         Utility,
         Damage,
-        Healing
+        Healing,
+        MaxHealth,
+        Health
     }
 }

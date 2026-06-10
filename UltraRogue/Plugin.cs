@@ -22,7 +22,6 @@ using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using static Ultrarogue.Plugin;
-using static UnityEngine.GraphicsBuffer;
 using Random = UnityEngine.Random;
 
 // gffg
@@ -629,7 +628,9 @@ namespace Ultrarogue
         {
             return possibleItems.Where(x =>
                 x.Rarity == rarity &&
-                (!SelectedChar.HasPassive(Passive.HealFromBlood) || !x.itemTags.Contains(ItemTag.Healing)) &&
+                (!SelectedChar.HasPassive(Passive.HealFromBlood) || !x.itemTags.Contains(ItemTag.Health)) &&
+                (!SelectedChar.HasPassive(Passive.Greedy) || !x.itemTags.Contains(ItemTag.Health)) 
+                &&
                 (
                     x.ItemName != "Gasoline" ||
                     SelectedChar.GetType() == typeof(Ultrarogue.Characters.Streetcleaner)
@@ -720,7 +721,7 @@ namespace Ultrarogue
             { Rarity.Common,    0.25f },
             { Rarity.Uncommon,  0.65f },
             { Rarity.Legendary, 0.1f  }
-        }, new List<ItemTag>() { ItemTag.Healing });
+        }, new List<ItemTag>() { ItemTag.Health });
         #endregion Tables
 
         static DropTable getDroptable(DroptableType type)
@@ -747,7 +748,6 @@ namespace Ultrarogue
                     return NormalTable;
             }
         }
-
 
         public static BaseItem GiveRandomItem(System.Random rng = null, DroptableType table = DroptableType.RandomDrop)
         {
@@ -942,11 +942,23 @@ namespace Ultrarogue
         public static float getChanceVal(bool luckaffected = true)
         {
             float value = Random.value;
-            for (int i = 0; i < luck; i++)
+            if(luck >= 0)
             {
-                float luckedVal = Random.value;
-                if (luckedVal > value) value = luckedVal;
+                for (int i = 0; i < luck; i++)
+                {
+                    float luckedVal = Random.value;
+                    if (luckedVal > value) value = luckedVal;
+                }
             }
+            else
+            { // negative luck, dunno if ever used but :P
+                for (int i = 0; i < luck; i++)
+                {
+                    float luckedVal = Random.value;
+                    if (luckedVal <= value) value = luckedVal;
+                }
+            }
+            
 
             return value;
         }
@@ -2040,3 +2052,11 @@ namespace Ultrarogue
 
     #endregion
 }
+
+// Every day, i imagine a future where i can be with you
+// In my hand is a pen that will write a poem of me and you
+// The ink flows down into a dark puddle
+// Just move your hand, write the way into his heart
+// But in this world with infinite choices
+// What will it take just to find that special day?
+// What will it take just to find that special day?

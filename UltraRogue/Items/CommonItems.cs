@@ -238,7 +238,7 @@ namespace Ultrarogue.Items
     {
         public override string ItemName => "Small Kit";
         public override string itemDescription => "+10 max hp per stack";
-        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Healing };
+        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.MaxHealth, ItemTag.Health };
 
         Change hpChange;
         public override void OnStart()
