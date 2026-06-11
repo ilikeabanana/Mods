@@ -552,7 +552,7 @@ public class RoomGenerator : MonoBehaviour
     Transform AssignSubExit(Room sub, Room source, Vector2Int dir, int lx, int ly, int w, int h)
     {
         int nx = lx + dir.x;
-        int ny = ly + dir.y;
+        int ny = -ly + dir.y;
         bool isInternal = (nx >= 0 && nx < w && ny >= 0 && ny < h);
 
         Plugin.Logger.LogInfo($"[AssignSubExit] dir={dir} lx={lx} ly={ly} nx={nx} ny={ny} w={w} h={h} isInternal={isInternal} source={source.name}");
