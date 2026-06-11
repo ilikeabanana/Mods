@@ -553,7 +553,9 @@ public class RoomGenerator : MonoBehaviour
     {
         int nx = lx + dir.x;
         int ny = ly + dir.y;
-        bool isInternal = (nx >= 0 && nx < w && ny > -h && ny <= 0);
+        bool isInternal = (nx >= 0 && nx < w && ny >= 0 && ny < h);
+
+        Plugin.Logger.LogInfo($"[AssignSubExit] dir={dir} lx={lx} ly={ly} nx={nx} ny={ny} w={w} h={h} isInternal={isInternal} source={source.name}");
 
         if (isInternal)
         {
@@ -564,24 +566,35 @@ public class RoomGenerator : MonoBehaviour
         }
 
         if (dir == Vector2Int.left)
+        {
+            Plugin.Logger.LogInfo($"[AssignSubExit] LEFT: exitsLeft={(source.exitsLeft == null ? "NULL" : source.exitsLeft.Length.ToString())} index=ly={ly}");
             return (source.exitsLeft != null && ly < source.exitsLeft.Length)
                 ? source.exitsLeft[ly] : null;
+        }
 
         if (dir == Vector2Int.right)
+        {
+            Plugin.Logger.LogInfo($"[AssignSubExit] RIGHT: exitsRight={(source.exitsRight == null ? "NULL" : source.exitsRight.Length.ToString())} index=ly={ly}");
             return (source.exitsRight != null && ly < source.exitsRight.Length)
                 ? source.exitsRight[ly] : null;
+        }
 
         if (dir == Vector2Int.up)
+        {
+            Plugin.Logger.LogInfo($"[AssignSubExit] UP: exitsTop={(source.exitsTop == null ? "NULL" : source.exitsTop.Length.ToString())} index=lx={lx}");
             return (source.exitsTop != null && lx < source.exitsTop.Length)
                 ? source.exitsTop[lx] : null;
+        }
 
         if (dir == Vector2Int.down)
+        {
+            Plugin.Logger.LogInfo($"[AssignSubExit] DOWN: exitsBottom={(source.exitsBottom == null ? "NULL" : source.exitsBottom.Length.ToString())} index=lx={lx}");
             return (source.exitsBottom != null && lx < source.exitsBottom.Length)
                 ? source.exitsBottom[lx] : null;
+        }
 
         return null;
     }
-
     /// <summary>
     /// Returns true when every grid cell a large room (w×h) would occupy starting
     /// at <paramref name="anchor"/> is currently unoccupied.
