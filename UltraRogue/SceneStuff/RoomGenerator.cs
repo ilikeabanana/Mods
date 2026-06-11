@@ -567,16 +567,16 @@ public class RoomGenerator : MonoBehaviour
 
         if (dir == Vector2Int.left)
         {
-            Plugin.Logger.LogInfo($"[AssignSubExit] LEFT: exitsLeft={(source.exitsLeft == null ? "NULL" : source.exitsLeft.Length.ToString())} index=ly={ly}");
-            return (source.exitsLeft != null && ly < source.exitsLeft.Length)
-                ? source.exitsLeft[ly] : null;
+            int idx = -ly;
+            return (source.exitsLeft != null && idx >= 0 && idx < source.exitsLeft.Length)
+                ? source.exitsLeft[idx] : null;
         }
 
         if (dir == Vector2Int.right)
         {
-            Plugin.Logger.LogInfo($"[AssignSubExit] RIGHT: exitsRight={(source.exitsRight == null ? "NULL" : source.exitsRight.Length.ToString())} index=ly={ly}");
-            return (source.exitsRight != null && ly < source.exitsRight.Length)
-                ? source.exitsRight[ly] : null;
+            int idx = -ly;
+            return (source.exitsRight != null && idx >= 0 && idx < source.exitsRight.Length)
+                ? source.exitsRight[idx] : null;
         }
 
         if (dir == Vector2Int.up)
