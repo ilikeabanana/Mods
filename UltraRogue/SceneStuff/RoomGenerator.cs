@@ -115,7 +115,7 @@ public class RoomGenerator : MonoBehaviour
             if (room != null)
                 Destroy(room.gameObject);
         }
-        
+
         foreach (var door in Doors)
         {
             if (door != null)
@@ -531,6 +531,16 @@ public class RoomGenerator : MonoBehaviour
         {
             foreach (var (cell, sub) in subRooms)
                 AlignRoomToNeighborExit(sub, cell);
+
+            // Sync the actual geometry to the anchor sub-room's resolved Y position.
+            // Without this, the visible room stays at Y=0 even though the sub-rooms
+            // (which drive exit alignment) have been moved, making large rooms inaccessible.
+            if (subRooms.Count > 0)
+            {
+                float resolvedY = subRooms[0].sub.transform.position.y;
+                Vector3 gp = actualRoom.transform.position;
+                actualRoom.transform.position = new Vector3(gp.x, resolvedY, gp.z);
+            }
         }
     }
 
@@ -543,7 +553,7 @@ public class RoomGenerator : MonoBehaviour
     {
         int nx = lx + dir.x;
         int ny = ly + dir.y;
-        bool isInternal = (nx >= 0 && nx < w && ny >= 0 && ny < h);
+        bool isInternal = (nx >= 0 && nx < w && ny > -h && ny <= 0);
 
         if (isInternal)
         {

@@ -1313,10 +1313,6 @@ namespace Ultrarogue
             {
                 effect.effect.Invoke(damage);
             }
-            if(SelectedChar.GetType() == typeof(Filth))
-            {
-                ignoreInvincibility = true; // Always ignore invincibility
-            }
             if (SelectedChar?.HasPassive(Passive.Greedy) != true) return;
             if (RogueDifficultyManager.Instance.Gold <= 0)
             {
@@ -1757,7 +1753,7 @@ namespace Ultrarogue
             __instance.cachedActivity.Details = "Floor: " + RogueDifficultyManager.Instance.floor;
             __instance.cachedActivity.Assets.LargeImage = "level_0-1";
 
-            string LargeText = $"Go: {RogueDifficultyManager.Instance.Gold}" +
+            string LargeText = $"Go: {RogueDifficultyManager.Instance.Gold} " +
                 $"Ke: {RogueDifficultyManager.Instance.Keys}";
 
             __instance.cachedActivity.Assets.LargeText = LargeText; // ONLY PRELUDE FOR NOW

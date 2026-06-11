@@ -58,32 +58,61 @@ namespace Ultrarogue.Items
         public override string itemDescription => "Each room, <color=yellow>one random stat doubles</color>. <color=red>Another random stat is halved</color>.";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage, ItemTag.Utility };
         public override Rarity Rarity => Rarity.Alchemy;
+
         Change buffedStat = new Change();
         Change nerfedStat = new Change();
-        readonly Change[] allChanges;
-        public WildCard()
-        {
-            allChanges = new Change[] { buffedStat, nerfedStat };
-        }
+        Change neutral = new Change();
+
+        // All 7 stat slots, order matches the enum below
+        Change[] statSlots;
+
+        enum Stat { MoveSpeed, AttackSpeed, CooldownRed, DamageReduction, GlobalDamageMult }
+        const int StatCount = 5;
+
         public override void OnStart()
         {
-            new PlayerChange(allChanges[0], attackSpeed: allChanges[1]);
-            
+            statSlots = new Change[StatCount];
+            for (int i = 0; i < StatCount; i++)
+                statSlots[i] = new Change(); // ← each gets its own object
+
+            new PlayerChange(
+                moveSpeed: statSlots[(int)Stat.MoveSpeed],
+                attackSpeed: statSlots[(int)Stat.AttackSpeed],
+                cooldownReduction: statSlots[(int)Stat.CooldownRed],
+                damageReduction: statSlots[(int)Stat.DamageReduction],
+                globalDamageMult: statSlots[(int)Stat.GlobalDamageMult]
+            );
+        }
+        public override void OnGotten(int count, bool firstPickup)
+        {
+            if(firstPickup)
+                Reroll();
         }
         public override void RoomEnter()
         {
             Reroll();
         }
+
         void Reroll()
         {
             int count = Plugin.GetItemCount(ItemName);
-            buffedStat.postMultiplier = 1f + (1f * count);
-            nerfedStat.postMultiplier = Mathf.Pow(0.5f, count);
+
+            for (int i = 0; i < StatCount; i++)
+                statSlots[i].postMultiplier = 1f;
+
+            int buffIndex = UnityEngine.Random.Range(0, StatCount);
+            int nerfIndex;
+            do { nerfIndex = UnityEngine.Random.Range(0, StatCount); }
+            while (nerfIndex == buffIndex);
+
+            statSlots[buffIndex].postMultiplier = 1f + (1f * count);
+            statSlots[nerfIndex].postMultiplier = Mathf.Pow(0.5f, count);
         }
+
         public override void OnRemoval()
         {
-            buffedStat.postMultiplier = 1;
-            nerfedStat.postMultiplier = 1;
+            for (int i = 0; i < StatCount; i++)
+                statSlots[i].postMultiplier = 1f;
         }
     }
     public class Overclock : BaseItem
