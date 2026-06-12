@@ -327,7 +327,7 @@ public class RogueDifficultyManager : MonoBehaviour
             }));
                 options.Add(new BossPick(new List<BossEntry>()
             {
-                new BossEntry(AssetsManager.funnyPowerIntroSpawn, healthAddition: 28),
+                new BossEntry(AssetsManager.funnyPowerIntroSpawn, healthMod: 25),
             }));
 
                 options.Add(new BossPick(new List<BossEntry>()
