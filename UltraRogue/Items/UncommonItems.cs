@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using ULTRAKILL.Enemy;
 using Ultrarogue.Characters;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 
 namespace Ultrarogue.Items
 {
@@ -302,6 +303,40 @@ namespace Ultrarogue.Items
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         public override Rarity Rarity => Rarity.Uncommon;
 
+        bool attempted = false;
+        GameObject missleModel = null;
+
+
+        GameObject getMissleModel()
+        {
+            if (attempted && missleModel == null)
+            {
+                GameObject missle = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                missle.GetComponent<Collider>().isTrigger = true;
+                missle.AddComponent<Rigidbody>().useGravity = false;
+                return missle;
+            }
+            else
+            {
+                attempted = true;
+                if(missleModel == null)
+                {
+                    missleModel = Addressables.LoadAssetAsync<GameObject>("Assets/Modding/RogueMode/Missle.prefab").WaitForCompletion();
+                }
+                if(missleModel == null)
+                {
+                    GameObject missl1 = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                    missl1.GetComponent<Collider>().isTrigger = true;
+                    missl1.AddComponent<Rigidbody>().useGravity = false;
+                    return missl1;
+                }
+                GameObject missle = GameObject.Instantiate(missleModel);
+                missle.GetComponent<Collider>().isTrigger = true;
+                missle.AddComponent<Rigidbody>().useGravity = false;
+                return missle;
+            }
+        }
+
         public override void OnStart()
         {
             new HitEffect(ItemName, (eid, dmg) =>
@@ -311,9 +346,7 @@ namespace Ultrarogue.Items
                 if (!Plugin.canExecute(10, eid.hitter)) return;
 
                 float damage = (3 * count);
-                GameObject missle = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                missle.GetComponent<Collider>().isTrigger = true;
-                missle.AddComponent<Rigidbody>().useGravity = false;
+                GameObject missle = getMissleModel();
                 Missle proj = missle.AddComponent<Missle>();
                 proj.damage = damage;
                 proj.enemyThatGotHit = eid;
