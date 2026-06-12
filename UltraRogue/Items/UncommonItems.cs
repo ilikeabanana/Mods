@@ -312,7 +312,7 @@ namespace Ultrarogue.Items
             if (!attempted)
             {
                 attempted = true;
-                missleModel = Addressables.LoadAssetAsync<GameObject>("Assets/Modding/RogueMode/Missle.prefab").WaitForCompletion();
+                missleModel = Addressables.LoadAssetAsync<GameObject>("Assets/Modding/RogueMode/Missile.prefab").WaitForCompletion();
             }
 
             if (missleModel != null)
