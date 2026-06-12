@@ -33,8 +33,9 @@ public class ItemPickup : MonoBehaviour
         GameObject pickup = GameObject.CreatePrimitive(PrimitiveType.Quad);
         pickup.GetComponent<Collider>().enabled = false;
         pickup.AddComponent<ItemPickup>().item = item;
-        Material mat = new Material(AssetsManager.weaponMat);
+        Material mat = new Material(item.materialOverride ? item.materialOverride : AssetsManager.weaponMat);
         mat.mainTexture = item.ItemTexture;
+        item.OnMaterialApply(mat);
         pickup.GetComponent<MeshRenderer>().material = mat;
         pickup.transform.position = position.position + Vector3.up * offset;
         pickup.transform.parent = position;

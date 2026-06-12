@@ -664,7 +664,7 @@ public class RoomGenerator : MonoBehaviour
         if (RogueDifficultyManager.RoomRNG.NextDouble() <= planetChance && planetariumPrefab != null)
         {
             TryPlaceSpecialRoom(ref candidates, planetariumPrefab); // planetarium spawning
-            planetChance = 0.01f; // Reset back to 1% chance
+            planetChance = -0.19f; // Making sure that planetarium does not go to 21% when entering a new floor
         }
 
         foreach (Room prefab in specialRoomPrefabs)

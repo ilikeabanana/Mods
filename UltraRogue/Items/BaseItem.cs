@@ -12,6 +12,13 @@ namespace Ultrarogue.Items
     public abstract class BaseItem
     {
         public virtual bool CanOnlyHaveOne => false;
+
+        public virtual Material materialOverride => null;
+        public virtual void OnMaterialApply(Material mat)
+        {
+
+        }
+
         public virtual string ItemName => "";
         public virtual string itemDescription => string.Empty;
         public virtual string ItemIconName => ItemName.Replace(" ", "_");

@@ -95,7 +95,7 @@ namespace Ultrarogue.Items
         public override string itemDescription => "Have 10% of v1's healing (+10% per stack)";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Healing, ItemTag.Health };
         public override Rarity Rarity => Rarity.Legendary;
-    }
+    } 
 
     public class StyleBalls : BaseItem
     {

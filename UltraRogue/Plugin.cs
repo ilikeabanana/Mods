@@ -498,6 +498,45 @@ namespace Ultrarogue
 
             ApplyPlayerChanges();
             ApplyWeaponSpeeds();
+            HandleBonk();
+        }
+        List<EnemyIdentifier> hits = new List<EnemyIdentifier>();
+        void HandleBonk()
+        {
+            if (SelectedChar == null) return;
+            if (SelectedChar.HasPassive(Passive.HeadBonk))
+            {
+                if (NewMovement.Instance != null)
+                {
+                    if (NewMovement.Instance.boost)
+                    {
+                        Collider[] cols = Physics.OverlapSphere(NewMovement.Instance.transform.position, 5, LayerMaskDefaults.Get(LMD.Enemies));
+                        foreach (var col in cols)
+                        {
+                            EnemyIdentifierIdentifier eidd = col.gameObject.GetComponent<EnemyIdentifierIdentifier>();
+
+                            EnemyIdentifier eid;
+                            if (eidd == null)
+                                eid = col.gameObject.GetComponent<EnemyIdentifier>();
+                            else
+                                eid = eidd.eid;
+
+                            if (eid == null) continue;
+                            if (hits.Contains(eid)) continue;
+                            eid.hitter = "filthbonk";
+
+                            float damageMult = NewMovement.Instance.walkSpeed / normalMoveSpeed;
+
+                            eid.SimpleDamage(2 * damageMult);
+                            hits.Add(eid);
+                        }
+                    }
+                    else
+                    {
+                        hits.Clear();
+                    }
+                }
+            }
         }
 
         void ApplyWeaponSpeeds()
@@ -547,8 +586,8 @@ namespace Ultrarogue
                 }
             }
 
-            NewMovement.Instance.walkSpeed = moveChange.CalculateChanges(normalMoveSpeed);
-            NewMovement.Instance.airAcceleration = moveChange.CalculateChanges(normalairAccelaration);
+            NewMovement.Instance.walkSpeed = Mathf.Max(moveChange.CalculateChanges(normalMoveSpeed), normalMoveSpeed * 0.01f);
+            NewMovement.Instance.airAcceleration = Mathf.Max(moveChange.CalculateChanges(normalairAccelaration), normalairAccelaration * 0.01f);
             NewMovement.Instance.jumpPower = jumpChange.CalculateChanges(normalJumpHeight);
             globalDamageMult = globalDamageChange;
             MaxHealth = Mathf.RoundToInt(hpChange.CalculateChanges(100f));
@@ -2047,6 +2086,33 @@ namespace Ultrarogue
 
 
     #endregion
+
+
+    [HarmonyPatch(typeof(StyleCalculator), nameof(StyleCalculator.HitCalculator))]
+    public class CustomStyle
+    {
+        public static void Prefix(StyleCalculator __instance, string hitter, string enemyType, string hitLimb, bool dead, EnemyIdentifier eid = null, GameObject sourceWeapon = null)
+        {
+            if (eid != null && eid.blessed)
+            {
+                return;
+            }
+            if (MonoSingleton<PlayerTracker>.Instance.playerType == PlayerType.Platformer)
+            {
+                return;
+            }
+
+            if(hitter == "filthbonk")
+            {
+                __instance.AddPoints(25, "", eid, sourceWeapon);
+                if (dead)
+                {
+                    __instance.AddPoints(200, "FILTH BONKED", eid, sourceWeapon);
+                }
+            }
+
+        }
+    }
 }
 
 // Every day, i imagine a future where i can be with you

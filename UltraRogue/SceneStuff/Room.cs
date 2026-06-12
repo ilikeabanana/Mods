@@ -60,7 +60,7 @@ public class Room : MonoBehaviour
     public GameObject doorPrefab;
     public GameObject wallPrefab;
 
-    private readonly List<GameObject> _boundaryObstacles = new List<GameObject>();
+    public List<GameObject> boundaryObstacles = new List<GameObject>();
     private float _obstacleCheckTimer = 0f;
     private const float ObstacleCheckInterval = 0.2f;
     private bool hasSpawnedEnemies = false;
@@ -95,52 +95,6 @@ public class Room : MonoBehaviour
         return null;
     }
 
-
-
-    private void SpawnBoundaryObstacles()
-    {
-        // Room half-extents (matching the gizmo: Width*60 x Height*30)
-        float halfW = RoomSizeWidth * 30f;   // half-width  on X
-        float halfH = RoomSizeHeight * 15f;   // half-depth  on Z
-
-        // How far outside the room edge each obstacle is placed (centre of obstacle)
-        const float offset = 5f;
-        // Thickness of the obstacle slab
-        const float thickness = 4f;
-        // Tall enough to block navmesh agents in any vertical situation
-        const float height = 20f;
-
-        // (localPos, size) pairs for Left / Right / Front / Back
-        var walls = new (Vector3 localPos, Vector3 size)[]
-        {
-            // Left  (-X)
-            (new Vector3(-(halfW + offset),       0f, (halfH - halfH) * 0.5f), new Vector3(thickness, height, halfH * 2f * RoomSizeHeight)),
-            // Right (+X)
-            (new Vector3( (halfW + offset),       0f, (halfH - halfH) * 0.5f), new Vector3(thickness, height, halfH * 2f * RoomSizeHeight)),
-            // Front (-Z)
-            (new Vector3(0f, 0f, -(halfH + offset)), new Vector3(halfW * 2f * RoomSizeWidth, height, thickness)),
-            // Back  (+Z)
-            (new Vector3(0f, 0f,  (halfH + offset)), new Vector3(halfW * 2f * RoomSizeWidth, height, thickness)),
-        };
-
-        string[] names = { "BoundaryObstacle_Left", "BoundaryObstacle_Right", "BoundaryObstacle_Front", "BoundaryObstacle_Back" };
-
-        for (int i = 0; i < walls.Length; i++)
-        {
-            GameObject obs = new GameObject(names[i]);
-            obs.transform.SetParent(transform, false);
-            obs.transform.localPosition = walls[i].localPos;
-
-            NavMeshObstacle obstacle = obs.AddComponent<NavMeshObstacle>();
-            obstacle.carving = true;
-            obstacle.shape = NavMeshObstacleShape.Box;
-            obstacle.size = walls[i].size;
-            obstacle.center = Vector3.zero;
-
-            obs.SetActive(false);
-            _boundaryObstacles.Add(obs);
-        }
-    }
 
     void OnGizmosDraw()
     {
@@ -678,8 +632,6 @@ public class Room : MonoBehaviour
 
     void Awake()
     {
-        SpawnBoundaryObstacles();
-
         enemyRando = new System.Random(Plugin.GameSeed.GetHashCode() ^ roomIndex + 1);
         roomIndex++;
         gameObject.AddComponent<GoreZone>();
@@ -702,7 +654,7 @@ public class Room : MonoBehaviour
     void Update()
     {
         // Throttled boundary obstacle toggle — avoids per-frame overhead
-        if (_boundaryObstacles.Count > 0 && NewMovement.Instance != null)
+        if (boundaryObstacles.Count > 0 && NewMovement.Instance != null)
         {
             _obstacleCheckTimer -= Time.deltaTime;
             if (_obstacleCheckTimer <= 0f)
@@ -711,10 +663,9 @@ public class Room : MonoBehaviour
 
                 // Cheap local-space bounds check — no FindObjectsByType
                 Vector3 local = transform.InverseTransformPoint(NewMovement.Instance.transform.position);
-                bool playerIsHere = local.x >= -(RoomSizeWidth * 30f) && local.x <= (RoomSizeWidth * 30f) &&
-                                    local.z >= -(RoomSizeHeight * 15f) && local.z <= (RoomSizeHeight * 15f);
+                bool playerIsHere = getObjectInsideRoom(NewMovement.Instance.transform.position) == this;
 
-                foreach (GameObject obs in _boundaryObstacles)
+                foreach (GameObject obs in boundaryObstacles)
                     if (obs != null && obs.activeSelf != playerIsHere)
                         obs.SetActive(playerIsHere);
             }

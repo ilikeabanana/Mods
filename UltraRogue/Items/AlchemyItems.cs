@@ -157,6 +157,10 @@ namespace Ultrarogue.Items
                 allStats.percentage = Mathf.Min(c * 1.0f, allStats.percentage + (0.05f * c));
             });
         }
+        public override void OnNewFloor(int count)
+        {
+            allStats.percentage = count * 1.0f;
+        }
         public override void OnUpdate(int count)
         {
             if (Time.time >= nextDecayTime)
