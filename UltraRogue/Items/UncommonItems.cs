@@ -309,32 +309,23 @@ namespace Ultrarogue.Items
 
         GameObject getMissleModel()
         {
-            if (attempted && missleModel == null)
-            {
-                GameObject missle = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                missle.GetComponent<Collider>().isTrigger = true;
-                missle.AddComponent<Rigidbody>().useGravity = false;
-                return missle;
-            }
-            else
+            if (!attempted)
             {
                 attempted = true;
-                if(missleModel == null)
-                {
-                    missleModel = Addressables.LoadAssetAsync<GameObject>("Assets/Modding/RogueMode/Missle.prefab").WaitForCompletion();
-                }
-                if(missleModel == null)
-                {
-                    GameObject missl1 = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                    missl1.GetComponent<Collider>().isTrigger = true;
-                    missl1.AddComponent<Rigidbody>().useGravity = false;
-                    return missl1;
-                }
+                missleModel = Addressables.LoadAssetAsync<GameObject>("Assets/Modding/RogueMode/Missle.prefab").WaitForCompletion();
+            }
+
+            if (missleModel != null)
+            {
                 GameObject missle = GameObject.Instantiate(missleModel);
-                missle.GetComponent<Collider>().isTrigger = true;
-                missle.AddComponent<Rigidbody>().useGravity = false;
                 return missle;
             }
+
+            // fallback
+            GameObject fallback = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            fallback.GetComponent<Collider>().isTrigger = true;
+            fallback.AddComponent<Rigidbody>().useGravity = false;
+            return fallback;
         }
 
         public override void OnStart()
