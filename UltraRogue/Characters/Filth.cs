@@ -8,7 +8,7 @@ namespace Ultrarogue.Characters
     public class Filth : BaseCharacter
     {
         public override string Name => "Filth";
-        public override string Description => "Start with NOTHING, have NO PASSIVES, and have 5 HP, take only 1 damage per hit. Dashing damages enemies.";
+        public override string Description => "Start with NOTHING, have NO PASSIVES, and have 5 HP, take only 1 damage per hit. Dashing damages enemies. Heal when picking up items.";
 
         public override List<AWeapon> StartingWeapons => new List<AWeapon>();
         public override List<Passive> Passives => new List<Passive>() { Passive.HeadBonk };

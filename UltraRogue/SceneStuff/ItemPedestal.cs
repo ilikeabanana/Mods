@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Text;
 using Ultrarogue;
+using Ultrarogue.Characters;
 using Ultrarogue.Items;
 using Ultrarogue.SceneStuff;
 using UnityEngine;
@@ -16,6 +17,8 @@ public class ItemPedestal : MonoBehaviour
 
     void Start()
     {
+        if (Plugin.SelectedChar.GetType() == typeof(Filth))
+            forceItem = true;
         if (forceItem)
         {
             SpawnItem();

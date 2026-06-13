@@ -154,7 +154,7 @@ namespace Ultrarogue.Items
             new DeathEffect(ItemName, (enemy) =>
             {
                 int c = Plugin.GetItemCount(ItemName);
-                allStats.percentage = Mathf.Min(c * 1.0f, allStats.percentage + (0.05f * c));
+                allStats.percentage = Mathf.Min(c * 1.0f, allStats.percentage + (0.45f * c));
             });
         }
         public override void OnNewFloor(int count)

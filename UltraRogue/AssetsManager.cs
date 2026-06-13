@@ -37,6 +37,7 @@ public class AssetsManager
     public static GameObject zapThingy;
     public static GameObject spawnEffect;
     public static AudioClip StalkerWarning;
+    public static AudioClip FilthAttack;
 
     public static Sprite ArmFeedbacker;
     public static Sprite ArmKnuckleBlaster;
@@ -105,6 +106,12 @@ public class AssetsManager
             StalkerWarning = Addressables
                 .LoadAssetAsync<AudioClip>(
                     "Assets/Sounds/Enemies/StalkerWarning.wav")
+                .WaitForCompletion();
+
+        if (FilthAttack == null)
+            FilthAttack = Addressables
+                .LoadAssetAsync<AudioClip>(
+                    "Assets/Sounds/Enemies/Zombie Weak Death Reverse.wav")
                 .WaitForCompletion();
 
         if (ArmFeedbacker == null)

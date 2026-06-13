@@ -506,29 +506,56 @@ namespace Ultrarogue
             if (SelectedChar == null) return;
             if (SelectedChar.HasPassive(Passive.HeadBonk))
             {
+                NewMovement.Instance.dodgeSound = AssetsManager.FilthAttack;
                 if (NewMovement.Instance != null)
                 {
                     if (NewMovement.Instance.boost)
                     {
-                        Collider[] cols = Physics.OverlapSphere(NewMovement.Instance.transform.position, 5, LayerMaskDefaults.Get(LMD.Enemies));
-                        foreach (var col in cols)
+                        if (!NewMovement.Instance.sliding)
                         {
-                            EnemyIdentifierIdentifier eidd = col.gameObject.GetComponent<EnemyIdentifierIdentifier>();
+                            Collider[] cols = Physics.OverlapSphere(NewMovement.Instance.transform.position, 5, LayerMaskDefaults.Get(LMD.Enemies));
+                            foreach (var col in cols)
+                            {
+                                EnemyIdentifierIdentifier eidd = col.gameObject.GetComponent<EnemyIdentifierIdentifier>();
 
-                            EnemyIdentifier eid;
-                            if (eidd == null)
-                                eid = col.gameObject.GetComponent<EnemyIdentifier>();
-                            else
-                                eid = eidd.eid;
+                                EnemyIdentifier eid;
+                                if (eidd == null)
+                                    eid = col.gameObject.GetComponent<EnemyIdentifier>();
+                                else
+                                    eid = eidd.eid;
 
-                            if (eid == null) continue;
-                            if (hits.Contains(eid)) continue;
-                            eid.hitter = "filthbonk";
+                                if (eid == null) continue;
+                                if (hits.Contains(eid)) continue;
+                                eid.hitter = "filthbonk";
 
-                            float damageMult = NewMovement.Instance.walkSpeed / normalMoveSpeed;
+                                float damageMult = NewMovement.Instance.walkSpeed / normalMoveSpeed;
 
-                            eid.SimpleDamage(2 * damageMult);
-                            hits.Add(eid);
+                                eid.SimpleDamage(3 * damageMult);
+                                hits.Add(eid);
+                            }
+                        }
+                        if(NewMovement.Instance.sliding)
+                        {
+                            Collider[] cols = Physics.OverlapSphere(NewMovement.Instance.transform.position, 5, LayerMaskDefaults.Get(LMD.Enemies));
+                            foreach (var col in cols)
+                            {
+                                EnemyIdentifierIdentifier eidd = col.gameObject.GetComponent<EnemyIdentifierIdentifier>();
+
+                                EnemyIdentifier eid;
+                                if (eidd == null)
+                                    eid = col.gameObject.GetComponent<EnemyIdentifier>();
+                                else
+                                    eid = eidd.eid;
+
+                                if (eid == null) continue;
+                                if (hits.Contains(eid)) continue;
+                                eid.hitter = "filthbonk";
+
+                                float damageMult = NewMovement.Instance.walkSpeed / normalMoveSpeed;
+
+                                eid.SimpleDamage(1 * damageMult);
+                                hits.Add(eid);
+                            }
                         }
                     }
                     else
@@ -668,17 +695,12 @@ namespace Ultrarogue
             return possibleItems.Where(x =>
                 x.Rarity == rarity &&
                 (!SelectedChar.HasPassive(Passive.HealFromBlood) || !x.itemTags.Contains(ItemTag.Health)) &&
-                (!SelectedChar.HasPassive(Passive.Greedy) || !x.itemTags.Contains(ItemTag.Health)) 
+                (!SelectedChar.HasPassive(Passive.Greedy) || !x.itemTags.Contains(ItemTag.Health)) &&
+                (SelectedChar.GetType() != typeof(Filth) || !x.itemTags.Contains(ItemTag.Healing)) 
                 &&
                 (
                     x.ItemName != "Gasoline" ||
                     SelectedChar.GetType() == typeof(Ultrarogue.Characters.Streetcleaner)
-                ) && (
-                    x.ItemName != "Panopticon" ||
-                    SelectedChar.GetType() != typeof(Ultrarogue.Characters.Filth)
-                ) && (
-                    x.ItemName != "Blood Flowing Plating" ||
-                    SelectedChar.GetType() != typeof(Ultrarogue.Characters.Filth)
                 ) &&
 
                 (

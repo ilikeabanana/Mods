@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using TMPro;
 using Ultrarogue;
+using Ultrarogue.Characters;
 using Ultrarogue.Items;
 using Ultrarogue.SceneStuff;
 using UnityEngine;
@@ -136,7 +137,11 @@ public class ShopItem : MonoBehaviour
     {
         TryResetForFloor();
 
-        if ((float)RogueDifficultyManager.ItemRNG.NextDouble() >= 0.5f)
+        bool doItem = (float)RogueDifficultyManager.ItemRNG.NextDouble() >= 0.5f;
+        if (Plugin.SelectedChar.GetType() == typeof(Filth))
+            doItem = true;
+
+        if (doItem)
         {
             BaseItem chosenItem = PickUniqueItem(tableType);
 

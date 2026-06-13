@@ -213,7 +213,7 @@ public class Room : MonoBehaviour
         }
     }
 
-    private const int WaveThreshold = 28;
+    private const int WaveThreshold = 1;
     private const int WaveSize = 12;
     private const int WaveResumeBelow = 8;
     private const float WavePollRate = 0.5f;
@@ -718,7 +718,7 @@ public class Room : MonoBehaviour
 
         if (!isBossRoom)
         {
-            if (!Plugin.SelectedChar.HasPassive(Passive.HealFromBlood))
+            if (!Plugin.SelectedChar.HasPassive(Passive.HealFromBlood) && Plugin.SelectedChar.GetType() != typeof(Filth))
             {
                 int currentHp = MonoSingleton<NewMovement>.Instance.hp;
                 int maxHp = Plugin.MaxHealth;

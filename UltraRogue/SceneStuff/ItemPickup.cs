@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using Ultrarogue;
+using Ultrarogue.Characters;
 using Ultrarogue.Items;
 using UnityEngine;
 
@@ -23,7 +24,10 @@ public class ItemPickup : MonoBehaviour
             }
             pickedUp = true;
             HudMessageReceiver.Instance?.SendHudMessage(item.ToString());
-
+            if(Plugin.SelectedChar.GetType() == typeof(Filth))
+            {
+                NewMovement.Instance.FullHeal();
+            }
             Plugin.GiveItem(item);
             Destroy(gameObject);
         }
