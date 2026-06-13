@@ -1679,6 +1679,48 @@ namespace Ultrarogue
                 return AttackSpeed.CalculateChanges(maxDelta);
             }
         }
+
+        [HarmonyPatch(typeof(NewMovement), nameof(NewMovement.Update))]
+        public static class FilthBoostRechargeTranspiler
+        {
+            public static float GetRechargeRate(float baseRate)
+            {
+                if (SelectedChar != null && SelectedChar.GetType() == typeof(Filth))
+                    return cooldownReduction.CalculateChanges(baseRate);
+
+                return baseRate;
+            }
+
+            static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+            {
+                var getRechargeRate = AccessTools.Method(
+                    typeof(FilthBoostRechargeTranspiler),
+                    nameof(GetRechargeRate));
+
+                bool patched = false;
+
+                foreach (var instr in instructions)
+                {
+                    if (!patched
+                        && instr.opcode == OpCodes.Ldc_R4
+                        && instr.operand is float f
+                        && Mathf.Approximately(f, 70f))
+                    {
+                        yield return instr;
+                        yield return new CodeInstruction(OpCodes.Call, getRechargeRate);
+                        patched = true;
+                        continue;
+                    }
+
+                    yield return instr;
+                }
+
+                if (!patched)
+                    Plugin.Logger.LogWarning(
+                        "[FilthBoostRechargeTranspiler] Could not find the 70f constant in NewMovement.Update. " +
+                        "The patch was NOT applied – the game may have been updated.");
+            }
+        }
         [HarmonyPatch(typeof(RocketLauncher), nameof(RocketLauncher.Update))]
         public static class RocketLauncher_Update_Patch
         {
