@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using Ultrarogue;
+using Ultrarogue.Characters;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -45,6 +46,9 @@ public class BloodMachine : MonoBehaviour
             HudMessageReceiver.Instance.SendHudMessage("<color=red>NOT ENOUGH BLOOD</color>");
             return;
         }
+
+        
+
         bloodDonated++;
         onUse.Invoke();
 
@@ -65,8 +69,19 @@ public class BloodMachine : MonoBehaviour
             }
             
         }
-
-        NewMovement.Instance.GetHurt(damage, false, ignoreInvincibility: true);
+        if(Plugin.SelectedChar.GetType() != typeof(Filth))
+        {
+            NewMovement.Instance.GetHurt(damage, false, ignoreInvincibility: true);
+        }
+        else
+        {
+            for (int i = 0; i < damage; i++)
+            {
+                NewMovement.Instance.GetHurt(1, false, ignoreInvincibility: true);
+            }
+        }
+        
+        
         RogueDifficultyManager.Instance.Gold++;
     }
 }

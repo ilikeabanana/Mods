@@ -8,7 +8,7 @@ namespace Ultrarogue.Characters
     public class Filth : BaseCharacter
     {
         public override string Name => "Filth";
-        public override string Description => "Start with NOTHING, have NO PASSIVES, and have 5 HP, take only 1 damage per hit. Dashing damages enemies. Heal when picking up items.";
+        public override string Description => "Start with NOTHING, have 5 HP, take only 1 damage per hit. Dashing damages enemies. Heal when picking up items.";
 
         public override List<AWeapon> StartingWeapons => new List<AWeapon>();
         public override List<Passive> Passives => new List<Passive>() { Passive.HeadBonk };
@@ -26,14 +26,12 @@ namespace Ultrarogue.Characters
 
             if (selected)
             {
-                HPChange.postMultiplier = 0.1f;
-                HPChange.addition = -50;
+                HPChange.postMultiplier = 0.05f;
                 DChange.postMultiplier = -1;
             }
             else
             {
                 HPChange.postMultiplier = 1;
-                HPChange.addition = 0;
                 DChange.postMultiplier = 1;
             }
 

@@ -96,7 +96,7 @@ public class ShopItem : MonoBehaviour
         price = GetComponentInChildren<TMP_Text>();
     }
 
-    int GetScaledCost(int baseCost)
+    public static int GetScaledCost(int baseCost)
     {
         int floor = RogueDifficultyManager.Instance != null
             ? RogueDifficultyManager.Instance.floor

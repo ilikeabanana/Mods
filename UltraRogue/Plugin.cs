@@ -534,7 +534,7 @@ namespace Ultrarogue
                                 hits.Add(eid);
                             }
                         }
-                        if(NewMovement.Instance.sliding)
+                        if (NewMovement.Instance.sliding)
                         {
                             Collider[] cols = Physics.OverlapSphere(NewMovement.Instance.transform.position, 5, LayerMaskDefaults.Get(LMD.Enemies));
                             foreach (var col in cols)
@@ -611,6 +611,13 @@ namespace Ultrarogue
                     DamageChange dChange = damageChanges[damageChange.WeaponType];
                     dChange.damageChange.ApplyChangeToChange(damageChange.damageChange);
                 }
+            }
+
+            // Filth passive: attack speed bonuses are converted into movement speed instead
+            if (SelectedChar != null && SelectedChar.GetType() == typeof(Filth))
+            {
+                moveChange.ApplyChangeToChange(atkSpeedChange);
+                atkSpeedChange = new Change(); // zero out attack speed
             }
 
             NewMovement.Instance.walkSpeed = Mathf.Max(moveChange.CalculateChanges(normalMoveSpeed), normalMoveSpeed * 0.01f);
@@ -696,7 +703,7 @@ namespace Ultrarogue
                 x.Rarity == rarity &&
                 (!SelectedChar.HasPassive(Passive.HealFromBlood) || !x.itemTags.Contains(ItemTag.Health)) &&
                 (!SelectedChar.HasPassive(Passive.Greedy) || !x.itemTags.Contains(ItemTag.Health)) &&
-                (SelectedChar.GetType() != typeof(Filth) || !x.itemTags.Contains(ItemTag.Healing)) 
+                (SelectedChar.GetType() != typeof(Filth) || !x.itemTags.Contains(ItemTag.Healing))
                 &&
                 (
                     x.ItemName != "Gasoline" ||
@@ -1003,7 +1010,7 @@ namespace Ultrarogue
         public static float getChanceVal(bool luckaffected = true)
         {
             float value = Random.value;
-            if(luck >= 0)
+            if (luck >= 0)
             {
                 for (int i = 0; i < luck; i++)
                 {
@@ -1019,7 +1026,7 @@ namespace Ultrarogue
                     if (luckedVal <= value) value = luckedVal;
                 }
             }
-            
+
 
             return value;
         }
@@ -1399,13 +1406,14 @@ namespace Ultrarogue
         public static void DamageGreed(ref int damage, NewMovement __instance)
         {
             if (SelectedChar?.HasPassive(Passive.Greedy) != true) return;
+
+            damage = ShopItem.GetScaledCost(damage / 10);
+
             if (damage > 0)
-                RogueDifficultyManager.Instance.Gold -= damage / 10;
+                RogueDifficultyManager.Instance.Gold -= damage;
             if (RogueDifficultyManager.Instance.Gold <= 0) return;
             __instance.ResetHardDamage();
             __instance.hp = 100;
-
-            
         }
 
         [HarmonyPatch(typeof(GasolineStain), nameof(GasolineStain.AttachTo))]
@@ -2124,7 +2132,7 @@ namespace Ultrarogue
                 return;
             }
 
-            if(hitter == "filthbonk")
+            if (hitter == "filthbonk")
             {
                 __instance.AddPoints(25, "", eid, sourceWeapon);
                 if (dead)

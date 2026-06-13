@@ -31,7 +31,7 @@ namespace Ultrarogue.Curses
             RenderSettings.fogMode = FogMode.Linear;
             RenderSettings.fogColor = Color.black;
 
-            StartFogLerp(originalFogStart, originalFogEnd, TargetFogStart, TargetFogEnd);
+            StartFogLerp(originalFogStart, originalFogEnd, TargetFogStart, TargetFogEnd, 1f, 0.9f);
         }
 
         public override void OnRemove()
@@ -45,21 +45,22 @@ namespace Ultrarogue.Curses
                 RenderSettings.fogEndDistance,
                 originalFogStart,
                 originalFogEnd,
+                0.9f, 1f,
                 () => RenderSettings.fog = originalFogEnabled
             );
         }
 
-        private void StartFogLerp(float fromStart, float fromEnd, float toStart, float toEnd, System.Action onComplete = null)
+        private void StartFogLerp(float fromStart, float fromEnd, float toStart, float toEnd, float fromPitch, float toPitch, System.Action onComplete = null)
         {
             if (fogCoroutine != null)
                 Plugin.Instance.StopCoroutine(fogCoroutine);
 
             fogCoroutine = Plugin.Instance.StartCoroutine(
-                LerpFogDistances(fromStart, fromEnd, toStart, toEnd, onComplete)
+                LerpFogDistances(fromStart, fromEnd, toStart, toEnd, fromPitch, toPitch, onComplete)
             );
         }
 
-        private IEnumerator LerpFogDistances(float fromStart, float fromEnd, float toStart, float toEnd, System.Action onComplete)
+        private IEnumerator LerpFogDistances(float fromStart, float fromEnd, float toStart, float toEnd, float fromPitch, float toPitch, System.Action onComplete)
         {
             float elapsed = 0f;
 
@@ -71,11 +72,19 @@ namespace Ultrarogue.Curses
                 RenderSettings.fogStartDistance = Mathf.Lerp(fromStart, toStart, t);
                 RenderSettings.fogEndDistance = Mathf.Lerp(fromEnd, toEnd, t);
 
+                float pitch = Mathf.Lerp(fromPitch, toPitch, t);
+                MusicManager.Instance.cleanTheme.pitch = pitch;
+                MusicManager.Instance.battleTheme.pitch = pitch;
+                MusicManager.Instance.bossTheme.pitch = pitch;
+
                 yield return null;
             }
 
             RenderSettings.fogStartDistance = toStart;
             RenderSettings.fogEndDistance = toEnd;
+            MusicManager.Instance.cleanTheme.pitch = toPitch;
+            MusicManager.Instance.battleTheme.pitch = toPitch;
+            MusicManager.Instance.bossTheme.pitch = toPitch;
             onComplete?.Invoke();
         }
     }
