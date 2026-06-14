@@ -24,10 +24,8 @@ namespace Ultrarogue.Characters
     public enum Passive
     {
         HealFromBlood,
-        NoFireDamage,
         TripleShot,
-        GasolineFire,
-        HealSetOnFire,
+        Street,
         Greedy,
         HeadBonk
     }

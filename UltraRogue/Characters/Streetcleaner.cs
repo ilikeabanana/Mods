@@ -16,7 +16,7 @@ namespace Ultrarogue.Characters
 
         public override List<Passive> Passives => new List<Passive>() 
         { 
-            Passive.GasolineFire, Passive.NoFireDamage, Passive.HealSetOnFire
+            Passive.Street
         };
     }
 }

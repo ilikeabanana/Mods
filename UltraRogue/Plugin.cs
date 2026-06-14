@@ -1172,36 +1172,14 @@ namespace Ultrarogue
             {
                 AWeapon generated;
 
-                if (SelectedChar != null && SelectedChar.GetType() == typeof(Ultrarogue.Characters.Streetcleaner))
-                {
-                    int choice = RogueDifficultyManager.RoomRNG.Next(0, 5);
-                    Plugin.Logger.LogInfo($"Weapon choice: {choice}");
-                    switch (choice)
-                    {
-                        case 0: generated = new AWeapon(Weapon.Arm, Variant.Red, false); break;
-                        case 1: generated = new AWeapon(Weapon.Nailgun, Variant.Green, false); break;
-                        case 2:
-                            generated = new AWeapon(
-                                Weapon.Shotgun,
-                                Variant.Blue,
-                                (float)RogueDifficultyManager.ItemRNG.NextDouble() <= 0.5f
-                            );
-                            break;
-                        case 3: generated = new AWeapon(Weapon.RocketLauncher, Variant.Red, false); break;
-                        default: generated = new AWeapon(Weapon.Railcannon, Variant.Red, false); break;
-                    }
-                }
-                else
-                {
-                    Weapon weaponEnum = (Weapon)RogueDifficultyManager.RoomRNG.Next(0, System.Enum.GetValues(typeof(Weapon)).Length);
-                    Variant variantEnum = (Variant)RogueDifficultyManager.RoomRNG.Next(0, System.Enum.GetValues(typeof(Variant)).Length);
+                Weapon weaponEnum = (Weapon)RogueDifficultyManager.RoomRNG.Next(0, System.Enum.GetValues(typeof(Weapon)).Length);
+                Variant variantEnum = (Variant)RogueDifficultyManager.RoomRNG.Next(0, System.Enum.GetValues(typeof(Variant)).Length);
 
-                    bool alt = false;
-                    if (CanBeAlternate(weaponEnum))
-                        alt = (float)RogueDifficultyManager.ItemRNG.NextDouble() <= 0.5f;
+                bool alt = false;
+                if (CanBeAlternate(weaponEnum))
+                    alt = (float)RogueDifficultyManager.ItemRNG.NextDouble() <= 0.5f;
 
-                    generated = new AWeapon(weaponEnum, variantEnum, alt);
-                }
+                generated = new AWeapon(weaponEnum, variantEnum, alt);
 
                 bool alreadyOwned = Plugin.weapons.Any(w =>
                     w.weapon == generated.weapon &&
@@ -1424,7 +1402,7 @@ namespace Ultrarogue
         public static void Stret(GasolineStain __instance)
         {
             if (!Plugin.isInRogueScene()) return;
-            if (!SelectedChar.HasPassive(Passive.GasolineFire)) return;
+            if (!SelectedChar.HasPassive(Passive.Street)) return;
 
             StainVoxelManager instance = MonoSingleton<StainVoxelManager>.Instance;
             Vector3 forward = __instance.transform.forward;
@@ -1439,7 +1417,7 @@ namespace Ultrarogue
         public static bool doNotDamage(FireZone __instance, Collider other)
         {
             if (!isInRogueScene()) return true;
-            if (!SelectedChar.HasPassive(Passive.NoFireDamage)) return true;
+            if (!SelectedChar.HasPassive(Passive.Street)) return true;
             if (other.CompareTag("Player"))
             {
                 return false;
@@ -1467,7 +1445,7 @@ namespace Ultrarogue
                 if (!SelectedChar.HasPassive(Passive.HealFromBlood))
                 {
                     int c = GetItemCount("Blood Flowing Plating");
-                    if (c > 0)
+                    if (c > 0 && (__instance.canCollide && other.gameObject.CompareTag("Player")))
                     {
                         MonoSingleton<NewMovement>.Instance.GetHealth(Mathf.FloorToInt(__instance.hpAmount * (0.1f * c)), false, __instance.fromExplosion, true);
                         __instance.DisableCollider();
@@ -1857,7 +1835,7 @@ namespace Ultrarogue
         {
             if (!Plugin.isInRogueMode()) return;
 
-            if (SelectedChar.HasPassive(Passive.NoFireDamage))
+            if (SelectedChar.HasPassive(Passive.Street))
                 NewMovement.Instance.GetHealth(5, false);
         }
     }
@@ -2190,10 +2168,18 @@ namespace Ultrarogue
 
             if (hitter == "filthbonk")
             {
-                __instance.AddPoints(5, "", eid, sourceWeapon);
+                __instance.AddPoints(15, "", eid, sourceWeapon);
                 if (dead)
                 {
-                    __instance.AddPoints(65, "FILTH BONKED", eid, sourceWeapon);
+                    if(eid.FullName.ToLower() == "filth")
+                    {
+                        __instance.AddPoints(75, "FRIENDLY KILL", eid, sourceWeapon);
+                    }
+                    else
+                    {
+                        __instance.AddPoints(75, "ROADKILL", eid, sourceWeapon);
+                    }
+                    
                 }
             }
 
