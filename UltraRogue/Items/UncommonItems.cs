@@ -191,6 +191,7 @@ namespace Ultrarogue.Items
         [HarmonyPatch(typeof(RevolverBeam), nameof(RevolverBeam.Start))]
         public static void Prefix(RevolverBeam __instance)
         {
+            if (!Plugin.isInRogueScene()) return;
             int count = Plugin.GetItemCount("Bouncy Hitscans");
             if (count <= 0) return;
             if (__instance.hasBeenRicocheter) return;

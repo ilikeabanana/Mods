@@ -127,6 +127,7 @@ namespace Ultrarogue.Items
         [HarmonyPatch(typeof(Projectile), nameof(Projectile.Awake))]
         public static void Prefix(Projectile __instance)
         {
+            if (!Plugin.isInRogueScene()) return;
             if (Plugin.GetItemCount(Instance) > 0 && __instance.playerBullet)
             {
                 __instance.transform.localScale *= 1 + (0.07f * Plugin.GetItemCount(Instance));

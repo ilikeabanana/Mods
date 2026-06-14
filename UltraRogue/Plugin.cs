@@ -1303,6 +1303,7 @@ namespace Ultrarogue
         [HarmonyPrefix]
         public static void DisplayCorrectMaxHP(HealthBar __instance)
         {
+            if (!Plugin.isInRogueScene()) return;
             if (__instance.hpSliders.Length != 0)
             {
                 foreach (Slider slider in __instance.hpSliders)
@@ -1375,6 +1376,7 @@ namespace Ultrarogue
         [HarmonyPrefix]
         public static void DamageLess(ref int damage, ref bool ignoreInvincibility, NewMovement __instance)
         {
+            if (!Plugin.isInRogueScene()) return;
             if (damage > 0)
                 damage = (int)Mathf.Max(DamageReduction.CalculateChanges(damage), 1); // cannot go below 1
             foreach (var effect in Plugin.onDamageEffects)
@@ -1405,6 +1407,7 @@ namespace Ultrarogue
         [HarmonyPostfix]
         public static void DamageGreed(ref int damage, NewMovement __instance)
         {
+            if (!Plugin.isInRogueScene()) return;
             if (SelectedChar?.HasPassive(Passive.Greedy) != true) return;
 
             damage = ShopItem.GetScaledCost(damage / 10);
@@ -1420,6 +1423,7 @@ namespace Ultrarogue
         [HarmonyPostfix]
         public static void Stret(GasolineStain __instance)
         {
+            if (!Plugin.isInRogueScene()) return;
             if (!SelectedChar.HasPassive(Passive.GasolineFire)) return;
 
             StainVoxelManager instance = MonoSingleton<StainVoxelManager>.Instance;
@@ -1434,6 +1438,7 @@ namespace Ultrarogue
         [HarmonyPrefix]
         public static bool doNotDamage(FireZone __instance, Collider other)
         {
+            if (!isInRogueScene()) return true;
             if (!SelectedChar.HasPassive(Passive.NoFireDamage)) return true;
             if (other.CompareTag("Player"))
             {
@@ -1514,6 +1519,7 @@ namespace Ultrarogue
         [HarmonyPrefix]
         public static bool HealthChange(NewMovement __instance, int health, bool silent, bool fromExplosion = false, bool bloodsplatter = true)
         {
+            if (!isInRogueScene()) return true;
             if (!__instance.dead && (!__instance.exploded || !fromExplosion))
             {
                 float num = (float)health;
@@ -1559,6 +1565,7 @@ namespace Ultrarogue
         [HarmonyPrefix]
         public static void ApplyCooldownPatch(ref float amount)
         {
+            if (!isInRogueScene()) return;
             amount = cooldownReduction.CalculateChanges(amount);
         }
 
@@ -1592,6 +1599,7 @@ namespace Ultrarogue
 
             public static float ModifyRate(float amount)
             {
+                if (!isInRogueScene()) return amount;
                 return cooldownReduction.CalculateChanges(amount);
             }
         }
@@ -1603,6 +1611,7 @@ namespace Ultrarogue
             [HarmonyPostfix]
             public static void TripleShot(Revolver __instance, int shotType)
             {
+                if (!isInRogueScene()) return;
                 if (_isExtraShot) return;
                 if (shotType != 1) return;
                 if (SelectedChar?.HasPassive(Passive.TripleShot) != true) return;
@@ -1631,6 +1640,7 @@ namespace Ultrarogue
             [HarmonyPostfix]
             public static void GreedCoin(Revolver __instance)
             {
+                if (!isInRogueScene()) return;
                 if (SelectedChar?.HasPassive(Passive.Greedy) != true) return;
 
                 __instance.wc.rev1charge = 400f;
@@ -1645,6 +1655,7 @@ namespace Ultrarogue
             [HarmonyPostfix]
             public static void GreedRefund(Coin __instance)
             {
+                if (!isInRogueScene()) return;
                 if (SelectedChar?.HasPassive(Passive.Greedy) != true) return;
                 if (!RefundedCoins.Add(__instance)) return;
                 RogueDifficultyManager.Instance.Gold += 1;
@@ -1676,6 +1687,7 @@ namespace Ultrarogue
 
             public static float ModifyDelta(float maxDelta)
             {
+                if (!isInRogueScene()) return maxDelta;
                 return AttackSpeed.CalculateChanges(maxDelta);
             }
         }
@@ -1685,6 +1697,7 @@ namespace Ultrarogue
         {
             public static float GetRechargeRate(float baseRate)
             {
+                if (!isInRogueScene()) return baseRate;
                 if (SelectedChar != null && SelectedChar.GetType() == typeof(Filth))
                     return cooldownReduction.CalculateChanges(baseRate);
 
@@ -1745,6 +1758,7 @@ namespace Ultrarogue
 
             public static float ModifyDelta(float maxDelta)
             {
+                if (!isInRogueScene()) return maxDelta;
                 return AttackSpeed.CalculateChanges(maxDelta);
             }
         }
@@ -2176,10 +2190,10 @@ namespace Ultrarogue
 
             if (hitter == "filthbonk")
             {
-                __instance.AddPoints(25, "", eid, sourceWeapon);
+                __instance.AddPoints(5, "", eid, sourceWeapon);
                 if (dead)
                 {
-                    __instance.AddPoints(200, "FILTH BONKED", eid, sourceWeapon);
+                    __instance.AddPoints(65, "FILTH BONKED", eid, sourceWeapon);
                 }
             }
 

@@ -46,6 +46,7 @@ namespace Ultrarogue.Items
         {
             static void Postfix(RevolverBeam __instance)
             {
+                if (!Plugin.isInRogueScene()) return;
                 if (Plugin.GetItemCount("Thunder Boomerang") == 0) return;
                 if (__instance.beamType == BeamType.Enemy || __instance.beamType == BeamType.MaliciousFace) return;
 
@@ -61,6 +62,7 @@ namespace Ultrarogue.Items
         {
             static void Postfix(RevolverBeam __instance, PhysicsCastResult hit)
             {
+                if (!Plugin.isInRogueScene()) return;
                 if (!taggedBeams.Contains(__instance)) return;
 
                 SpawnExplosion(hit.point);
@@ -78,6 +80,7 @@ namespace Ultrarogue.Items
 
             static void Postfix(RevolverBeam __instance, bool __state)
             {
+                if (!Plugin.isInRogueScene()) return;
                 if (!taggedBeams.Contains(__instance)) return;
 
                 if (!__state && __instance.fadeOut)
@@ -352,6 +355,7 @@ namespace Ultrarogue.Items
         [HarmonyPatch(typeof(VirtueInsignia), nameof(VirtueInsignia.OnTriggerEnter))]
         public static bool Prefix(VirtueInsignia __instance, Collider other)
         {
+            if (!Plugin.isInRogueScene()) return true;
             if (!__instance.gameObject.name.Contains("God")) return true;
             if (!alreadyHits.ContainsKey(__instance))
                 alreadyHits.Add(__instance, new List<EnemyIdentifier>());
@@ -432,6 +436,7 @@ namespace Ultrarogue.Items
         [HarmonyPatch(typeof(RevolverBeam), nameof(RevolverBeam.Start))]
         public static void Postfix(RevolverBeam __instance)
         {
+            if (!Plugin.isInRogueScene()) return;
             int count = Plugin.GetItemCount("Residual Cannon");
             if (count <= 0) return;
             if (__instance.beamType == BeamType.Enemy) return;
