@@ -11,18 +11,21 @@ public class KeyEater : MonoBehaviour // Yum
 
     public float DistanceForActivation = 2f;
 
-    float cooldown = 5;
+    float cooldown = 1;
     float c = 0;
+
+    bool canUse = true;
 
     void Update()
     {
         c -= Time.deltaTime;
         if (Vector3.Distance(NewMovement.Instance.transform.position, transform.position) <= DistanceForActivation &&
-            c <= 0)
+            c <= 0 && canUse)
         {
-            c = 5;
+
             if(RogueDifficultyManager.Instance.Keys <= 0)
             {
+                c = 2; // Purely so that it doesnt activate it constantly
                 OnNoKey?.Invoke();
                 HudMessageReceiver.Instance.SendHudMessage("NO KEYS TO GIVE");
                 return;
@@ -30,7 +33,12 @@ public class KeyEater : MonoBehaviour // Yum
             RogueDifficultyManager.Instance.Gold++;
             RogueDifficultyManager.Instance.Keys--;
             OnKeyGotten?.Invoke();
-
+            canUse = false;
         }
+    }
+
+    public void AllowUsageAgain()
+    {
+        canUse = true;
     }
 }
