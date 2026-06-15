@@ -1152,7 +1152,8 @@ namespace Ultrarogue
         Common,
         Uncommon,
         Legendary,
-        Alchemy
+        Alchemy,
+        NullItem
     }
 
     public enum Team

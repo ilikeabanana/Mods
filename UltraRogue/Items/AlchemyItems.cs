@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -197,4 +198,15 @@ namespace Ultrarogue.Items
             movementChange.percentage = -1 * (itemCount * (0.05f * count));
         }
     }
+    //public class Null : BaseItem
+    //{
+    //    public override string ItemName => "<voffset=2px><size=120%><color=#00ffff>N</color></size></voffset><anim f=1 a=3 w=50><voffset=4px><color=#ff00ff>U</color></voffset><voffset=-2px><size=80%><color=#ffff00>L</color></size></voffset><voffset=6px><color=#00ff00>L</color></voffset></anim>";
+    //    public override string itemDescription => "50% chance for every item to be replaced with a pure stat upgrade.";
+
+    //    public override Rarity Rarity => Rarity.Alchemy;
+    //fortitudo - Damage 10% up
+    //velocitas - Speed 10% up
+    //rapidiatis - Attack speed 10 % up
+    //refrigescant - cooldown 10% up
+    //}
 }

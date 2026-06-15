@@ -483,6 +483,7 @@ public class RogueDifficultyManager : MonoBehaviour
             case EnemyType.Stray:
             case EnemyType.Schism:
             case EnemyType.Drone:
+            case EnemyType.Mannequin:
             case EnemyType.Soldier:
                 return true;
             case EnemyType.Streetcleaner:
@@ -491,11 +492,12 @@ public class RogueDifficultyManager : MonoBehaviour
             case EnemyType.Cerberus:
             case EnemyType.Swordsmachine:
             case EnemyType.Mindflayer:
+            case EnemyType.Stalker:
                 return floor >= 3;
-            case EnemyType.Power:
             case EnemyType.Ferryman:
                 return floor >= 5;
             case EnemyType.Gabriel:
+            case EnemyType.Power:
                 return floor >= 6;
             case EnemyType.V2:
             case EnemyType.V2Second:

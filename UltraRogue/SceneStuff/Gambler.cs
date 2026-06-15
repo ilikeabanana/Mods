@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using Steamworks.Ugc;
+using System.Collections;
 using System.Collections.Generic;
 using Ultrarogue;
 using Ultrarogue.Items;
@@ -69,6 +70,16 @@ public class Gambler : MonoBehaviour
         }
         skullText = Slot1.transform.Find("Slots").GetComponentInChildren<RawImage>().mainTexture;
         texts.Add((Texture2D)skullText);
+
+
+        foreach (var s in slots)
+        {
+            Transform ss = s.transform.Find("Slots");
+            AssignImage(2, ss, texts[Random.Range(0, texts.Count)]);
+            AssignImage(4, ss, texts[Random.Range(0, texts.Count)]);
+            AssignImage(3, ss, texts[Random.Range(0, texts.Count)]);
+
+        }
     }
 
     GameObject GetSlot(string name)
