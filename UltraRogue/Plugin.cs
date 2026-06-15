@@ -551,9 +551,7 @@ namespace Ultrarogue
                                 if (hits.Contains(eid)) continue;
                                 eid.hitter = "filthbonk";
 
-                                float damageMult = NewMovement.Instance.walkSpeed / normalMoveSpeed;
-
-                                eid.SimpleDamage(1 * damageMult);
+                                eid.SimpleDamage(1);
                                 hits.Add(eid);
                             }
                         }

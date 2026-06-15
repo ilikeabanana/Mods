@@ -493,12 +493,13 @@ public class Room : MonoBehaviour
                 if (eid != null)
                 {
                     waveEnemies.Add(eid);
+                    float totalHealth = eid.health;
                     if (bossEntry.healthMod != 0 || bossEntry.healthPerFloorMod != 0 || bossEntry.healthAddition != 0)
                     {
                         Enemy e = FindEnemyComponent(bossInst);
                         if (bossEntry.healthMod == 0) bossEntry.healthMod = eid.health;
                         int floorsActive = Mathf.Max(0, RogueDifficultyManager.Instance.floor - bossEntry.startFloor);
-                        float totalHealth = bossEntry.healthMod + bossEntry.healthAddition + bossEntry.healthPerFloorMod * floorsActive;
+                        totalHealth = bossEntry.healthMod + bossEntry.healthAddition + bossEntry.healthPerFloorMod * floorsActive;
                         eid.health = totalHealth;
                         e.health = totalHealth;
                         e.originalHealth = totalHealth;
@@ -515,8 +516,10 @@ public class Room : MonoBehaviour
                         Debug.Log($"[Room] Applied {totalRadiance} radiance buff(s) to {eid.enemyType}.");
 
                     bossEnemyType.onSpawn?.Invoke(eid);
-                    if (eid.gameObject.GetComponent<BossHealthBar>() == null)
-                        eid.gameObject.AddComponent<BossHealthBar>();
+                    if (eid.gameObject.GetComponent<BossHealthBar>() != null)
+                        Destroy(eid.gameObject.GetComponent<BossHealthBar>());
+                    eid.gameObject.AddComponent<BossHealthBar>();
+                    SetHalfHealth(totalHealth / 2, eid);
                     if (eid.enemyType == EnemyType.Gabriel || eid.enemyType == EnemyType.GabrielSecond)
                     {
                         eid.onDeath.AddListener(() =>
@@ -524,6 +527,8 @@ public class Room : MonoBehaviour
                             Destroy(bossInst);
                         });
                     }
+
+                    
                 }
             }
 
@@ -539,6 +544,18 @@ public class Room : MonoBehaviour
         }
 
         hasSpawnedEnemies = true;
+    }
+
+    public void SetHalfHealth(float half, EnemyIdentifier eid)
+    {
+        if (eid.TryGetComponent<GabrielBase>(out var g))
+        {
+            g.phaseChangeHealth = half;
+        }
+        if (eid.TryGetComponent<SwordsMachine>(out var s))
+        {
+            s.phaseChangeHealth = half;
+        }
     }
 
     public static Enemy FindEnemyComponent(GameObject obj)
