@@ -370,7 +370,10 @@ public class Room : MonoBehaviour
 
                 GameObject enemyPrefab = DefaultReferenceManager.Instance.GetEnemyPrefab(planned.type);
                 if (planned.type == EnemyType.Power)
+                {
                     enemyPrefab = AssetsManager.funnyPowerIntroSpawn;
+                    _activatorsWereUsed = true;
+                }
                 if (planned.type == EnemyType.MirrorReaper)
                     enemyPrefab = AssetsManager.GetEnemiesOfType(EnemyType.MirrorReaper).FirstOrDefault()?.gameObject;
                 if (enemyPrefab == null) continue;
@@ -742,14 +745,17 @@ public class Room : MonoBehaviour
 
                 if (currentHp < maxHp)
                 {
-                    int healAmt = Random.Range(25, 50);
+                    int healAmt = Random.Range(25, 40); // 25% to 40%
+
+                    int amt = Plugin.MaxHealth * (healAmt / 100);
+
                     MonoSingleton<NewMovement>.Instance.GetHealth(healAmt, false);
                 }
             }
 
             float itemChance = tookNoDamage ? 0.05f : 0.015f;
 
-            if (enemyRando.NextDouble() <= itemChance)
+            if (getChanceVal(enemyRando) <= itemChance)
             {
                 Vector3 itemPos = spawnPoints[Random.Range(0, spawnPoints.Count)].position;
                 GameObject plc = new GameObject("ItemDropAnchor");
@@ -759,7 +765,7 @@ public class Room : MonoBehaviour
             }
             else
             {
-                float chanceVal = (float)enemyRando.NextDouble() + (tookNoDamage ? 0.20f : 0f);
+                float chanceVal = (float)getChanceVal(enemyRando) + (tookNoDamage ? 0.20f : 0f);
 
                 if (chanceVal <= 0.22f)
                 {

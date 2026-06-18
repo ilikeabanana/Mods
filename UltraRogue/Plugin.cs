@@ -237,13 +237,8 @@ namespace Ultrarogue
             return new string(chars).ToUpper();
         }
 
-        public static void LoadLevel(string seed)
+        public static void Reset()
         {
-            if (string.IsNullOrEmpty(seed))
-                GameSeed = GenerateRandomString(6);
-            else
-                GameSeed = seed;
-            SelectedChar.OnRunStart();
             foreach (var tiem in items)
             {
                 tiem.Key.OnGotten(0, false);
@@ -252,6 +247,16 @@ namespace Ultrarogue
             }
             items.Clear();
             weapons.Clear();
+        }
+
+        public static void LoadLevel(string seed)
+        {
+            if (string.IsNullOrEmpty(seed))
+                GameSeed = GenerateRandomString(6);
+            else
+                GameSeed = seed;
+            SelectedChar.OnRunStart();
+            Reset();
 
             if (SelectedChar.StartingWeapons == null || SelectedChar.StartingWeapons.Count == 0)
             {
@@ -618,8 +623,8 @@ namespace Ultrarogue
                 atkSpeedChange = new Change(); // zero out attack speed
             }
 
-            NewMovement.Instance.walkSpeed = Mathf.Max(moveChange.CalculateChanges(normalMoveSpeed), normalMoveSpeed * 0.01f);
-            NewMovement.Instance.airAcceleration = Mathf.Max(moveChange.CalculateChanges(normalairAccelaration), normalairAccelaration * 0.01f);
+            NewMovement.Instance.walkSpeed = Mathf.Max(moveChange.CalculateChanges(normalMoveSpeed), normalMoveSpeed * 0.05f);
+            NewMovement.Instance.airAcceleration = Mathf.Max(moveChange.CalculateChanges(normalairAccelaration), normalairAccelaration * 0.05f);
             NewMovement.Instance.jumpPower = jumpChange.CalculateChanges(normalJumpHeight);
             globalDamageMult = globalDamageChange;
             MaxHealth = Mathf.RoundToInt(hpChange.CalculateChanges(100f));
@@ -732,7 +737,7 @@ namespace Ultrarogue
 
         public static Rarity getRarityBasedOnDropTable(DropTable table, System.Random rng)
         {
-            float chance = (float)rng.NextDouble();
+            float chance = (float)getChanceVal(rng);
             float cumulative = 0f;
 
             foreach (var entry in table.weights)
@@ -1005,25 +1010,33 @@ namespace Ultrarogue
             {"drill", 0.25f },
         };
 
-        public static float getChanceVal(bool luckaffected = true)
+        public static float getChanceVal(System.Random rng = null, bool luckaffected = true)
         {
+
             float value = Random.value;
-            if (luck >= 0)
+            if (rng != null)
+                value = (float)rng.NextDouble();
+
+            if (luckaffected)
             {
-                for (int i = 0; i < luck; i++)
+                if (luck >= 0)
                 {
-                    float luckedVal = Random.value;
-                    if (luckedVal > value) value = luckedVal;
+                    for (int i = 0; i < luck; i++)
+                    {
+                        float luckedVal = Random.value;
+                        if (luckedVal < value) value = luckedVal;
+                    }
+                }
+                else
+                { // negative luck, dunno if ever used but :P
+                    for (int i = 0; i < -luck; i++)
+                    {
+                        float luckedVal = Random.value;
+                        if (luckedVal >= value) value = luckedVal;
+                    }
                 }
             }
-            else
-            { // negative luck, dunno if ever used but :P
-                for (int i = 0; i < luck; i++)
-                {
-                    float luckedVal = Random.value;
-                    if (luckedVal <= value) value = luckedVal;
-                }
-            }
+            
 
 
             return value;
@@ -1031,12 +1044,7 @@ namespace Ultrarogue
 
         public static bool canExecute(float chance, string hitter, bool luckaffected = true)
         {
-            float value = Random.value;
-            for (int i = 0; i < luck; i++)
-            {
-                float luckedVal = Random.value;
-                if (luckedVal > value) value = luckedVal;
-            }
+            float value = getChanceVal(luckaffected: luckaffected);
 
             if (procCoeffiecents.ContainsKey(hitter))
             {
@@ -1366,6 +1374,23 @@ namespace Ultrarogue
                 damage = 999;
             }
         }
+        [HarmonyPatch(typeof(NewMovement), nameof(NewMovement.ForceAntiHP))]
+        [HarmonyPrefix]
+        public static void DamageLess(ref float amount, NewMovement __instance)
+        {
+            if (!Plugin.isInRogueScene()) return;
+            if (amount > 0)
+                amount = Mathf.Max(DamageReduction.CalculateChanges(amount), 1); // cannot go below 1
+            foreach (var effect in Plugin.onDamageEffects)
+            {
+                effect.effect.Invoke((int)amount);
+            }
+            if (SelectedChar?.HasPassive(Passive.Greedy) != true) return;
+            if (RogueDifficultyManager.Instance.Gold <= 0)
+            {
+                amount = 999;
+            }
+        }
 
         [HarmonyPatch(typeof(NewMovement), nameof(NewMovement.GetHurt))]
         [HarmonyPostfix]
@@ -1375,7 +1400,7 @@ namespace Ultrarogue
             {
                 __instance.deathSequence.gameObject.SetActive(false);
                 RogueFinalRank.Instance.GameOver();
-
+                Plugin.Reset();
             }
 
         }

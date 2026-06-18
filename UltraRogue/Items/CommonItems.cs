@@ -6,6 +6,7 @@ using System.Security.Cryptography;
 using System.Text;
 using ULTRAKILL.Portal;
 using ULTRAKILL.Portal.Native;
+using Ultrarogue.Characters;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.UIElements;
@@ -147,7 +148,10 @@ namespace Ultrarogue.Items
         public override void OnGotten(int count, bool firstPickup)
         {
             if (NewMovement.Instance == null) return;
-
+            if (Plugin.GetItemCount(FragileParts.I.ItemName) >= 0)
+            {
+                FragileParts.Reset();
+            }
             // Movement speed
             float speed = NewMovement.Instance.walkSpeed;
             float baseSpeed = Plugin.Instance.normalMoveSpeed;
@@ -170,6 +174,11 @@ namespace Ultrarogue.Items
                 ("D", dmg),
                 ("C", cd)
             };
+
+            if (Plugin.SelectedChar is Filth)
+            {
+                stats = stats.Where(x => x.Item1 != "AS").ToArray();
+            }
 
             var lowest = stats.OrderBy(x => x.Item2).First();
 

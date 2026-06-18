@@ -33,22 +33,31 @@ namespace Ultrarogue.Items
     public class FragileParts : BaseItem
     {
         public override string ItemName => "Fragile Parts";
-        public override string itemDescription => "Double all your stats, <color=red>TAKING DAMAGE REDUCES VALUES BY 5%</color>";
+        public override string itemDescription => "Double all your stats, <color=red>TAKING DAMAGE REDUCES VALUES BY 2%</color>";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage, ItemTag.Utility };
         public override Rarity Rarity => Rarity.Alchemy;
         Change amazingChange = new Change();
+
+        public static FragileParts I { get; set; }
         public override void OnGotten(int count, bool firstPickup)
         {
             amazingChange.percentage = count;
         }
+
+        public static void Reset()
+        {
+            I.amazingChange.percentage = Plugin.GetItemCount(I.ItemName);
+        }
+
         public override void OnStart()
         {
+            I = this;
             new DamageTakenEffect(ItemName, (d) =>
             {
                 int c = Plugin.GetItemCount(ItemName);
                 if (c <= 0 || d <= 0) return;
 
-                amazingChange.percentage = Mathf.Max(-0.5f, amazingChange.percentage - (0.05f * c));
+                amazingChange.percentage = Mathf.Max(-0.5f, amazingChange.percentage - (0.02f * c));
             });
             new PlayerChange(amazingChange, attackSpeed: amazingChange, cooldownReduction: amazingChange, globalDamageMult: amazingChange);
         }
@@ -146,8 +155,8 @@ namespace Ultrarogue.Items
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage, ItemTag.Utility };
         public override Rarity Rarity => Rarity.Alchemy;
         Change allStats = new Change();
-        const float decayRate = 0.02f;
-        const float decayInterval = 1f;
+        const float decayRate = 0.05f;
+        const float decayInterval = 0.35f;
         float nextDecayTime = 0f;
         public override void OnStart()
         { 
@@ -155,7 +164,7 @@ namespace Ultrarogue.Items
             new DeathEffect(ItemName, (enemy) =>
             {
                 int c = Plugin.GetItemCount(ItemName);
-                allStats.percentage = Mathf.Min(c * 1.0f, allStats.percentage + (0.45f * c));
+                allStats.percentage = Mathf.Min(c * 1.0f, allStats.percentage + (0.25f * c));
             });
         }
         public override void OnNewFloor(int count)
