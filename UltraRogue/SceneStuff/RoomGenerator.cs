@@ -1301,8 +1301,6 @@ public class RoomGenerator : MonoBehaviour
             yield break;
         }
 
-        errorRoom.transform.Find("Portal (1)").position = Vector3.up * 50;
-
         _isTeleportingToErrorRoom = true;
 
         player.transform.position = errorRoom.transform.position;

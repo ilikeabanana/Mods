@@ -51,7 +51,7 @@ public class ItemPickup : MonoBehaviour
         pickup.GetComponent<Collider>().enabled = false;
         pickup.AddComponent<ItemPickup>().item = item;
         pickup.GetComponent<ItemPickup>().canPickup = pickupCon;
-        Material mat = new Material(AssetsManager.weaponMat);
+        Material mat = new Material(item.materialOverride ? item.materialOverride : AssetsManager.weaponMat);
         mat.mainTexture = item.ItemTexture;
         pickup.GetComponent<MeshRenderer>().material = mat;
         pickup.transform.position = position.position + Vector3.up * offset;

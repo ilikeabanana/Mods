@@ -11,6 +11,8 @@ namespace Ultrarogue.Items
         public override string ItemName => "Reaper's Scythe";
         public override string itemDescription => "Double your damage, <color=red>BUT LOSE 50% OF YOUR MAXIMUM HP</color>.";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
+
+        public override Material materialOverride => AssetsManager.getAlchemy();
         public override Rarity Rarity => Rarity.Alchemy;
         Change dmg = new Change();
         Change HP = new Change();
@@ -37,7 +39,7 @@ namespace Ultrarogue.Items
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage, ItemTag.Utility };
         public override Rarity Rarity => Rarity.Alchemy;
         Change amazingChange = new Change();
-
+        public override Material materialOverride => AssetsManager.getAlchemy();
         public static FragileParts I { get; set; }
         public override void OnGotten(int count, bool firstPickup)
         {
@@ -72,7 +74,7 @@ namespace Ultrarogue.Items
         Change buffedStat = new Change();
         Change nerfedStat = new Change();
         Change neutral = new Change();
-
+        public override Material materialOverride => AssetsManager.getAlchemy();
         // All 7 stat slots, order matches the enum below
         Change[] statSlots;
 
@@ -127,6 +129,7 @@ namespace Ultrarogue.Items
     }
     public class Overclock : BaseItem
     {
+        public override Material materialOverride => AssetsManager.getAlchemy();
         public override string ItemName => "Overclock";
         public override string itemDescription => "Gain +50% attack speed and damage, but <color=red>-50% cooldown reduction</color>.";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage, ItemTag.Utility };
@@ -150,6 +153,7 @@ namespace Ultrarogue.Items
     }
     public class DecayingEmpowerment : BaseItem
     {
+        public override Material materialOverride => AssetsManager.getAlchemy();
         public override string ItemName => "Decaying Empowerment";
         public override string itemDescription => "Start with +100% to all stats, but they <color=red>decay over time</color>. Kills <color=green>restore some power</color>.";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage, ItemTag.Utility };
@@ -190,6 +194,7 @@ namespace Ultrarogue.Items
     }
     public class Gluttony : BaseItem
     {
+        public override Material materialOverride => AssetsManager.getAlchemy();
         public override string ItemName => "Gluttony";
         public override string itemDescription => "Increase damage by 10% for every item, but reduce movement speed for by 5% every item.";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage, ItemTag.Utility };

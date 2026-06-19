@@ -178,6 +178,10 @@ public class RogueDifficultyManager : MonoBehaviour
                 icon.sprite = item.ItemIcon;
             else
                 Plugin.Logger.LogWarning($"Item '{itemKey}' has no icon!");
+
+            if(item.materialOverride != null)
+                icon.material = item.materialOverride;
+
             ItemHoverHandler hover = container.AddComponent<ItemHoverHandler>();
             hover.Item = item;
             GameObject labelObj = new GameObject("CountLabel");

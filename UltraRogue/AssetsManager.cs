@@ -325,6 +325,18 @@ public class AssetsManager
         return descriptors.Find(x => x.weaponName == "UNKNOWN").icon;
     }
 
+
+    static Material _alchemyMat;
+
+    public static Material getAlchemy()
+    {
+        if(_alchemyMat == null)
+        {
+            _alchemyMat = Addressables.LoadAssetAsync<Material>("Assets/Modding/RogueMode/balala.mat").WaitForCompletion();
+        }
+        return _alchemyMat;
+    }
+
     // ── Convenience: get all enemies of a specific type ──────────────────────
     public static List<SpawnableObject> GetEnemiesOfType(EnemyType type)
     {
