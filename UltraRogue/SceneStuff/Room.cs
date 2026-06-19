@@ -745,11 +745,10 @@ public class Room : MonoBehaviour
 
                 if (currentHp < maxHp)
                 {
-                    int healAmt = Random.Range(25, 40); // 25% to 40%
+                    int healAmt = Random.Range(25, 40); // 25-39
+                    int amt = Mathf.RoundToInt(Plugin.MaxHealth * (healAmt / 100f));
 
-                    int amt = Plugin.MaxHealth * (healAmt / 100);
-
-                    MonoSingleton<NewMovement>.Instance.GetHealth(healAmt, false);
+                    MonoSingleton<NewMovement>.Instance.GetHealth(amt, false);
                 }
             }
 
