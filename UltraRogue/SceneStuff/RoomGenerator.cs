@@ -495,6 +495,7 @@ public class RoomGenerator : MonoBehaviour
                 sub.wallPrefab = actualRoom.wallPrefab;
                 sub.RoomSizeWidth = 1;
                 sub.RoomSizeHeight = 1;
+                sub.boundaryObstacles = actualRoom.boundaryObstacles;
 
                 foreach (Transform srcPt in actualRoom.spawnPoints)
                 {
