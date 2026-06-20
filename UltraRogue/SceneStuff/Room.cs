@@ -79,6 +79,8 @@ public class Room : MonoBehaviour
 
     public bool TriggerSoftlockCheck = true;
 
+    [HideInInspector] public Room ParentRoom;
+
     /// <summary>
     /// Dynamically fetches the correct exit transform based on which grid cell is being checked.
     /// </summary>
@@ -531,7 +533,7 @@ public class Room : MonoBehaviour
                         });
                     }
 
-                    
+
                 }
             }
 
@@ -582,7 +584,7 @@ public class Room : MonoBehaviour
 #endif
         GameObject door = null;
         if (doorPrefab != null) door = Instantiate(doorPrefab, exit.position, exit.rotation * Quaternion.Euler(0, 90, 0), transform);
-        
+
         if (door != null)
         {
             RoomGenerator.Instance.Doors.Add(door);
@@ -593,7 +595,7 @@ public class Room : MonoBehaviour
             if (Random.value <= 0.75f && Plugin.CurrentDifficulty != 2) return;
             door.GetComponentInChildren<Door>().gameObject.AddComponent<Lockable>();
         }
-        
+
     }
 
     public void CreateWall(Transform exit)
@@ -676,23 +678,24 @@ public class Room : MonoBehaviour
         // Throttled boundary obstacle toggle — avoids per-frame overhead
         if (boundaryObstacles.Count > 0 && NewMovement.Instance != null)
         {
-            if (RoomSizeWidth == 1 && RoomSizeHeight == 1)
+            _obstacleCheckTimer -= Time.deltaTime;
+            if (_obstacleCheckTimer <= 0f)
             {
-                _obstacleCheckTimer -= Time.deltaTime;
-                if (_obstacleCheckTimer <= 0f)
-                {
-                    _obstacleCheckTimer = ObstacleCheckInterval;
+                _obstacleCheckTimer = ObstacleCheckInterval;
 
-                    // Cheap local-space bounds check — no FindObjectsByType
-                    Vector3 local = transform.InverseTransformPoint(NewMovement.Instance.transform.position);
-                    bool playerIsHere = getObjectInsideRoom(NewMovement.Instance.transform.position) == this;
+                // For normal 1x1 rooms: playerRoom == this.
+                // For large rooms: actualRoom is never in placedRooms, so getObjectInsideRoom
+                // returns the sub-room the player is standing in. We check if that sub-room's
+                // ParentRoom points back to us (the actualRoom that owns the obstacles).
+                // Sub-rooms have their boundaryObstacles cleared, so they never reach this code.
+                Room playerRoom = getObjectInsideRoom(NewMovement.Instance.transform.position);
+                bool playerIsHere = playerRoom == this
+                    || (playerRoom != null && playerRoom.ParentRoom == this);
 
-                    foreach (GameObject obs in boundaryObstacles)
-                        if (obs != null && obs.activeSelf != playerIsHere)
-                            obs.SetActive(playerIsHere);
-                }
+                foreach (GameObject obs in boundaryObstacles)
+                    if (obs != null && obs.activeSelf != playerIsHere)
+                        obs.SetActive(playerIsHere);
             }
-            
         }
 
         foreach (var zone in GetComponentsInChildren<DeathZone>())

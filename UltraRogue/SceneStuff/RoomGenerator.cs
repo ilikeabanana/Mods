@@ -495,7 +495,11 @@ public class RoomGenerator : MonoBehaviour
                 sub.wallPrefab = actualRoom.wallPrefab;
                 sub.RoomSizeWidth = 1;
                 sub.RoomSizeHeight = 1;
-                sub.boundaryObstacles = actualRoom.boundaryObstacles;
+                // Do NOT copy boundaryObstacles — sub-rooms must never manage them.
+                // Only actualRoom runs the boundary toggle; sub-rooms just report
+                // ParentRoom so actualRoom knows when the player is inside any cell.
+                sub.boundaryObstacles = new List<GameObject>();
+                sub.ParentRoom = actualRoom;
 
                 foreach (Transform srcPt in actualRoom.spawnPoints)
                 {
