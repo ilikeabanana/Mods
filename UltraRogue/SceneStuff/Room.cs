@@ -676,19 +676,23 @@ public class Room : MonoBehaviour
         // Throttled boundary obstacle toggle — avoids per-frame overhead
         if (boundaryObstacles.Count > 0 && NewMovement.Instance != null)
         {
-            _obstacleCheckTimer -= Time.deltaTime;
-            if (_obstacleCheckTimer <= 0f)
+            if (RoomSizeWidth == 1 && RoomSizeHeight == 1)
             {
-                _obstacleCheckTimer = ObstacleCheckInterval;
+                _obstacleCheckTimer -= Time.deltaTime;
+                if (_obstacleCheckTimer <= 0f)
+                {
+                    _obstacleCheckTimer = ObstacleCheckInterval;
 
-                // Cheap local-space bounds check — no FindObjectsByType
-                Vector3 local = transform.InverseTransformPoint(NewMovement.Instance.transform.position);
-                bool playerIsHere = getObjectInsideRoom(NewMovement.Instance.transform.position) == this;
+                    // Cheap local-space bounds check — no FindObjectsByType
+                    Vector3 local = transform.InverseTransformPoint(NewMovement.Instance.transform.position);
+                    bool playerIsHere = getObjectInsideRoom(NewMovement.Instance.transform.position) == this;
 
-                foreach (GameObject obs in boundaryObstacles)
-                    if (obs != null && obs.activeSelf != playerIsHere)
-                        obs.SetActive(playerIsHere);
+                    foreach (GameObject obs in boundaryObstacles)
+                        if (obs != null && obs.activeSelf != playerIsHere)
+                            obs.SetActive(playerIsHere);
+                }
             }
+            
         }
 
         foreach (var zone in GetComponentsInChildren<DeathZone>())
@@ -717,7 +721,7 @@ public class Room : MonoBehaviour
 
     bool isFlying(EnemyType type)
     {
-        List<EnemyType> flyers = new List<EnemyType>() { EnemyType.Drone, EnemyType.Mindflayer, EnemyType.Providence };
+        List<EnemyType> flyers = new List<EnemyType>() { EnemyType.Drone, EnemyType.Mindflayer, EnemyType.Providence, EnemyType.Virtue };
         return flyers.Contains(type);
     }
 

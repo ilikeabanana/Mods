@@ -110,13 +110,40 @@ public class Gambler : MonoBehaviour
         useCount++;
         float explosionChance = EXPLOSION_BASE_CHANCE + EXPLOSION_CHANCE_RAMP * (useCount - 1);
 
-        if (RogueDifficultyManager.GambleItemRNG.NextDouble() <= explosionChance)
+        // For explosion: we want luck to make it LESS likely, so we invert luck effect
+        // by passing luckaffected with a negated context — easiest: pass luckaffected=false
+        // and manually do the "bad luck" roll (picks highest value = harder to trigger)
+        float explosionRoll = Plugin.getChanceVal(RogueDifficultyManager.GambleItemRNG, luckaffected: false);
+        int luck = Plugin.luck; // adjust to however you access luck
+        if (luck >= 0)
+        {
+            for (int i = 0; i < luck; i++)
+            {
+                float candidate = (float)RogueDifficultyManager.GambleItemRNG.NextDouble();
+                if (candidate > explosionRoll) explosionRoll = candidate; // take HIGHEST = harder to explode
+            }
+        }
+        else
+        {
+            for (int i = 0; i < -luck; i++)
+            {
+                float candidate = (float)RogueDifficultyManager.GambleItemRNG.NextDouble();
+                if (candidate < explosionRoll) explosionRoll = candidate; // negative luck = easier to explode
+            }
+        }
+
+        if (explosionRoll <= explosionChance)
         {
             willExplode = true;
         }
-        else if (RogueDifficultyManager.GambleItemRNG.NextDouble() <= 0.35f)
+        else
         {
-            item = Plugin.GiveRandomItem(RogueDifficultyManager.GambleItemRNG);
+            // Item win: luck-affected normally (lower roll = more likely to win)
+            float itemRoll = Plugin.getChanceVal(luckaffected: true);
+            if (itemRoll <= 0.35f)
+            {
+                item = Plugin.GiveRandomItem(RogueDifficultyManager.GambleItemRNG);
+            }
         }
 
         foreach (var s in slots)
