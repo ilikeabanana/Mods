@@ -27,13 +27,15 @@ namespace Ultrarogue.Characters
             _weapons = null;
             _passives = null;
             _items = null;
-            hasReset = false;
+            
 
             pC.globalDamageMult = CreateRandomChange(0.5, 1.5);
             pC.moveSpeed = CreateRandomChange(0.5, 2);
             pC.maxHealth = CreateRandomChange(0.5, 2);
             pC.attackSpeed = CreateRandomChange(0.5, 2);
             pC.cooldownRed = CreateRandomChange(0.25, 2);
+
+            hasReset = false;
         }
         PlayerChange pC = new PlayerChange();
         bool hasReset = false;

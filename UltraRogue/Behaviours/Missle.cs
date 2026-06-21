@@ -59,13 +59,10 @@ public class Missle : MonoBehaviour
         Vector3 point = target.weakPoint == null ? target.transform.position : target.weakPoint.transform.position;
         Vector3 dir = (point - transform.position).normalized;
 
-        if (rb.velocity.sqrMagnitude > 0.01f)
-            transform.rotation = Quaternion.LookRotation(rb.velocity.normalized) * Quaternion.Euler(90f, 0f, 0f);
+        transform.up = -dir;
 
         Vector3 newVelocity = Vector3.Lerp(rb.velocity, dir * speed, turnSpeed * Time.fixedDeltaTime);
         rb.velocity = newVelocity;
-
-        transform.forward = rb.velocity.normalized;
     }
 
     void OnTriggerEnter(Collider col)

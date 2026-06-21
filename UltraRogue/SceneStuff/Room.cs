@@ -444,15 +444,11 @@ public class Room : MonoBehaviour
     {
         Vector2Int grid = RoomGenerator.Instance.WorldToGrid(position);
         Room[] rooms = FindObjectsByType<Room>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
-
+        Vector2Int pos = RoomGenerator.Instance.WorldToGrid(position);
         foreach (Room room in rooms)
         {
-            // Accommodate multi-tile grid occupancy checks
-            if (grid.x >= room.position.x && grid.x < room.position.x + room.RoomSizeWidth &&
-                grid.y >= room.position.y && grid.y < room.position.y + room.RoomSizeHeight)
-            {
+            if (room.position == pos)
                 return room;
-            }
         }
         return null;
     }

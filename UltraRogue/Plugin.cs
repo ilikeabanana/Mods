@@ -237,8 +237,16 @@ namespace Ultrarogue
             return new string(chars).ToUpper();
         }
 
-        public static void Reset()
+        public static void Reset(bool death = false)
         {
+            if (death)
+            {
+                foreach (var ch in characters)
+                {
+                    ch.Update(false);
+                }
+                SelectedChar = null;
+            }
             foreach (var tiem in items)
             {
                 tiem.Key.OnGotten(0, false);
@@ -300,7 +308,7 @@ namespace Ultrarogue
         }
         IEnumerator SpawnThings()
         {
-            yield return new WaitForSeconds(2f); // idk why 24 but lmao
+            yield return new WaitForSeconds(0.2f); // idk why 24 but lmao
             Logger.LogInfo($"I have reset difficulty to {CurrentDifficulty}");
             yield return null;
             AsyncOperationHandle<GameObject> RogueButtonPref = Addressables.LoadAssetAsync<GameObject>("Assets/Modding/RogueMode/RogueMode.prefab");
@@ -382,8 +390,10 @@ namespace Ultrarogue
             CurrentDifficulty = 1;
             if (userHasIncomaptibleMods())
             {
-                Logger.LogInfo("AAAAAAAAA INCOMPATIBLE MOD DETECTEDDD");
-                men.transform.Find("IncomModsMessage").gameObject.SetActive(true);
+                // SpawnerArmWarning
+                AsyncOperationHandle<GameObject> Warning = Addressables.LoadAssetAsync<GameObject>("Assets/Modding/RogueMode/SpawnerArmWarning.prefab");
+                yield return new WaitUntil(() => Warning.IsDone);
+                GameObject Warn = Instantiate(Warning.Result, parentMen.transform);
             }
         }
 
@@ -737,7 +747,7 @@ namespace Ultrarogue
 
         public static Rarity getRarityBasedOnDropTable(DropTable table, System.Random rng)
         {
-            float chance = (float)getChanceVal(rng);
+            float chance = (float)getChanceVal(rng, lowerIsBetter: false);
             float cumulative = 0f;
 
             foreach (var entry in table.weights)
@@ -1010,9 +1020,11 @@ namespace Ultrarogue
             {"drill", 0.25f },
         };
 
-        public static float getChanceVal(System.Random rng = null, bool luckaffected = true)
+        public static float getChanceVal(
+     System.Random rng = null,
+     bool luckaffected = true,
+     bool lowerIsBetter = true)
         {
-
             float value = Random.value;
             if (rng != null)
                 value = (float)rng.NextDouble();
@@ -1024,24 +1036,42 @@ namespace Ultrarogue
                     for (int i = 0; i < luck; i++)
                     {
                         float luckedVal = Random.value;
-                        if (luckedVal < value) value = luckedVal;
+
+                        if (lowerIsBetter)
+                        {
+                            if (luckedVal < value)
+                                value = luckedVal;
+                        }
+                        else
+                        {
+                            if (luckedVal > value)
+                                value = luckedVal;
+                        }
                     }
                 }
                 else
-                { // negative luck, dunno if ever used but :P
+                {
+                    // Negative luck does the opposite
                     for (int i = 0; i < -luck; i++)
                     {
                         float luckedVal = Random.value;
-                        if (luckedVal >= value) value = luckedVal;
+
+                        if (lowerIsBetter)
+                        {
+                            if (luckedVal > value)
+                                value = luckedVal;
+                        }
+                        else
+                        {
+                            if (luckedVal < value)
+                                value = luckedVal;
+                        }
                     }
                 }
             }
-            
-
 
             return value;
         }
-
         public static bool canExecute(float chance, string hitter, bool luckaffected = true)
         {
             float value = getChanceVal(luckaffected: luckaffected);
@@ -1400,7 +1430,7 @@ namespace Ultrarogue
             {
                 __instance.deathSequence.gameObject.SetActive(false);
                 RogueFinalRank.Instance.GameOver();
-                Plugin.Reset();
+                Plugin.Reset(true);
             }
 
         }
