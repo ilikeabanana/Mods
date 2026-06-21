@@ -139,12 +139,31 @@ namespace Ultrarogue.Items
                 timer = 0;
             }
         }
+        bool attempted = false;
+        GameObject missleModel = null;
+        GameObject getMissleModel()
+        {
+            if (!attempted)
+            {
+                attempted = true;
+                missleModel = Addressables.LoadAssetAsync<GameObject>("Assets/Modding/RogueMode/AuraProjectile.prefab").WaitForCompletion();
+            }
 
+            if (missleModel != null)
+            {
+                GameObject missle = GameObject.Instantiate(missleModel);
+                return missle;
+            }
+
+            // fallback
+            GameObject fallback = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            fallback.GetComponent<Collider>().isTrigger = true;
+            fallback.AddComponent<Rigidbody>().useGravity = false;
+            return fallback;
+        }
         public void Launch(float damage)
         {
-            GameObject missle = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            missle.GetComponent<Collider>().isTrigger = true;
-            missle.AddComponent<Rigidbody>().useGravity = false;
+            GameObject missle = getMissleModel();
             Missle proj = missle.AddComponent<Missle>();
             proj.damage = damage;
             missle.transform.position = CameraController.Instance.GetDefaultPos() + Vector3.up * 3.5f;
