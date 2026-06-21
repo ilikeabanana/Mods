@@ -308,7 +308,7 @@ namespace Ultrarogue
         }
         IEnumerator SpawnThings()
         {
-            yield return new WaitForSeconds(0.2f); // idk why 24 but lmao
+            yield return new WaitForSeconds(1f); // idk why 24 but lmao
             Logger.LogInfo($"I have reset difficulty to {CurrentDifficulty}");
             yield return null;
             AsyncOperationHandle<GameObject> RogueButtonPref = Addressables.LoadAssetAsync<GameObject>("Assets/Modding/RogueMode/RogueMode.prefab");
@@ -726,7 +726,8 @@ namespace Ultrarogue
                 (
                     x.WeaponRequirements.Count == 0 ||
                     x.WeaponRequirements.Any(req =>
-                        weapons.Any(w => w.weapon == req)
+                        weapons.Any(w => w.weapon == req) ||
+                        items.Keys.Any(i => i.WeaponProvisions.Contains(req))
                     )
                 ) && (
                     !x.CanOnlyHaveOne ||

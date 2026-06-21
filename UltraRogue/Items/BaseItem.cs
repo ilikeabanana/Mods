@@ -25,6 +25,7 @@ namespace Ultrarogue.Items
         public virtual Rarity Rarity => Rarity.Common;
         public virtual List<ItemTag> itemTags => new List<ItemTag>();
         public virtual List<Plugin.Weapon> WeaponRequirements => new List<Plugin.Weapon>();
+        public virtual List<Plugin.Weapon> WeaponProvisions => new List<Plugin.Weapon>();
         public virtual void OnGotten(int count, bool firstPickup)
         {
 

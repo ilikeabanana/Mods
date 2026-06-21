@@ -180,6 +180,7 @@ namespace Ultrarogue.Items
         public override string itemDescription => "Every 5 seconds fire a purple saw that deals 150% (+150% per stack) damage and stays until the room is cleared.";
 
         public override Rarity Rarity => Rarity.Legendary;
+        public override List<Plugin.Weapon> WeaponProvisions => new List<Plugin.Weapon>() { Plugin.Weapon.Nailgun };
         float t = 0;
         bool wasPreviouslyFighting = false;
 
