@@ -498,8 +498,11 @@ public class RogueDifficultyManager : MonoBehaviour
             case EnemyType.Mindflayer:
             case EnemyType.Stalker:
                 return floor >= 3;
+            case EnemyType.Idol:
             case EnemyType.Ferryman:
                 return floor >= 5;
+            case EnemyType.Deathcatcher:
+                return floor >= 5 && floor <= 12;
             case EnemyType.Gabriel:
             case EnemyType.Power:
                 return floor >= 6;

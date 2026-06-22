@@ -165,6 +165,7 @@ namespace Ultrarogue.Items
         {
             GameObject missle = getMissleModel();
             Missle proj = missle.AddComponent<Missle>();
+            proj.speed *= 3.5f;
             proj.damage = damage;
             missle.transform.position = CameraController.Instance.GetDefaultPos() + Vector3.up * 3.5f;
         }

@@ -160,7 +160,7 @@ namespace Ultrarogue.Items
         public override Rarity Rarity => Rarity.Alchemy;
         Change allStats = new Change();
         const float decayRate = 0.05f;
-        const float decayInterval = 0.35f;
+        const float decayInterval = 0.85f;
         float nextDecayTime = 0f;
         public override void OnStart()
         { 

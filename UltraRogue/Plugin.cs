@@ -1390,7 +1390,7 @@ namespace Ultrarogue
 
         [HarmonyPatch(typeof(NewMovement), nameof(NewMovement.GetHurt))]
         [HarmonyPrefix]
-        public static void DamageLess(ref int damage, ref bool ignoreInvincibility, NewMovement __instance)
+        public static void DamageLess(ref int damage, ref bool ignoreInvincibility, ref bool instablack, ref bool invincible, NewMovement __instance)
         {
             if (!Plugin.isInRogueScene()) return;
             if (damage > 0)
@@ -1403,6 +1403,9 @@ namespace Ultrarogue
             if (RogueDifficultyManager.Instance.Gold <= 0)
             {
                 damage = 999;
+                instablack = true;
+                ignoreInvincibility = true;
+                invincible = false;
             }
         }
         [HarmonyPatch(typeof(NewMovement), nameof(NewMovement.ForceAntiHP))]
