@@ -26,6 +26,17 @@ namespace Ultrarogue.Items
             dmg.postMultiplier = count + 1;
             HP.postMultiplier = amountToThing;
         }
+
+        public override void OnGotten(int count, bool firstPickup)
+        {
+            base.OnGotten(count, firstPickup);
+        }
+        IEnumerator ensureCorrectHP()
+        {
+            yield return new WaitForEndOfFrame();
+            NewMovement.Instance.hp = Plugin.MaxHealth;
+        }
+
         public override void OnRemoval()
         {
             dmg.postMultiplier = 1;
@@ -49,6 +60,12 @@ namespace Ultrarogue.Items
         public static void Reset()
         {
             I.amazingChange.percentage = Plugin.GetItemCount(I.ItemName);
+        }
+        public override void OnUpdate(int count)
+        {
+            float cap = count;
+            if (amazingChange.percentage < cap)
+                amazingChange.percentage = Mathf.Min(cap, amazingChange.percentage + (0.005f * count * Time.deltaTime));
         }
 
         public override void OnStart()
@@ -117,8 +134,9 @@ namespace Ultrarogue.Items
             do { nerfIndex = UnityEngine.Random.Range(0, StatCount); }
             while (nerfIndex == buffIndex);
 
-            statSlots[buffIndex].postMultiplier = 1f + (1f * count);
-            statSlots[nerfIndex].postMultiplier = Mathf.Pow(0.5f, count);
+            // Buff is now 2x per stack, nerf is only 0.6x (was 0.5x) — always net positive
+            statSlots[buffIndex].postMultiplier = 1f + (1f * count);       // same
+            statSlots[nerfIndex].postMultiplier = Mathf.Pow(0.6f, count); // was 0.5f
         }
 
         public override void OnRemoval()
@@ -159,8 +177,8 @@ namespace Ultrarogue.Items
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage, ItemTag.Utility };
         public override Rarity Rarity => Rarity.Alchemy;
         Change allStats = new Change();
-        const float decayRate = 0.05f;
-        const float decayInterval = 0.85f;
+        const float decayRate = 0.02f;     // was 0.05f — slower decay
+        const float decayInterval = 1.5f;  // was 0.85f — longer between ticks
         float nextDecayTime = 0f;
         public override void OnStart()
         { 
@@ -196,7 +214,7 @@ namespace Ultrarogue.Items
     {
         public override Material materialOverride => AssetsManager.getAlchemy();
         public override string ItemName => "Gluttony";
-        public override string itemDescription => "Increase damage by 10% for every item, but reduce movement speed for by 5% every item.";
+        public override string itemDescription => "Increase damage by 10% for every item, but reduce movement speed for by 2% every item.";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage, ItemTag.Utility };
         public override Rarity Rarity => Rarity.Alchemy;
         public Change everyOtherChange = new Change();
@@ -209,7 +227,10 @@ namespace Ultrarogue.Items
         {
             int itemCount = Plugin.items.Sum((x) => x.Value);
             everyOtherChange.percentage = itemCount * (0.10f * count);
-            movementChange.percentage = -1 * (itemCount * (0.05f * count));
+
+            // Cap the movement penalty at -40% regardless of item count
+            float rawPenalty = itemCount * (0.02f * count); // was 0.05f
+            movementChange.percentage = -1 * Mathf.Min(rawPenalty, 0.40f);
         }
     }
     //public class Null : BaseItem

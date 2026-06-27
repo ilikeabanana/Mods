@@ -265,7 +265,7 @@ public class AssetsManager
         return type;
     }
     // ── Weapon lookup (unchanged) ─────────────────────────────────────────────
-    public static Sprite prefToDescriptor(string pref, bool alternate)
+    public static Sprite prefToSprite(string pref, bool alternate)
     {
         if (!IsReady)
         {
@@ -323,6 +323,61 @@ public class AssetsManager
 
         Plugin.Logger.LogWarning($"prefToDescriptor: no match for pref='{pref}'");
         return descriptors.Find(x => x.weaponName == "UNKNOWN").icon;
+    }
+    
+    public static WeaponDescriptor prefToDescriptor(string pref, bool alternate)
+    {
+        if (!IsReady)
+        {
+            Plugin.Logger.LogWarning(
+                $"prefToDescriptor called before assets finished loading! pref={pref}");
+            return null;
+        }
+
+        IEnumerable<WeaponDescriptor> pool;
+        char variant = pref.Last();
+
+        if (pref.Contains("rev"))
+        {
+            pool = descriptors.Where(x => x.weaponName.StartsWith(
+                !alternate ? "Revolver" : "Alternative Revolver"));
+            if (variant == '0') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Pierce"));
+            if (variant == '1') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Twirl"));
+            if (variant == '2') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Ricochet"));
+        }
+        else if (pref.Contains("sho"))
+        {
+            pool = descriptors.Where(x => x.weaponName.StartsWith(
+                !alternate ? "Shotgun" : "Hammer"));
+            if (variant == '0') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Grenade"));
+            if (variant == '1') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Pump"));
+            if (variant == '2') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Saw"));
+        }
+        else if (pref.Contains("nai"))
+        {
+            pool = descriptors.Where(x => x.weaponName.StartsWith(
+                !alternate ? "Nailgun" : "Sawblade Launcher"));
+            if (variant == '0') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Magnet"));
+            if (variant == '1') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Overheat"));
+            if (variant == '2') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Jumpstart"));
+        }
+        else if (pref.Contains("rai"))
+        {
+            pool = descriptors.Where(x => x.weaponName.StartsWith("Railcannon"));
+            if (variant == '0') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Electric"));
+            if (variant == '1') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Harpoon"));
+            if (variant == '2') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Malicious"));
+        }
+        else if (pref.Contains("rock"))
+        {
+            pool = descriptors.Where(x => x.weaponName.StartsWith("Rocket Launcher"));
+            if (variant == '0') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Freeze"));
+            if (variant == '1') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Cannonball"));
+            if (variant == '2') return pool.FirstOrDefault(x => x.weaponName.EndsWith("Napalm"));
+        }
+
+        Plugin.Logger.LogWarning($"prefToDescriptor: no match for pref='{pref}'");
+        return descriptors.Find(x => x.weaponName == "UNKNOWN");
     }
 
 

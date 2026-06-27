@@ -192,7 +192,7 @@ public class ShopItem : MonoBehaviour
                 {
                     purchased = true;
                     mgr.Gold -= cost;
-                    HudMessageReceiver.Instance?.SendHudMessage($"Bought: {chosenWeapon}  (-{cost} gold)");
+                    HudMessageReceiver.Instance?.SendHudMessage($"Bought: {chosenWeapon.WeaponName}  (-{cost} gold)");
                     return true;
                 }
                 else if (messageCooldown <= 0f)

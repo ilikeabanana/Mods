@@ -15,7 +15,9 @@ namespace Ultrarogue.Characters
             new AWeapon(Plugin.Weapon.Shotgun, Plugin.Variant.Blue, false),
             new AWeapon(Plugin.Weapon.Arm, Plugin.Variant.Green, false)
         };
-
+        public override string Detail => "Start with the piercer, shotgun and knuckle blaster. Using the revolver, holding down your primary fire will allow you to fire " +
+            "triple shots. The time between said shots reduces with attackspeed." +
+            " You can heal by either gaining healing items OR clearing rooms.";
         public override List<Passive> Passives => new List<Passive>() { Passive.TripleShot };
 
         Change HPChange = new Change(addition: 300);

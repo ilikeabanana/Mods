@@ -10,6 +10,10 @@ namespace Ultrarogue.Characters
     {
         public override string Name => "Greed Machine";
         public override string Description => "Start with the marksman and Feedbacker. <color=yellow>YOUR GOLD IS YOUR HEALTH, YOUR MARKSMAN HAS INFINITE COINS BUT COSTS GOLD</color>";
+
+        public override string Detail => "Start with the marksman and feedbacker. You can use the marksman infinitely, this however costs gold. " +
+            "Gold is related to HP now, damage won't take any health away, but will take away gold. Falling below 0 gold kills you <color=red>INSTANTLY</color>";
+        
         public override List<AWeapon> StartingWeapons => new List<AWeapon>()
         {
             new AWeapon(Plugin.Weapon.Revolver, Plugin.Variant.Red),

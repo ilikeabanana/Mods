@@ -14,7 +14,10 @@ namespace Ultrarogue.Characters
 
         public override string Name => "Scavanger";
         public override string Description => "Start with 2 random weapons, 1 random item, and 1 random passive. <color=red>ALL YOUR STATS ARE RANDOMIZED</color>";
-
+        public override string Detail =>
+            $"Weapons gotten:\n{string.Join("", _weapons.Select(x => $" - {x.WeaponName}\n"))}" +
+            $"\nItem gotten: {_items[0]}\n\n" +
+            $"Passive gotten: {_passives[0]}";
         public override List<AWeapon> StartingWeapons => _weapons ??= RollWeapons();
         public override List<string> StartingItems => _items ??= RollItems();
         public override List<Passive> Passives => _passives ??= RollPassives();

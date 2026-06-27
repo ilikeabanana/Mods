@@ -9,7 +9,9 @@ namespace Ultrarogue.Characters
     {
         public override string Name => "Filth";
         public override string Description => "Start with NOTHING, have 5 HP, take only 1 damage per hit. Dashing damages enemies. Heal when picking up items.";
-
+        public override string Detail => "You start with NOTHING, and can gain NO weapon. Only items spawn. You start with 5 hp and only take 1 damage per hit." +
+            " You can only heal by picking up items, any other healing method is not possible. Dashing through enemies damages them by 2, damage increases " +
+            "with movement speed. Sliding damages enemies by 1. Attack speed gets converted into movement speed, cooldown reduction gets used on your stamina recharge speed.";
         public override List<AWeapon> StartingWeapons => new List<AWeapon>();
         public override List<Passive> Passives => new List<Passive>() { Passive.HeadBonk };
         public override List<string> StartingItems => new List<string>();

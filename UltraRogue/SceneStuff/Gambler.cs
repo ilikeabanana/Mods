@@ -25,6 +25,10 @@ public class Gambler : MonoBehaviour
     public Texture2D coinText;
     public Texture2D keyText;
     List<GameObject> slots = new List<GameObject>();
+
+    const float ITEM_CHANCE = 0.35f;
+    const float COIN_CHANCE = 0.20f;
+    const float KEY_CHANCE = 0.05f;
     public void Gamble()
     {
         if (exploded) return;
@@ -70,6 +74,8 @@ public class Gambler : MonoBehaviour
         }
         skullText = Slot1.transform.Find("Slots").GetComponentInChildren<RawImage>().mainTexture;
         texts.Add((Texture2D)skullText);
+        texts.Add(coinText);
+        texts.Add(keyText);
 
 
         foreach (var s in slots)
@@ -105,6 +111,8 @@ public class Gambler : MonoBehaviour
     {
         BaseItem item = null;
         bool willExplode = false;
+        bool winCoins = false;
+        bool winKeys = false;
 
         // Check explosion first
         useCount++;
@@ -138,11 +146,19 @@ public class Gambler : MonoBehaviour
         }
         else
         {
-            // Item win: luck-affected normally (lower roll = more likely to win)
-            float itemRoll = Plugin.getChanceVal(luckaffected: true);
-            if (itemRoll <= 0.35f)
+            float rewardRoll = Plugin.getChanceVal(luckaffected: true);
+
+            if (rewardRoll <= ITEM_CHANCE)
             {
                 item = Plugin.GiveRandomItem(RogueDifficultyManager.GambleItemRNG);
+            }
+            else if (rewardRoll <= ITEM_CHANCE + COIN_CHANCE)
+            {
+                winCoins = true;
+            }
+            else if (rewardRoll <= ITEM_CHANCE + COIN_CHANCE + KEY_CHANCE)
+            {
+                winKeys = true;
             }
         }
 
@@ -153,11 +169,25 @@ public class Gambler : MonoBehaviour
             AssignImage(4, ss, texts[Random.Range(0, texts.Count)]);
 
             if (willExplode)
-                AssignImage(3, ss, (Texture2D)skullText); // all skulls = boom
+            {
+                AssignImage(3, ss, (Texture2D)skullText);
+            }
             else if (item != null)
-                AssignImage(3, ss, item.ItemTexture);     // item won
+            {
+                AssignImage(3, ss, item.ItemTexture);
+            }
+            else if (winCoins)
+            {
+                AssignImage(3, ss, coinText);
+            }
+            else if (winKeys)
+            {
+                AssignImage(3, ss, keyText);
+            }
             else
-                AssignImage(3, ss, texts[Random.Range(0, texts.Count)]); // loss
+            {
+                AssignImage(3, ss, texts[Random.Range(0, texts.Count)]);
+            }
         }
 
         float snapTime = 0.35f;
@@ -223,7 +253,17 @@ public class Gambler : MonoBehaviour
         else if (item != null)
         {
             ItemPickup.CreatePickup(item, itemPlacementThing, 8);
-            HudMessageReceiver.Instance.SendHudMessage("YOU WIN!");
+            HudMessageReceiver.Instance.SendHudMessage("You won an item!");
+        }
+        else if (winCoins)
+        {
+            RogueDifficultyManager.Instance.Gold++;
+            HudMessageReceiver.Instance.SendHudMessage("You won a coin!");
+        }
+        else if (winKeys)
+        {
+            RogueDifficultyManager.Instance.Keys++;
+            HudMessageReceiver.Instance.SendHudMessage("You won a key!");
         }
         else
         {

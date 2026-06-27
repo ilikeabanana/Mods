@@ -16,7 +16,7 @@ namespace Ultrarogue.Items
     public class SoldierChip : BaseItem
     {
         public override string ItemName => "Soldier Chip";
-        public override string itemDescription => "Increase firerate by 15%";
+        public override string itemDescription => "Increase firerate by 20%";
         Change atkSpeedChange;
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
 
@@ -28,7 +28,7 @@ namespace Ultrarogue.Items
 
         public override void OnUpdate(int count)
         {
-            atkSpeedChange.percentage = 0.15f * count;
+            atkSpeedChange.percentage = 0.20f * count;
         }
 
         public override void OnRemoval()
@@ -104,7 +104,7 @@ namespace Ultrarogue.Items
     {
         static BiggerShells Instance { get; set; }
         public override string ItemName => "Bigger Shells";
-        public override string itemDescription => "Shotgun damage +10%, projectiles are 7% larger";
+        public override string itemDescription => "Shotgun damage +30%, projectiles are 12% larger";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         public override List<Plugin.Weapon> WeaponRequirements => new List<Plugin.Weapon>() { Plugin.Weapon.Shotgun };
         DamageChange damageChange;
@@ -117,7 +117,7 @@ namespace Ultrarogue.Items
 
         public override void OnUpdate(int count)
         {
-            damageChange.damageChange.percentage = 0.10f * (float)count;
+            damageChange.damageChange.percentage = 0.30f * (float)count;
         }
 
         public override void OnRemoval()
@@ -131,7 +131,7 @@ namespace Ultrarogue.Items
             if (!Plugin.isInRogueScene()) return;
             if (Plugin.GetItemCount(Instance) > 0 && __instance.playerBullet)
             {
-                __instance.transform.localScale *= 1 + (0.07f * Plugin.GetItemCount(Instance));
+                __instance.transform.localScale *= 1 + (0.12f * Plugin.GetItemCount(Instance));
             }
         }
     }
@@ -209,7 +209,7 @@ namespace Ultrarogue.Items
     public class Gasoline : BaseItem
     {
         public override string ItemName => "Gasoline";
-        public override string itemDescription => "On kill, create 10 (+2 per stack) gasoline projectiles";
+        public override string itemDescription => "On kill, create 10 (+5 per stack) gasoline projectiles";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
 
         public override void OnStart()
@@ -218,7 +218,7 @@ namespace Ultrarogue.Items
             {
                 int count = Plugin.GetItemCount(this);
                 if (count <= 0) return;
-                for (int i = 0; i < (2 * count) + 10; i++)
+                for (int i = 0; i < (5 * count) + 10; i++)
                 {
                     StartCoroutine(SpawnNapalm(eid.transform));
                 }
@@ -291,7 +291,7 @@ namespace Ultrarogue.Items
     public class KnuckleDuster : BaseItem
     {
         public override string ItemName => "Knuckle Duster";
-        public override string itemDescription => "Arm damage +15%";
+        public override string itemDescription => "Arm damage +50%";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         DamageChange damageChange;
         public override List<Plugin.Weapon> WeaponRequirements => new List<Plugin.Weapon>() { Plugin.Weapon.Arm };
@@ -303,7 +303,7 @@ namespace Ultrarogue.Items
 
         public override void OnUpdate(int count)
         {
-            damageChange.damageChange.percentage = 0.15f * count;
+            damageChange.damageChange.percentage = 0.5f * count;
         }
 
         public override void OnRemoval()
@@ -315,7 +315,7 @@ namespace Ultrarogue.Items
     public class SpeedLoader : BaseItem
     {
         public override string ItemName => "Heavy Loader";
-        public override string itemDescription => "Revolver damage +12%";
+        public override string itemDescription => "Revolver damage +35%";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         DamageChange damageChange;
         public override List<Plugin.Weapon> WeaponRequirements => new List<Plugin.Weapon>() { Plugin.Weapon.Revolver };
@@ -327,7 +327,7 @@ namespace Ultrarogue.Items
 
         public override void OnUpdate(int count)
         {
-            damageChange.damageChange.percentage = 0.12f * count;
+            damageChange.damageChange.percentage = 0.35f * count;
         }
 
         public override void OnRemoval()
@@ -339,7 +339,7 @@ namespace Ultrarogue.Items
     public class RunningShoes : BaseItem
     {
         public override string ItemName => "Running Shoes";
-        public override string itemDescription => "Move speed +8%";
+        public override string itemDescription => "Move speed +20%";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Utility };
         Change moveChange;
 
@@ -351,7 +351,7 @@ namespace Ultrarogue.Items
 
         public override void OnUpdate(int count)
         {
-            moveChange.percentage = 0.08f * count;
+            moveChange.percentage = 0.2f * count;
         }
 
         public override void OnRemoval()
@@ -387,7 +387,7 @@ namespace Ultrarogue.Items
     public class LooseNails : BaseItem
     {
         public override string ItemName => "Loose Nails";
-        public override string itemDescription => "Nailgun damage +10%";
+        public override string itemDescription => "Nailgun damage +25%";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         DamageChange damageChange;
         public override List<Plugin.Weapon> WeaponRequirements => new List<Plugin.Weapon>() { Plugin.Weapon.Nailgun };
@@ -399,7 +399,7 @@ namespace Ultrarogue.Items
 
         public override void OnUpdate(int count)
         {
-            damageChange.damageChange.percentage = 0.10f * count;
+            damageChange.damageChange.percentage = 0.25f * count;
         }
 
         public override void OnRemoval()
@@ -411,7 +411,7 @@ namespace Ultrarogue.Items
     public class PogoStick : BaseItem
     {
         public override string ItemName => "Pogo Stick";
-        public override string itemDescription => "Jump Height +15% and slam damage +50%";
+        public override string itemDescription => "Jump Height +5% and slam damage +50%";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Utility };
         Change jumpChange;
 
@@ -433,7 +433,7 @@ namespace Ultrarogue.Items
 
         public override void OnUpdate(int count)
         {
-            jumpChange.percentage = 0.15f * count;
+            jumpChange.percentage = 0.05f * count;
         }
 
         public override void OnRemoval()
@@ -445,7 +445,7 @@ namespace Ultrarogue.Items
     public class IronSights : BaseItem
     {
         public override string ItemName => "Iron Sights";
-        public override string itemDescription => "+6% damage per stack";
+        public override string itemDescription => "+12% damage per stack";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         Change dmgChange;
 
@@ -457,7 +457,7 @@ namespace Ultrarogue.Items
 
         public override void OnUpdate(int count)
         {
-            dmgChange.percentage = 0.06f * count;
+            dmgChange.percentage = 0.12f * count;
         }
 
         public override void OnRemoval()
@@ -469,7 +469,7 @@ namespace Ultrarogue.Items
     public class GuttertankHand : BaseItem
     {
         public override string ItemName => "Gutter tank Hand";
-        public override string itemDescription => "Rocket Launcher damage +12%";
+        public override string itemDescription => "Rocket Launcher damage +22%";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         DamageChange damageChange;
         public override List<Plugin.Weapon> WeaponRequirements => new List<Plugin.Weapon>() { Plugin.Weapon.RocketLauncher };
@@ -481,7 +481,7 @@ namespace Ultrarogue.Items
 
         public override void OnUpdate(int count)
         {
-            damageChange.damageChange.percentage = 0.12f * count;
+            damageChange.damageChange.percentage = 0.22f * count;
         }
 
         public override void OnRemoval()

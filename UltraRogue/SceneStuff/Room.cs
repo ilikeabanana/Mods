@@ -326,6 +326,47 @@ public class Room : MonoBehaviour
                 spawnPlan.Add(new PlannedSpawn(enemyType, buffs));
         }
 
+        // Hard enemy cap: trim overflow entries, then redistribute their credit value
+        // as bonus radiance buffs on the enemies that *do* spawn.
+        const int HardEnemyCap = 40;
+        if (spawnPlan.Count > HardEnemyCap)
+        {
+            // Shuffle so the trim is random rather than always cutting the last type added.
+            for (int i = spawnPlan.Count - 1; i > 0; i--)
+            {
+                int j = enemyRando.Next(0, i + 1);
+                (spawnPlan[i], spawnPlan[j]) = (spawnPlan[j], spawnPlan[i]);
+            }
+
+            // Tally the credit value of every enemy that won't fit.
+            int overflowBudget = 0;
+            for (int i = HardEnemyCap; i < spawnPlan.Count; i++)
+                overflowBudget += RogueDifficultyManager.Instance.GetCost(spawnPlan[i].type);
+
+            spawnPlan.RemoveRange(HardEnemyCap, spawnPlan.Count - HardEnemyCap);
+
+            // Convert the overflow budget into extra radiance buffs spread randomly
+            // across the capped plan. One buff per average-enemy-cost keeps scaling
+            // proportional — a room full of cheap enemies gets more buffs, an expensive
+            // one gets fewer but each buff matters more.
+            if (spawnPlan.Count > 0 && overflowBudget > 0)
+            {
+                int totalCost = 0;
+                foreach (var sp in spawnPlan)
+                    totalCost += Mathf.Max(1, RogueDifficultyManager.Instance.GetCost(sp.type));
+                float avgCost = (float)totalCost / spawnPlan.Count;
+                int bonusBuffs = Mathf.Max(1, Mathf.RoundToInt(overflowBudget / avgCost));
+
+                Plugin.Logger.LogInfo($"[Room] Enemy cap hit — {overflowBudget} overflow credits → {bonusBuffs} bonus radiance buff(s) across {spawnPlan.Count} enemies.");
+
+                for (int b = 0; b < bonusBuffs; b++)
+                {
+                    int idx = enemyRando.Next(0, spawnPlan.Count);
+                    PlannedSpawn old = spawnPlan[idx];
+                    spawnPlan[idx] = new PlannedSpawn(old.type, old.radianceBuffs + 1);
+                }
+            }
+        }
         Plugin.Logger.LogInfo($"[Room] Spawn plan built: {spawnPlan.Count} enemies total.");
 
         bool useWaves = spawnPlan.Count >= WaveThreshold;

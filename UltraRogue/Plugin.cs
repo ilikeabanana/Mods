@@ -390,6 +390,7 @@ namespace Ultrarogue
             CurrentDifficulty = 1;
             if (userHasIncomaptibleMods())
             {
+                yield break;
                 // SpawnerArmWarning
                 AsyncOperationHandle<GameObject> Warning = Addressables.LoadAssetAsync<GameObject>("Assets/Modding/RogueMode/SpawnerArmWarning.prefab");
                 yield return new WaitUntil(() => Warning.IsDone);
@@ -1234,6 +1235,28 @@ namespace Ultrarogue
         }
 
 
+        public string WeaponName
+        {
+            get
+            {
+                WeaponDescriptor desc = AssetsManager.prefToDescriptor(this.ToString(), Alternate);
+                string name = desc.weaponName;
+                if(name == "UNKNOWN")
+                {
+                    switch (variant)
+                    {
+                        case Variant.Blue:
+                            return "Feedbacker";
+                        case Variant.Green:
+                            return "Knuckleblaster";
+                        case Variant.Red:
+                            return "Whiplash";
+                    }
+                }
+
+                return name;
+            }
+        }
 
         public static bool CanBeAlternate(Plugin.Weapon wp)
         {

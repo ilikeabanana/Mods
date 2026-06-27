@@ -21,6 +21,7 @@ namespace Ultrarogue.Items
 
         public virtual string ItemName => "";
         public virtual string itemDescription => string.Empty;
+        public virtual string itemLore => "This is a placeholder. write something sad here :(";
         public virtual string ItemIconName => ItemName.Replace(" ", "_");
         public virtual Rarity Rarity => Rarity.Common;
         public virtual List<ItemTag> itemTags => new List<ItemTag>();

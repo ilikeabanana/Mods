@@ -12,6 +12,7 @@ namespace Ultrarogue.Characters
         public virtual string Name => "idk";
 
         public virtual string Description => "idk";
+        public virtual string Detail => "idk";
 
         public virtual void Update(bool selected)
         {

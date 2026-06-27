@@ -168,7 +168,7 @@ public class RoomGenerator : MonoBehaviour
         while (placed < count && safetyBreak++ < 1000)
         {
             Vector2Int dir = directions[RogueDifficultyManager.RoomRNG.Next(0, directions.Length)];
-            int steps = RogueDifficultyManager.RoomRNG.Next(1, 2);
+            int steps = RogueDifficultyManager.RoomRNG.Next(1, 3);
 
             for (int i = 0; i < steps && placed < count; i++)
             {

@@ -39,7 +39,7 @@ namespace Ultrarogue.SceneStuff
             mat.SetInt("_CullMode", 0); // Off
             mat.EnableKeyword("BILLBOARD");
 
-            Sprite icon = AssetsManager.prefToDescriptor(weapon.ToString(), weapon.Alternate);
+            Sprite icon = AssetsManager.prefToSprite(weapon.ToString(), weapon.Alternate);
             Rect rect = icon.textureRect;
             Texture2D atlas = icon.texture;
 
@@ -89,7 +89,7 @@ namespace Ultrarogue.SceneStuff
             mat.SetInt("_CullMode", 0); // Off
             mat.EnableKeyword("BILLBOARD");
 
-            Sprite icon = AssetsManager.prefToDescriptor(weapon.ToString(), weapon.Alternate);
+            Sprite icon = AssetsManager.prefToSprite(weapon.ToString(), weapon.Alternate);
             Rect rect = icon.textureRect;
             Texture2D atlas = icon.texture;
 
