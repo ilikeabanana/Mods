@@ -36,6 +36,7 @@ public class AssetsManager
     public static GameObject funnyPowerIntroSpawn;
     public static GameObject zapThingy;
     public static GameObject spawnEffect;
+    public static GameObject healingEffect;
     public static AudioClip StalkerWarning;
     public static AudioClip FilthAttack;
 
@@ -70,6 +71,12 @@ public class AssetsManager
             Agony = Addressables
                 .LoadAssetAsync<GameObject>(
                     "Assets/Prefabs/Enemies/SwordsMachine Agony.prefab")
+                .WaitForCompletion();
+
+        if (healingEffect == null)
+            healingEffect = Addressables
+                .LoadAssetAsync<GameObject>(
+                    "Assets/Particles/HealingEffect.prefab")
                 .WaitForCompletion();
 
         if (funnyPowerIntroSpawn == null)

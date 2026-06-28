@@ -324,6 +324,8 @@ namespace Ultrarogue.Items
         // GLOBAL accumulated damage
         private static float accumulatedDamage = 0f;
 
+        const int MaximumBeamAmount = 3;
+
         public override void OnStart()
         {
             new HitEffect(ItemName, (eid, dmg) =>
@@ -333,6 +335,9 @@ namespace Ultrarogue.Items
                 if (count <= 0) return;
                 if (eid.hitter == "fire") return;
                 if (eid.hitter == "godseye") return;
+
+                int bC = GameObject.FindObjectsByType<GodBeam>(FindObjectsInactive.Include, FindObjectsSortMode.InstanceID).Length;
+                if (bC >= MaximumBeamAmount) return;
 
                 // Add damage dealt globally
                 accumulatedDamage += dmg / Plugin.globalDamageMult.CalculateChanges(1f);
@@ -366,11 +371,17 @@ namespace Ultrarogue.Items
                     insig.windUpSpeedMultiplier = 2;
                 }
                 virtueBeam.name += "God";
-
+                virtueBeam.AddComponent<GodBeam>();
                 // RESET AFTER PROC
                 accumulatedDamage = 0f;
             });
         }
+
+        class GodBeam : MonoBehaviour
+        {
+            // nuthin
+        }
+
 
         static Dictionary<VirtueInsignia, List<EnemyIdentifier>> alreadyHits = new Dictionary<VirtueInsignia, List<EnemyIdentifier>>();
         [HarmonyPatch(typeof(VirtueInsignia), nameof(VirtueInsignia.OnTriggerEnter))]

@@ -16,10 +16,27 @@ public class Missle : MonoBehaviour
     public float damage = 10f;
     public float explosionRadius = 0.1f;
 
+
+    public GameObject freezeEffect;
+    public GameObject levelEffect;
+
     private bool homingActive = false;
     private Rigidbody rb;
 
     bool kaboomed = false;
+
+    bool super = false;
+
+    public bool isRocket = false;
+
+    public bool frozen
+    {
+        get
+        {
+            return MonoSingleton<WeaponCharges>.Instance && MonoSingleton<WeaponCharges>.Instance.rocketFrozen;
+        }
+    }
+
 
     void Start()
     {
@@ -38,8 +55,27 @@ public class Missle : MonoBehaviour
         homingActive = true;
     }
 
+    float frozenT = 0;
+
     void FixedUpdate()
     {
+        if(freezeEffect != null)
+            freezeEffect.SetActive(frozen);
+        if (frozen && isRocket)
+        {
+            rb.velocity = Vector3.zero;
+            frozenT += Time.deltaTime;
+
+            if (frozenT >= 0.5f && !super)
+            {
+                levelEffect.SetActive(true);
+                super = true;
+                speed *= 3;
+            }
+
+            return;
+        }
+
         if (!homingActive)
             return;
 
@@ -85,7 +121,7 @@ public class Missle : MonoBehaviour
                 col.gameObject,
                 Vector3.zero,
                 enemy.transform.position,
-                multiplier: damage,
+                multiplier: super ? damage * 2 : damage,
                 false
             );
 
@@ -96,17 +132,19 @@ public class Missle : MonoBehaviour
 
     void Explode()
     {
+        Plugin.Logger.LogInfo($"super={super}, frozenT={frozenT}");
+        GameObject pre = super ? DefaultReferenceManager.Instance.superExplosion : DefaultReferenceManager.Instance.explosion;
         GameObject explosion = Object.Instantiate(
-            DefaultReferenceManager.Instance.explosion,
+            pre,
             transform.position,
             Quaternion.identity
         );
 
         foreach (var exp in explosion.GetComponentsInChildren<Explosion>())
         {
-            exp.maxSize = explosionRadius;
+            exp.maxSize = super ? explosionRadius * 3 : explosionRadius;
             exp.canHit = AffectedSubjects.EnemiesOnly;
-            exp.damage = Mathf.RoundToInt(damage) * 2;
+            exp.damage = super ? Mathf.RoundToInt(damage) * 4 : Mathf.RoundToInt(damage) * 2;
         }
 
         Destroy(gameObject);

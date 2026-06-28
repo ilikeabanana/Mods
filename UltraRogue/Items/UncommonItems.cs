@@ -46,8 +46,11 @@ namespace Ultrarogue.Items
     {
         public override Rarity Rarity => Rarity.Uncommon;
         public override string ItemName => "Panopticon";
-        public override string itemDescription => "On damage taken, heal 5 (+5 per stack) hp";
+        public override string itemDescription => "On damage taken, heal 5 (+5 per stack) hp up to 7 times per room.";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Healing, ItemTag.Health };
+
+
+        int HealAmount = 7;
 
         public override void OnStart()
         {
@@ -56,9 +59,29 @@ namespace Ultrarogue.Items
                 int c = Plugin.GetItemCount(this);
 
                 if (c <= 0) return;
-
+                if (HealAmount <= 0) return;
                 NewMovement.Instance.GetHealth(5 * c, true, bloodsplatter: false);
+                HealAmount--;
+                Object.Instantiate(AssetsManager.healingEffect, NewMovement.Instance.transform.position, Quaternion.identity);
             });
+
+        }
+
+        bool wasCombat = false;
+
+        public override void OnUpdate(int count)
+        {
+            if(!wasCombat && Room.isFighting)
+            {
+                HealAmount = 7;
+                wasCombat = true;
+            }
+
+            if (!Room.isFighting)
+            {
+                wasCombat = false;
+            }
+            base.OnUpdate(count);
         }
     }
 
@@ -336,7 +359,8 @@ namespace Ultrarogue.Items
 
                 float damage = (3 * count);
                 GameObject missle = getMissleModel();
-                Missle proj = missle.AddComponent<Missle>();
+                Missle proj = missle.GetOrAddComponent<Missle>();
+                proj.isRocket = true;
                 proj.damage = damage;
                 proj.enemyThatGotHit = eid;
                 missle.transform.position = CameraController.Instance.GetDefaultPos() + Vector3.up * 3.5f;
