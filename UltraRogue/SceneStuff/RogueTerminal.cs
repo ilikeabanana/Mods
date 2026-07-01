@@ -1,5 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using TMPro;
 using Ultrarogue;
@@ -7,6 +7,7 @@ using Ultrarogue.Characters;
 using Ultrarogue.Items;
 using UnityEngine;
 using UnityEngine.UI;
+using static UnityEngine.InputSystem.InputRemoting;
 
 public class RogueTerminal : MonoBehaviour
 {
@@ -16,11 +17,15 @@ public class RogueTerminal : MonoBehaviour
     public TMP_Text ItemInfoName;
     public TMP_Text ItemInfoNameName;
     public TMP_Text ItemInfoInfo;
-
+    public TMP_Text TipDay;
+     
     void Awake()
     {
         FillItems();
         CharacterInfo.text = GetCharacterInfo();
+
+        string randomMessage = SceneLoader.messages[Random.Range(0, SceneLoader.messages.Length)];
+        TipDay.text = randomMessage;
     }
 
     string GetCharacterInfo()
@@ -46,14 +51,24 @@ public class RogueTerminal : MonoBehaviour
         itemButC.transform.Find("Background").GetComponent<Image>().color = rarityToColor(item.Rarity);
         itemButC.transform.SetParent(ItemPrefab.transform.parent, false);
 
-        itemButC.GetComponent<Button>().onClick.AddListener(() => FillInfo(item));
+        if (!Plugin.HasGottenItem(item))
+        {
+            itemButC.transform.Find("Background/Enemy").GetComponent<Image>().color = Color.black;
+            itemButC.GetComponent<Button>().onClick.AddListener(() => FillInfoButEvil(item));
+        }
+        else
+        {
+
+            itemButC.GetComponent<Button>().onClick.AddListener(() => FillInfo(item));
+        }
+
     }
     Color rarityToColor(Rarity rar)
     {
         switch (rar)
         {
             case Rarity.Alchemy:
-                return Color.white;
+                return new Color(0.6f, 0.2f, 0.8f);
             case Rarity.Common:
                 return Color.white;
             case Rarity.Uncommon:
@@ -67,6 +82,7 @@ public class RogueTerminal : MonoBehaviour
     void FillInfo(BaseItem item)
     {
         ItemInfoImage.sprite = item.ItemIcon;
+        ItemInfoImage.color = Color.white;
         ItemInfoName.text = item.ItemName;
         ItemInfoNameName.text = item.ItemName;
 
@@ -79,9 +95,32 @@ public class RogueTerminal : MonoBehaviour
         ItemInfoInfo.text = sb.ToString();
     }
 
+    void FillInfoButEvil(BaseItem item)
+    {
+        ItemInfoImage.sprite = item.ItemIcon;
+        ItemInfoImage.color = Color.black;
+        ItemInfoName.text = item.ItemName;
+        ItemInfoNameName.text = item.ItemName;
+
+        StringBuilder sb = new StringBuilder();
+
+        sb.Append($"<color=red>NO DATA AVAILABLE");
+        //sb.Append($"LORE:\n{item.itemDescription}"); // Ill leave the lore for later
+
+        ItemInfoInfo.text = sb.ToString();
+    }
+
     void FillItems()
     {
-        foreach (var item in Plugin.possibleItems)
+        var rarityOrder = new Dictionary<Rarity, int>
+        {
+            { Rarity.Common, 0 },
+            { Rarity.Uncommon, 1 },
+            { Rarity.Legendary, 2 },
+            { Rarity.Alchemy, 3 }
+        };
+
+        foreach (var item in Plugin.possibleItems.OrderBy(i => rarityOrder[i.Rarity]))
         {
             FillItem(item);
         }

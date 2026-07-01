@@ -106,7 +106,7 @@ public class ShopItem : MonoBehaviour
         int scalingSteps = floor / 5;
 
         float multiplier = Mathf.Pow(1.53f, scalingSteps);
-
+        return baseCost;
         return Mathf.CeilToInt(baseCost * multiplier);
     }
 
@@ -125,7 +125,7 @@ public class ShopItem : MonoBehaviour
                 break;
 
             case Rarity.Legendary:
-                baseCost = 12;
+                baseCost = 15;
                 break;
         }
 

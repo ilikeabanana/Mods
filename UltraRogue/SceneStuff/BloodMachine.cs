@@ -75,6 +75,7 @@ public class BloodMachine : MonoBehaviour
         }
         else
         {
+
             for (int i = 0; i < damage; i++)
             {
                 NewMovement.Instance.GetHurt(1, false, ignoreInvincibility: true);

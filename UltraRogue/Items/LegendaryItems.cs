@@ -57,19 +57,6 @@ namespace Ultrarogue.Items
             }
         }
 
-        [HarmonyPatch(typeof(RevolverBeam), "HitSomething")]
-        static class HitSomethingPatch
-        {
-            static void Postfix(RevolverBeam __instance, PhysicsCastResult hit)
-            {
-                if (!Plugin.isInRogueScene()) return;
-                if (!taggedBeams.Contains(__instance)) return;
-
-                SpawnExplosion(hit.point);
-                taggedBeams.Remove(__instance);
-            }
-        }
-
         [HarmonyPatch(typeof(RevolverBeam), "PiercingShotCheck")]
         static class PiercingShotCheckPatch
         {
@@ -82,12 +69,28 @@ namespace Ultrarogue.Items
             {
                 if (!Plugin.isInRogueScene()) return;
                 if (!taggedBeams.Contains(__instance)) return;
+                if (__state || !__instance.fadeOut) return;
 
-                if (!__state && __instance.fadeOut)
-                {
-                    SpawnExplosion(__instance.shotHitPoint);
-                    taggedBeams.Remove(__instance);
-                }
+                // Access private shotHitPoint via reflection
+                Vector3 hitPoint = (Vector3)typeof(RevolverBeam)
+                    .GetField("shotHitPoint", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                    .GetValue(__instance);
+
+                SpawnExplosion(hitPoint);
+                taggedBeams.Remove(__instance);
+            }
+        }
+
+        [HarmonyPatch(typeof(RevolverBeam), "HitSomething")]
+        static class HitSomethingPatch
+        {
+            static void Postfix(RevolverBeam __instance, PhysicsCastResult hit)
+            {
+                if (!Plugin.isInRogueScene()) return;
+                if (!taggedBeams.Contains(__instance)) return;
+
+                SpawnExplosion(hit.point);
+                taggedBeams.Remove(__instance);
             }
         }
     }
@@ -185,7 +188,7 @@ namespace Ultrarogue.Items
 
         public override void OnUpdate(int count)
         {
-            change.percentage = 0.50f * count;
+            change.percentage = 0.60f * count;
         }
 
         public override void OnRemoval()
@@ -287,7 +290,7 @@ namespace Ultrarogue.Items
     {
         public override Rarity Rarity => Rarity.Legendary;
         public override string ItemName => "Agonized Mask";
-        public override string itemDescription => "Have a 25% (+10% per stack) for an enemy to spawn as a puppet (does NOT include bosses)";
+        public override string itemDescription => "Have a 10% (+5% per stack) for an enemy to spawn as a puppet (does NOT include bosses)";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Utility };
     }
 
@@ -306,9 +309,9 @@ namespace Ultrarogue.Items
         public override string ItemName => "Eye of God";
 
         public override string itemDescription =>
-            "3% chance on hit to call down a virtue beam dealing 300% base damage. " +
+            "3% chance on hit to call down a virtue beam dealing 150% base damage. " +
             "Every 100% damage dealt increases activation chance by 3% (+3% per stack) " +
-            "and beam damage by 100% (+50% per stack).";
+            "and beam damage by 50% (+50% per stack).";
 
         public override List<ItemTag> itemTags =>
             new List<ItemTag>() { ItemTag.Utility };
@@ -317,8 +320,8 @@ namespace Ultrarogue.Items
         private const float ChancePerHundred = 3f;
         private const float MaxChance = 75f;
 
-        private const float BaseDamage = 3f;
-        private const float DamagePerHundred = 1f;
+        private const float BaseDamage = 1.5f;
+        private const float DamagePerHundred = 0.5f;
         private const float MaxDamageMultiplier = 7.5f;
 
         // GLOBAL accumulated damage

@@ -453,9 +453,35 @@ public class Room : MonoBehaviour
                 kibr.RoomInside = this;
 
                 EnemyIdentifier eid = inst.GetComponent<EnemyIdentifier>()
-                                   ?? inst.GetComponentInChildren<EnemyIdentifier>();
+                   ?? inst.GetComponentInChildren<EnemyIdentifier>();
                 kibr.eid = eid;
-                if (maskCount > 0 && Random.value <= (0.25f + (0.10f * maskCount)))
+
+                // --- Small per-floor health scaling for normal enemies ---
+                Enemy enemyComp = FindEnemyComponent(inst);
+                if (enemyComp != null)
+                {
+                    int floor = RogueDifficultyManager.Instance.floor;
+
+                    float floorHealthMult = 1f + (floor * 0.015f);
+                    if (floor > 9)
+                        floorHealthMult += (floor - 9) * 0.03f;
+
+                    // Safety clamp regardless of floor value
+                    floorHealthMult = Mathf.Clamp(floorHealthMult, 1f, 2f);
+
+                    float baseHealth = enemyComp.health;
+                    float scaledHealth = baseHealth * floorHealthMult;
+
+                    Plugin.Logger.LogInfo($"[Room] HealthScale debug: floor={floor}, mult={floorHealthMult}, base={baseHealth}, scaled={scaledHealth}");
+
+                    enemyComp.health = scaledHealth;
+                    enemyComp.originalHealth = scaledHealth;
+
+                    if (eid != null)
+                        eid.health = scaledHealth;
+                }
+                CurseManager.OnEnemySpawn(eid);
+                if (maskCount > 0 && Random.value <= (0.1f + (0.05f * maskCount)))
                     eid.puppet = true;
                 if (planned.radianceBuffs > 0 && eid != null)
                 {

@@ -19,7 +19,7 @@
   <ItemGroup>
     <PackageReference Include="BepInEx.Analyzers" Version="1.*" PrivateAssets="all" />
     <PackageReference Include="BepInEx.Core" Version="5.*" />
-	  <PackageReference Include="krafs.publicizer" Version="2.2.0">
+	  <PackageReference Include="krafs.publicizer" Version="2.3.0">
 	  <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>

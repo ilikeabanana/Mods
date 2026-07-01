@@ -106,6 +106,17 @@ namespace Ultrarogue
             return RogueMode;
         }
 
+
+        public static bool HasGottenItem(BaseItem item)
+        {
+            if(PlayerPrefs.GetInt($"ITEM_{item.ItemName}_SEEN", 0) > 0)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
         public static bool isInRogueScene()
         {
             return SceneHelper.CurrentScene == SceneLoader.SceneName;
@@ -308,7 +319,7 @@ namespace Ultrarogue
         }
         IEnumerator SpawnThings()
         {
-            yield return new WaitForSeconds(1f); // idk why 24 but lmao
+            yield return new WaitForSeconds(0.24f); // idk why 24 but lmao
             Logger.LogInfo($"I have reset difficulty to {CurrentDifficulty}");
             yield return null;
             AsyncOperationHandle<GameObject> RogueButtonPref = Addressables.LoadAssetAsync<GameObject>("Assets/Modding/RogueMode/RogueMode.prefab");
@@ -390,7 +401,6 @@ namespace Ultrarogue
             CurrentDifficulty = 1;
             if (userHasIncomaptibleMods())
             {
-                yield break;
                 // SpawnerArmWarning
                 AsyncOperationHandle<GameObject> Warning = Addressables.LoadAssetAsync<GameObject>("Assets/Modding/RogueMode/SpawnerArmWarning.prefab");
                 yield return new WaitUntil(() => Warning.IsDone);
@@ -749,7 +759,7 @@ namespace Ultrarogue
 
         public static Rarity getRarityBasedOnDropTable(DropTable table, System.Random rng)
         {
-            float chance = (float)getChanceVal(rng, lowerIsBetter: false);
+            float chance = (float)getChanceVal(rng, lowerIsBetter: false, luckaffected: false);
             float cumulative = 0f;
 
             foreach (var entry in table.weights)
@@ -857,6 +867,7 @@ namespace Ultrarogue
 
         public static void GiveItem(BaseItem item)
         {
+            PlayerPrefs.SetInt($"ITEM_{item.ItemName}_SEEN", 1);
             if (items.ContainsKey(item))
             {
                 items[item]++;
@@ -1416,8 +1427,16 @@ namespace Ultrarogue
         public static void DamageLess(ref int damage, ref bool ignoreInvincibility, ref bool instablack, ref bool invincible, NewMovement __instance)
         {
             if (!Plugin.isInRogueScene()) return;
+
+            int minDamage = 1;
+            if(RogueDifficultyManager.Instance != null && RogueDifficultyManager.Instance.floor >= 7)
+            {
+                minDamage = Mathf.FloorToInt((RogueDifficultyManager.Instance.floor / 7f + 1));
+                minDamage = Mathf.Min(minDamage, damage);
+            }
+
             if (damage > 0)
-                damage = (int)Mathf.Max(DamageReduction.CalculateChanges(damage), 1); // cannot go below 1
+                damage = (int)Mathf.Max(DamageReduction.CalculateChanges(damage), minDamage); // cannot go below 1
             foreach (var effect in Plugin.onDamageEffects)
             {
                 effect.effect.Invoke(damage);
@@ -1429,6 +1448,10 @@ namespace Ultrarogue
                 instablack = true;
                 ignoreInvincibility = true;
                 invincible = false;
+            }
+            else
+            {
+                damage = 0;
             }
         }
         [HarmonyPatch(typeof(NewMovement), nameof(NewMovement.ForceAntiHP))]
@@ -1447,6 +1470,14 @@ namespace Ultrarogue
             {
                 amount = 999;
             }
+        }
+
+        [HarmonyPatch(typeof(EnemyIdentifier), nameof(EnemyIdentifier.HitterCanKillIdol))]
+        [HarmonyPostfix]
+        public static void FilthBonkKill(ref bool __result, string hitter)
+        {
+            if (!Plugin.isInRogueScene()) return;
+            if (hitter == "filthbonk") __result = true;
         }
 
         [HarmonyPatch(typeof(NewMovement), nameof(NewMovement.GetHurt))]
@@ -1704,24 +1735,13 @@ namespace Ultrarogue
 
                 __instance.wc.rev1charge = 400f;
                 RogueDifficultyManager.Instance.Gold -= 1;
+                if (RogueDifficultyManager.Instance.Gold <= 0)
+                {
+                    __instance.wc.rev1charge = 0f;
+                }
 
             }
         }
-        [HarmonyPatch(typeof(Coin), nameof(Coin.GetDeleted))]
-        public static class Coin_GetDeleted_Greed_Patch
-        {
-            private static readonly HashSet<Coin> RefundedCoins = new();
-            [HarmonyPostfix]
-            public static void GreedRefund(Coin __instance)
-            {
-                if (!isInRogueScene()) return;
-                if (SelectedChar?.HasPassive(Passive.Greedy) != true) return;
-                if (!RefundedCoins.Add(__instance)) return;
-                RogueDifficultyManager.Instance.Gold += 1;
-
-            }
-        }
-
         [HarmonyPatch(typeof(Nailgun), nameof(Nailgun.Update))]
         public static class Nailgun_Update_Patch
         {
@@ -1920,7 +1940,21 @@ namespace Ultrarogue
                 NewMovement.Instance.GetHealth(5, false);
         }
     }
+    [HarmonyPatch(typeof(Gutterman), nameof(Gutterman.FallOver))]
+    public static class FallOverExplode
+    {
+        static bool Prefix(Gutterman __instance)
+        {
+            if (!Plugin.isInRogueMode()) return true;
 
+            if (!__instance.fallEffect)
+            {
+                return true;
+            }
+            __instance.Explode();
+            return false;
+        }
+    }
     [HarmonyPatch(typeof(DiscordController), nameof(DiscordController.SendActivity))]
     public class ReplaceActivity
     {

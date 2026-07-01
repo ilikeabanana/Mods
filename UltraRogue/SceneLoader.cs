@@ -37,7 +37,7 @@ public static class SceneLoader
 
     }
 
-    static string[] messages = new string[]
+    public static string[] messages = new string[]
     {
         "The higher the you set the difficulty, the more rooms, and enemies spawn",
         "Although items can greatly help survivability, getting your arsenal is a bigger priority",
@@ -45,7 +45,9 @@ public static class SceneLoader
         "Each room has a chance to give nothing, gold, or keys!",
         "Some items are better for specific classes",
         "Pressing tab shows a minimap, your stats, and your items.",
-        "Sometimes special rooms are locked and require a key to be opened"
+        "Sometimes special rooms are locked and require a key to be opened",
+        "Gamble rooms only spawn on even floors when having enough gold",
+        "Sometimes skipping treasure rooms can be a good idea"
     };
 
     public static Dictionary<SteamId, string[]> customMessagesForYoutubers = new Dictionary<SteamId, string[]>()

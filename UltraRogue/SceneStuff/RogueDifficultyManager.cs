@@ -212,6 +212,8 @@ public class RogueDifficultyManager : MonoBehaviour
 
     void Update()
     {
+        Gold = Mathf.Clamp(Gold, 0, 99);
+         
         if (!this.keepOpen)
         {
             if (MonoSingleton<InputManager>.Instance.InputSource.Stats.WasPerformedThisFrame)
@@ -261,9 +263,10 @@ public class RogueDifficultyManager : MonoBehaviour
 
     public void MoveStage()
     {
-        Difficulty *= 1.2f;
-        Plugin.Logger.LogInfo("Before: " + difficultyScaleMult);
         int diff = Plugin.CurrentDifficulty;
+        Difficulty *= (1f + (0.1f * diff));
+        Plugin.Logger.LogInfo("Before: " + difficultyScaleMult);
+
         Plugin.Logger.LogInfo("Difficulty pref: " + diff);
         difficultyScaleMult *= 1.34f * ((diff + 2) / 3);
         Plugin.Logger.LogInfo("After: " + difficultyScaleMult);
