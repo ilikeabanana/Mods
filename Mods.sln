@@ -21,6 +21,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ultrarogue", "UltraRogue\Ul
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ultrachaos", "UltraChaos\Ultrachaos.csproj", "{636978D9-004C-4712-AC13-8B35CB0BFBAC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KawKaw", "NyonKawKaw\KawKaw.csproj", "{537AE9D6-69DE-4E60-B579-B9D12496F4B3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -63,6 +65,10 @@ Global
 		{636978D9-004C-4712-AC13-8B35CB0BFBAC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{636978D9-004C-4712-AC13-8B35CB0BFBAC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{636978D9-004C-4712-AC13-8B35CB0BFBAC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{537AE9D6-69DE-4E60-B579-B9D12496F4B3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{537AE9D6-69DE-4E60-B579-B9D12496F4B3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{537AE9D6-69DE-4E60-B579-B9D12496F4B3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{537AE9D6-69DE-4E60-B579-B9D12496F4B3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

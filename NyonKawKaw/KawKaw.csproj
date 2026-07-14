@@ -1,0 +1,321 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>KawKaw</AssemblyName>
+    <Product>Kaw Kaw</Product>
+    <GUID>com.banana.kawkaw</GUID>
+    <Version>1.0.0</Version>
+    <Nullable>enable</Nullable>
+    <LangVersion>13.0</LangVersion>
+    <RootNamespace>KawKaw</RootNamespace>
+    <UltrakillDir>C:/Program Files (x86)/Steam/steamapps/common/ULTRAKILL/</UltrakillDir> <!-- Ensure that this has BepInEx installed -->
+    <CopyToBepInExPluginsDir>true</CopyToBepInExPluginsDir>
+    
+    <RestoreAdditionalProjectSources>
+      https://nuget.bepinex.dev/v3/index.json;
+      https://nuget.samboy.dev/v3/index.json
+    </RestoreAdditionalProjectSources>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
+  </PropertyGroup>
+
+  <Import Project="Properties/DeployToPlugins.targets" />
+
+  <ItemGroup>
+    <None Remove="Characters\Flowery\Normal\spr_flowery_idle_0.png" />
+    <None Remove="Characters\Flowery\Normal\spr_flowery_idle_1.png" />
+    <None Remove="Characters\Flowery\Normal\spr_flowery_idle_2.png" />
+    <None Remove="Characters\Flowery\Normal\spr_flowery_idle_3.png" />
+    <None Remove="Characters\Flowery\Normal\spr_flowery_idle_4.png" />
+    <None Remove="Characters\Flowery\White\spr_flowery_idle_0_white.png" />
+    <None Remove="Characters\Flowery\White\spr_flowery_idle_1_white.png" />
+    <None Remove="Characters\Flowery\White\spr_flowery_idle_2_white.png" />
+    <None Remove="Characters\Flowery\White\spr_flowery_idle_3_white.png" />
+    <None Remove="Characters\Flowery\White\spr_flowery_idle_4_white.png" />
+    <None Remove="Characters\KawKaw\Normal\spr_kakaw_idle_0.png" />
+    <None Remove="Characters\KawKaw\Normal\spr_kakaw_idle_1.png" />
+    <None Remove="Characters\KawKaw\Normal\spr_kakaw_idle_2.png" />
+    <None Remove="Characters\KawKaw\White\spr_kakaw_idle_0_white.png" />
+    <None Remove="Characters\KawKaw\White\spr_kakaw_idle_1_white.png" />
+    <None Remove="Characters\KawKaw\White\spr_kakaw_idle_2_white.png" />
+    <None Remove="Characters\Queen\Normal\spr_queen_idle_0.png" />
+    <None Remove="Characters\Queen\Normal\spr_queen_idle_1.png" />
+    <None Remove="Characters\Queen\Normal\spr_queen_idle_2.png" />
+    <None Remove="Characters\Queen\Normal\spr_queen_idle_3.png" />
+    <None Remove="Characters\Queen\Normal\spr_queen_idle_4.png" />
+    <None Remove="Characters\Queen\Normal\spr_queen_idle_5.png" />
+    <None Remove="Characters\Queen\White\spr_queen_idle_0_white.png" />
+    <None Remove="Characters\Queen\White\spr_queen_idle_1_white.png" />
+    <None Remove="Characters\Queen\White\spr_queen_idle_2_white.png" />
+    <None Remove="Characters\Queen\White\spr_queen_idle_3_white.png" />
+    <None Remove="Characters\Queen\White\spr_queen_idle_4_white.png" />
+    <None Remove="Characters\Queen\White\spr_queen_idle_5_white.png" />
+    <None Remove="Characters\ShadowMantle\Normal\spr_shadowmantle_idle_0.png" />
+    <None Remove="Characters\ShadowMantle\Normal\spr_shadowmantle_idle_1.png" />
+    <None Remove="Characters\ShadowMantle\Normal\spr_shadowmantle_idle_2.png" />
+    <None Remove="Characters\ShadowMantle\Normal\spr_shadowmantle_idle_3.png" />
+    <None Remove="Characters\ShadowMantle\Normal\spr_shadowmantle_idle_4.png" />
+    <None Remove="Characters\ShadowMantle\Normal\spr_shadowmantle_idle_5.png" />
+    <None Remove="Characters\ShadowMantle\White\spr_shadowmantle_idle_0_white.png" />
+    <None Remove="Characters\ShadowMantle\White\spr_shadowmantle_idle_1_white.png" />
+    <None Remove="Characters\ShadowMantle\White\spr_shadowmantle_idle_2_white.png" />
+    <None Remove="Characters\ShadowMantle\White\spr_shadowmantle_idle_3_white.png" />
+    <None Remove="Characters\ShadowMantle\White\spr_shadowmantle_idle_4_white.png" />
+    <None Remove="Characters\ShadowMantle\White\spr_shadowmantle_idle_5_white.png" />
+    <None Remove="kawkaw.png" />
+    <None Remove="kawkawwhite.png" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_all_according_to_all_according_to_plant.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_don%27t_you_like_serving_humans.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_flowers_blooms_in_your_heart.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_Flowery_2.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_forget_it.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_get_a_chance_1.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_get_a_chance_2.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_give_to_you.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_glue.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_goodbye.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_go_home.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_great_style.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_grown_like_a_turnip.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_heh,_it%27s_my_Jarona.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_here_I_come_San_Frandisc.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_here_I_come_San_Frandisco.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_hey_boys.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_hey_guys,_I_think_I_found_a_glue.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_hey_guys.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_hey_Raly.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_hey_there_little_guy.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_hoo.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_huh.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_I%27m_falling.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_I%27m_only_trying_to_help_you.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_I%27m_sorry_once_again_I_kept_a_lady_in_waiting.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_it%27s_all_in_a_name.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_it%27s_all_yours.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_it%27s_me,_Flowery.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_it%27s_me.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_it%27s_so_human.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_Ja-Orange_1.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_Ja-Orange_2.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_Ja-st_kidding.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_Jarona_1.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_Jarona_2.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_Jarona_3.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_Jarona_4.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_Kris.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_last_Jarona.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_leaf_it_to_me.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_lend_me_your_power.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_mini_peppers.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_mostlys.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_mysterious_wind.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_my_favorite_two.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_my_human.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_my_king.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_no,_no,_no.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_no_way,_it%27s_your_children.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_Omega_Flowery.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_one_more_for_the_fans.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_prism_blow.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_say_that_again.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_smile_again.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_sorry_about_that_guys.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_sorry_about_that_little_guy.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_sorry_about_the_guy.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_sorry_to_keep_a_lady_in_waiting.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_sorry_to_keep_you_ladies.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_sorry_to_keep_you_waiting_1.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_sorry_to_keep_you_waiting_2.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_stingus.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_suckle_it_up.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_Susie.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_take_that.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_that%27s_great.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_that%27s_my_dreams.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_they%27re_eating_my_flesh %281%29.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_the_boys.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_the_diner.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_this_guy%27s_your_best_friend.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_try_my_flavor.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_what_a_predictable_creature.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_with_your_powers_combined.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_wow.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_yes.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_you%27re_a_hero.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_your_dad%27s_my_best_friend.wav" />
+    <None Remove="Sounds\Flowery\Flowery_voiceclip_your_dad.wav" />
+    <None Remove="Sounds\Queen\snd_queen_dizzy.wav" />
+    <None Remove="Sounds\Queen\snd_queen_gasp.wav" />
+    <None Remove="Sounds\Queen\snd_queen_hoot_0.wav" />
+    <None Remove="Sounds\Queen\snd_queen_hoot_1.wav" />
+    <None Remove="Sounds\Queen\snd_queen_hoot_2.wav" />
+    <None Remove="Sounds\Queen\snd_queen_laugh_0.wav" />
+    <None Remove="Sounds\Queen\snd_queen_laugh_1.wav" />
+    <None Remove="Sounds\Queen\snd_queen_pirouette.wav" />
+    <None Remove="Sounds\Queen\snd_queen_woah.wav" />
+    <None Remove="Sounds\Queen\snd_queen_woo.wav" />
+    <None Remove="Sounds\ShadowMantle\eram-laughter-deltarune.mp3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Characters\Flowery\Normal\spr_flowery_idle_0.png" />
+    <EmbeddedResource Include="Characters\Flowery\Normal\spr_flowery_idle_1.png" />
+    <EmbeddedResource Include="Characters\Flowery\Normal\spr_flowery_idle_2.png" />
+    <EmbeddedResource Include="Characters\Flowery\Normal\spr_flowery_idle_3.png" />
+    <EmbeddedResource Include="Characters\Flowery\Normal\spr_flowery_idle_4.png" />
+    <EmbeddedResource Include="Characters\Flowery\White\spr_flowery_idle_0_white.png" />
+    <EmbeddedResource Include="Characters\Flowery\White\spr_flowery_idle_1_white.png" />
+    <EmbeddedResource Include="Characters\Flowery\White\spr_flowery_idle_2_white.png" />
+    <EmbeddedResource Include="Characters\Flowery\White\spr_flowery_idle_3_white.png" />
+    <EmbeddedResource Include="Characters\Flowery\White\spr_flowery_idle_4_white.png" />
+    <EmbeddedResource Include="Characters\KawKaw\Normal\spr_kakaw_idle_0.png" />
+    <EmbeddedResource Include="Characters\KawKaw\Normal\spr_kakaw_idle_1.png" />
+    <EmbeddedResource Include="Characters\KawKaw\Normal\spr_kakaw_idle_2.png" />
+    <EmbeddedResource Include="Characters\KawKaw\White\spr_kakaw_idle_0_white.png" />
+    <EmbeddedResource Include="Characters\KawKaw\White\spr_kakaw_idle_1_white.png" />
+    <EmbeddedResource Include="Characters\KawKaw\White\spr_kakaw_idle_2_white.png" />
+    <EmbeddedResource Include="Characters\Queen\Normal\spr_queen_idle_0.png" />
+    <EmbeddedResource Include="Characters\Queen\Normal\spr_queen_idle_1.png" />
+    <EmbeddedResource Include="Characters\Queen\Normal\spr_queen_idle_2.png" />
+    <EmbeddedResource Include="Characters\Queen\Normal\spr_queen_idle_3.png" />
+    <EmbeddedResource Include="Characters\Queen\Normal\spr_queen_idle_4.png" />
+    <EmbeddedResource Include="Characters\Queen\Normal\spr_queen_idle_5.png" />
+    <EmbeddedResource Include="Characters\Queen\White\spr_queen_idle_0_white.png" />
+    <EmbeddedResource Include="Characters\Queen\White\spr_queen_idle_1_white.png" />
+    <EmbeddedResource Include="Characters\Queen\White\spr_queen_idle_2_white.png" />
+    <EmbeddedResource Include="Characters\Queen\White\spr_queen_idle_3_white.png" />
+    <EmbeddedResource Include="Characters\Queen\White\spr_queen_idle_4_white.png" />
+    <EmbeddedResource Include="Characters\Queen\White\spr_queen_idle_5_white.png" />
+    <EmbeddedResource Include="Characters\ShadowMantle\Normal\spr_shadowmantle_idle_0.png" />
+    <EmbeddedResource Include="Characters\ShadowMantle\Normal\spr_shadowmantle_idle_1.png" />
+    <EmbeddedResource Include="Characters\ShadowMantle\Normal\spr_shadowmantle_idle_2.png" />
+    <EmbeddedResource Include="Characters\ShadowMantle\Normal\spr_shadowmantle_idle_3.png" />
+    <EmbeddedResource Include="Characters\ShadowMantle\Normal\spr_shadowmantle_idle_4.png" />
+    <EmbeddedResource Include="Characters\ShadowMantle\Normal\spr_shadowmantle_idle_5.png" />
+    <EmbeddedResource Include="Characters\ShadowMantle\White\spr_shadowmantle_idle_0_white.png" />
+    <EmbeddedResource Include="Characters\ShadowMantle\White\spr_shadowmantle_idle_1_white.png" />
+    <EmbeddedResource Include="Characters\ShadowMantle\White\spr_shadowmantle_idle_2_white.png" />
+    <EmbeddedResource Include="Characters\ShadowMantle\White\spr_shadowmantle_idle_3_white.png" />
+    <EmbeddedResource Include="Characters\ShadowMantle\White\spr_shadowmantle_idle_4_white.png" />
+    <EmbeddedResource Include="Characters\ShadowMantle\White\spr_shadowmantle_idle_5_white.png" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_all_according_to_all_according_to_plant.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_don't_you_like_serving_humans.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_flowers_blooms_in_your_heart.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_Flowery_2.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_forget_it.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_get_a_chance_1.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_get_a_chance_2.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_give_to_you.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_glue.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_goodbye.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_go_home.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_great_style.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_grown_like_a_turnip.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_heh,_it's_my_Jarona.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_here_I_come_San_Frandisc.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_here_I_come_San_Frandisco.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_hey_boys.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_hey_guys,_I_think_I_found_a_glue.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_hey_guys.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_hey_Raly.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_hey_there_little_guy.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_hoo.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_huh.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_I'm_falling.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_I'm_only_trying_to_help_you.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_I'm_sorry_once_again_I_kept_a_lady_in_waiting.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_it's_all_in_a_name.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_it's_all_yours.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_it's_me,_Flowery.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_it's_me.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_it's_so_human.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_Ja-Orange_1.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_Ja-Orange_2.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_Ja-st_kidding.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_Jarona_1.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_Jarona_2.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_Jarona_3.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_Jarona_4.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_Kris.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_last_Jarona.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_leaf_it_to_me.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_lend_me_your_power.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_mini_peppers.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_mostlys.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_mysterious_wind.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_my_favorite_two.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_my_human.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_my_king.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_no,_no,_no.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_no_way,_it's_your_children.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_Omega_Flowery.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_one_more_for_the_fans.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_prism_blow.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_say_that_again.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_smile_again.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_sorry_about_that_guys.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_sorry_about_that_little_guy.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_sorry_about_the_guy.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_sorry_to_keep_a_lady_in_waiting.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_sorry_to_keep_you_ladies.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_sorry_to_keep_you_waiting_1.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_sorry_to_keep_you_waiting_2.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_stingus.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_suckle_it_up.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_Susie.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_take_that.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_that's_great.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_that's_my_dreams.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_they're_eating_my_flesh (1).wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_the_boys.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_the_diner.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_this_guy's_your_best_friend.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_try_my_flavor.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_what_a_predictable_creature.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_with_your_powers_combined.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_wow.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_yes.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_you're_a_hero.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_your_dad's_my_best_friend.wav" />
+    <EmbeddedResource Include="Sounds\Flowery\Flowery_voiceclip_your_dad.wav" />
+    <EmbeddedResource Include="Sounds\KawKaw\Kawkaw_voiceclip_happy_1.wav" />
+    <EmbeddedResource Include="Sounds\KawKaw\Kawkaw_voiceclip_hurt.wav" />
+    <EmbeddedResource Include="Sounds\KawKaw\Kawkaw_voiceclip_licking_1.wav" />
+    <EmbeddedResource Include="Sounds\KawKaw\Kawkaw_voiceclip_sad_1.wav" />
+    <EmbeddedResource Include="Sounds\KawKaw\Kawkaw_voiceclip_sad_2.wav" />
+    <EmbeddedResource Include="Sounds\Queen\snd_queen_dizzy.wav" />
+    <EmbeddedResource Include="Sounds\Queen\snd_queen_gasp.wav" />
+    <EmbeddedResource Include="Sounds\Queen\snd_queen_hoot_0.wav" />
+    <EmbeddedResource Include="Sounds\Queen\snd_queen_hoot_1.wav" />
+    <EmbeddedResource Include="Sounds\Queen\snd_queen_hoot_2.wav" />
+    <EmbeddedResource Include="Sounds\Queen\snd_queen_laugh_0.wav" />
+    <EmbeddedResource Include="Sounds\Queen\snd_queen_laugh_1.wav" />
+    <EmbeddedResource Include="Sounds\Queen\snd_queen_pirouette.wav" />
+    <EmbeddedResource Include="Sounds\Queen\snd_queen_woah.wav" />
+    <EmbeddedResource Include="Sounds\Queen\snd_queen_woo.wav" />
+    <EmbeddedResource Include="Sounds\ShadowMantle\eram-laughter-deltarune.mp3" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <PackageReference Include="BepInEx.Analyzers" Version="1.*" PrivateAssets="all" />
+    <PackageReference Include="BepInEx.Core" Version="5.*" />
+    <PackageReference Include="UltraModding.PluginInfoGenerator" Version="4.*" />
+    <PackageReference Include="UnityEngine.Modules" Version="2022.3.28" IncludeAssets="compile" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(UltrakillDir)ULTRAKILL_Data/Managed/Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+      <CopyLocal>false</CopyLocal>
+    </Reference>
+    <Reference Include="PluginConfigurator">
+      <HintPath>..\..\..\..\..\AppData\Roaming\r2modmanPlus-local\ULTRAKILL\profiles\NyonKawKaw\BepInEx\plugins\EternalsTeam-PluginConfigurator\PluginConfigurator\PluginConfigurator.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ULTRAKILL\ULTRAKILL_Data\Managed\UnityEngine.UI.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  
+</Project>

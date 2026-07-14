@@ -13,6 +13,7 @@ public class SteamUserChance : MonoBehaviour
         Gronf,
         Tondar,
         Ineo,
+        Lydia,
         Anyone
     }
 
@@ -56,6 +57,8 @@ public class SteamUserChance : MonoBehaviour
                 return 76561198377209797L;
             case SteamUser.Vinny:
                 return 76561199122255407L;
+            case SteamUser.Lydia:
+                return 76561198869892477L;
         }
 
         return 0;

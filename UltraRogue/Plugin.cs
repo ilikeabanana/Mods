@@ -1449,10 +1449,6 @@ namespace Ultrarogue
                 ignoreInvincibility = true;
                 invincible = false;
             }
-            else
-            {
-                damage = 0;
-            }
         }
         [HarmonyPatch(typeof(NewMovement), nameof(NewMovement.ForceAntiHP))]
         [HarmonyPrefix]

@@ -95,6 +95,12 @@ public static class SceneLoader
             "unless someone reads the code (hi person who reads the code)",
             "no one will see this",
             "hello :D"
+        }},
+        { 76561198869892477L, new string[]
+        {
+            "I am inside your walls (malicious intent)",
+            "I know who you are",
+            "Very cool games. You make :D"
         }}
     };
 

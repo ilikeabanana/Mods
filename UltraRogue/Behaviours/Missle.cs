@@ -16,6 +16,7 @@ public class Missle : MonoBehaviour
     public float damage = 10f;
     public float explosionRadius = 0.1f;
 
+    float AliveTime = 0f;
 
     public GameObject freezeEffect;
     public GameObject levelEffect;
@@ -78,7 +79,7 @@ public class Missle : MonoBehaviour
 
         if (!homingActive)
             return;
-
+        AliveTime += Time.deltaTime;
         if (target == null || target.dead)
         {
             List<EnemyIdentifier> enemies = EnemyTracker.Instance.GetCurrentEnemies();
@@ -99,6 +100,11 @@ public class Missle : MonoBehaviour
 
         Vector3 newVelocity = Vector3.Lerp(rb.velocity, dir * speed, turnSpeed * Time.fixedDeltaTime);
         rb.velocity = newVelocity;
+
+        if(AliveTime >= 20)
+        {
+            Explode();
+        }
     }
 
     void OnTriggerEnter(Collider col)
