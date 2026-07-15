@@ -16,29 +16,14 @@ using Random = UnityEngine.Random;
 
 public class RoomGenerator : MonoBehaviour
 {
+    public List<FloorTheme> Themes = new List<FloorTheme>();
+
+    public FloorTheme currentTheme;
+
+
     [Header("Generation Settings")]
     int minRooms = 5;
     int maxRooms = 13;
-    [Header("Room Prefabs")]
-    [Tooltip("Normal combat room prefabs — one is chosen at random per room.")]
-    public List<Room> roomPrefabs = new List<Room>();
-
-    [Tooltip("Optional dedicated prefab for each special room type.\nFalls back to a random roomPrefab when left empty.")]
-    public Room treasureRoomPrefab;
-    public Room shopRoomPrefab;
-    public Room gamblingRoomPrefab;
-    public Room bossRoomPrefab;
-    public Room planetariumPrefab;
-    public Room startRoomPrefab;
-    [Tooltip("Other special rooms")]
-    public List<Room> specialRoomPrefabs = new List<Room>();
-    [Tooltip("SECRET ROOOMMMS")]
-    public List<Room> SecretRoomPrefabs = new List<Room>();
-
-    [Tooltip("Large room prefabs (RoomSizeWidth > 1 or RoomSizeHeight > 1). " +
-             "These are never instantiated directly — they are used as data sources " +
-             "to spawn sub-room GameObjects that each occupy one grid cell.")]
-    public List<Room> largeRoomPrefabs = new List<Room>();
 
     [Header("Boss Room Settings")]
     [Tooltip("EnemyType spawned in the boss room.")]
@@ -73,15 +58,8 @@ public class RoomGenerator : MonoBehaviour
     {
         Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right
     };
-
-    public List<AudioClip> CalmMusic = new List<AudioClip>();
-    public List<AudioClip> UnCalmMusic = new List<AudioClip>();
-
     public static RoomGenerator Instance { get; private set; }
 
-    [Header("Room Size")]
-    float roomWidth = 60f;
-    float roomHeight = 30f;
 
     [Header("Performance")]
     [Tooltip("How many grid cells away from the player rooms stay active (1 = current + immediate neighbors).")]
@@ -141,12 +119,13 @@ public class RoomGenerator : MonoBehaviour
     }
     IEnumerator GenerateRooms(bool firstTime = true)
     {
+        if (currentTheme == null) currentTheme = Themes[0];
         canDoTheErrorRoom = false;
         guaranteedCombatRoomsWithCredits = 0;
 
         yield return new WaitUntil(() => DefaultReferenceManager.Instance != null);
         if (!firstTime) yield return new WaitForSeconds(6f);
-        if (roomPrefabs == null || roomPrefabs.Count == 0)
+        if (currentTheme.roomPrefabs == null || currentTheme.roomPrefabs.Count == 0)
         {
             Debug.LogWarning("[RoomGenerator] No room prefabs assigned — skipping generation.");
             yield break;
@@ -277,10 +256,10 @@ public class RoomGenerator : MonoBehaviour
         StatsManager.Instance.StartTimer();
 
         // choose random music
-        int index = Random.Range(0, CalmMusic.Count);
-        MusicManager.Instance.cleanTheme.clip = CalmMusic[index];
-        MusicManager.Instance.bossTheme.clip = UnCalmMusic[index];
-        MusicManager.Instance.battleTheme.clip = UnCalmMusic[index];
+        int index = Random.Range(0, currentTheme.CalmMusic.Count);
+        MusicManager.Instance.cleanTheme.clip = currentTheme.CalmMusic[index];
+        MusicManager.Instance.bossTheme.clip = currentTheme.UnCalmMusic[index];
+        MusicManager.Instance.battleTheme.clip = currentTheme.UnCalmMusic[index];
 
         MusicManager.Instance.StartMusic();
         canDoTheErrorRoom = true;
@@ -314,7 +293,7 @@ public class RoomGenerator : MonoBehaviour
     /// before committing to a grid cell.
     /// </summary>
     List<Room> CompatiblePrefabs(Vector2Int dir) =>
-        roomPrefabs.FindAll(p => RoomHasExit(p, dir));
+        currentTheme.roomPrefabs.FindAll(p => RoomHasExit(p, dir));
 
     /// <summary>
     /// Returns true when <paramref name="prefab"/> has exits in every direction
@@ -382,20 +361,20 @@ public class RoomGenerator : MonoBehaviour
 
         if (isStart)
         {
-            prefab = startRoomPrefab;
+            prefab = currentTheme.startRoomPrefab;
         }
         else
         {
-            List<Room> pool = prefabPool ?? roomPrefabs;
+            List<Room> pool = prefabPool ?? currentTheme.roomPrefabs;
 
             // Try to place a large room (25% chance when candidates exist and all their
             // cells are free — including cells beyond the anchor).
-            if (largeRoomPrefabs != null && largeRoomPrefabs.Count > 0)
+            if (currentTheme.largeRoomPrefabs != null && currentTheme.largeRoomPrefabs.Count > 0)
             {
-                List<Room> largeCandidates = largeRoomPrefabs.FindAll(p =>
+                List<Room> largeCandidates = currentTheme.largeRoomPrefabs.FindAll(p =>
                     LargeRoomCellsFree(gridPos, p.RoomSizeWidth, p.RoomSizeHeight));
 
-                if (largeCandidates.Count > 0 && RogueDifficultyManager.RoomRNG.Next(0, roomPrefabs.Count + largeCandidates.Count) == 0)
+                if (largeCandidates.Count > 0 && RogueDifficultyManager.RoomRNG.Next(0, currentTheme.roomPrefabs.Count + largeCandidates.Count) == 0)
                 {
                     prefab = largeCandidates[RogueDifficultyManager.RoomRNG.Next(0, largeCandidates.Count)];
                     ExpandLargeRoom(prefab, gridPos, isStart);
@@ -422,7 +401,7 @@ public class RoomGenerator : MonoBehaviour
             return FarEdgeCell(gridPos, prefab.RoomSizeWidth, prefab.RoomSizeHeight, direction);
         }
 
-        Vector3 worldPos = new Vector3(gridPos.x * roomWidth, 0f, gridPos.y * roomHeight);
+        Vector3 worldPos = new Vector3(gridPos.x * currentTheme.roomWidth, 0f, gridPos.y * currentTheme.roomHeight);
         Room room = Instantiate(prefab, worldPos, Quaternion.identity);
         room.position = gridPos;
         room.roomType = RoomType.Normal;
@@ -445,7 +424,7 @@ public class RoomGenerator : MonoBehaviour
     /// </summary>
     void ExpandLargeRoom(Room source, Vector2Int anchorPos, bool isStart)
     {
-        Vector3 anchorWorldPos = new Vector3(anchorPos.x * roomWidth, 0f, anchorPos.y * roomHeight);
+        Vector3 anchorWorldPos = new Vector3(anchorPos.x * currentTheme.roomWidth, 0f, anchorPos.y * currentTheme.roomHeight);
         Room actualRoom = Instantiate(source, anchorWorldPos, Quaternion.identity);
 
         int w = source.RoomSizeWidth;
@@ -480,7 +459,7 @@ public class RoomGenerator : MonoBehaviour
                     return;
                 }
 
-                Vector3 worldPos = new Vector3(cell.x * roomWidth, 0f, cell.y * roomHeight);
+                Vector3 worldPos = new Vector3(cell.x * currentTheme.roomWidth, 0f, cell.y * currentTheme.roomHeight);
 
                 GameObject go = new GameObject($"Room_{cell.x}_{cell.y}");
                 go.transform.position = worldPos;
@@ -659,20 +638,20 @@ public class RoomGenerator : MonoBehaviour
             (candidates[i], candidates[j]) = (candidates[j], candidates[i]);
         }
 
-        TryPlaceSpecialRoom(ref candidates, treasureRoomPrefab);
-        TryPlaceSpecialRoom(ref candidates, shopRoomPrefab);
+        TryPlaceSpecialRoom(ref candidates, currentTheme.treasureRoomPrefab);
+        TryPlaceSpecialRoom(ref candidates, currentTheme.shopRoomPrefab);
         if (RogueDifficultyManager.Instance.floor % 2 == 0 && RogueDifficultyManager.Instance.Gold >= 5)
         {
-            TryPlaceSpecialRoom(ref candidates, gamblingRoomPrefab);
+            TryPlaceSpecialRoom(ref candidates, currentTheme.gamblingRoomPrefab);
         }
 
-        if (RogueDifficultyManager.RoomRNG.NextDouble() <= planetChance && planetariumPrefab != null)
+        if (RogueDifficultyManager.RoomRNG.NextDouble() <= planetChance && currentTheme.planetariumPrefab != null)
         {
-            TryPlaceSpecialRoom(ref candidates, planetariumPrefab); // planetarium spawning
+            TryPlaceSpecialRoom(ref candidates, currentTheme.planetariumPrefab); // planetarium spawning
             planetChance = -0.19f; // Making sure that planetarium does not go to 21% when entering a new floor
         }
 
-        foreach (Room prefab in specialRoomPrefabs)
+        foreach (Room prefab in currentTheme.specialRoomPrefabs)
         {
             if (RogueDifficultyManager.RoomRNG.NextDouble() <= prefab.spawnChance)
             {
@@ -797,7 +776,7 @@ public class RoomGenerator : MonoBehaviour
             return;
         }
 
-        Vector3 worldPos = new Vector3(pos.x * roomWidth, 0f, pos.y * roomHeight);
+        Vector3 worldPos = new Vector3(pos.x * currentTheme.roomWidth, 0f, pos.y * currentTheme.roomHeight);
 
         Room room = Instantiate(prefab, worldPos, Quaternion.identity);
         room.position = pos;
@@ -812,14 +791,14 @@ public class RoomGenerator : MonoBehaviour
 
     Room PickCompatibleNormalPrefab(Vector2Int gridPos)
     {
-        List<Room> compatible = roomPrefabs.FindAll(p => PrefabFitsNeighbours(p, gridPos));
+        List<Room> compatible = currentTheme.roomPrefabs.FindAll(p => PrefabFitsNeighbours(p, gridPos));
 
         if (compatible.Count > 0)
             return compatible[RogueDifficultyManager.RoomRNG.Next(0, compatible.Count)];
 
         Debug.LogWarning($"[RoomGenerator] No fully-compatible normal prefab for {gridPos}; using any.");
-        return roomPrefabs.Count > 0
-            ? roomPrefabs[RogueDifficultyManager.RoomRNG.Next(0, roomPrefabs.Count)]
+        return currentTheme.roomPrefabs.Count > 0
+            ? currentTheme.roomPrefabs[RogueDifficultyManager.RoomRNG.Next(0, currentTheme.roomPrefabs.Count)]
             : null;
     }
 
@@ -859,7 +838,7 @@ public class RoomGenerator : MonoBehaviour
             }
             if (adjacentToSpecial) continue;
 
-            if (bossRoomPrefab != null && !BossPrefabFitsPosition(kvp.Key))
+            if (currentTheme.bossRoomPrefab != null && !BossPrefabFitsPosition(kvp.Key))
             {
                 Debug.Log($"[RoomGenerator] Skipping boss candidate {kvp.Key} — " +
                            "boss prefab lacks a required exit toward its neighbour.");
@@ -886,7 +865,7 @@ public class RoomGenerator : MonoBehaviour
                 if (_largeRoomAnchorOf.TryGetValue(kvp.Key, out Vector2Int anchor) && anchor != kvp.Key)
                     continue;
 
-                if (bossRoomPrefab != null && !BossPrefabFitsPosition(kvp.Key)) continue;
+                if (currentTheme.bossRoomPrefab != null && !BossPrefabFitsPosition(kvp.Key)) continue;
 
                 int manhattan = Mathf.Abs(kvp.Key.x) + Mathf.Abs(kvp.Key.y);
                 if (manhattan > bestManhattan)
@@ -907,7 +886,7 @@ public class RoomGenerator : MonoBehaviour
         Vector3 oldWorldPos;
         if (_largeRoomAnchorOf.ContainsKey(bossPos))
         {
-            oldWorldPos = new Vector3(bossPos.x * roomWidth, 0f, bossPos.y * roomHeight);
+            oldWorldPos = new Vector3(bossPos.x * currentTheme.roomWidth, 0f, bossPos.y * currentTheme.roomHeight);
             RemoveLargeRoomGroup(bossPos);
         }
         else
@@ -919,8 +898,8 @@ public class RoomGenerator : MonoBehaviour
             path.Remove(bossPos);
         }
 
-        Room prefab = bossRoomPrefab != null
-            ? bossRoomPrefab
+        Room prefab = currentTheme.bossRoomPrefab != null
+            ? currentTheme.bossRoomPrefab
             : PickCompatibleNormalPrefab(bossPos);
 
         Room bossRoom = Instantiate(prefab, new Vector3(oldWorldPos.x, 0f, oldWorldPos.z), Quaternion.identity);
@@ -936,13 +915,13 @@ public class RoomGenerator : MonoBehaviour
 
     bool BossPrefabFitsPosition(Vector2Int gridPos)
     {
-        if (bossRoomPrefab == null) return true;
+        if (currentTheme.bossRoomPrefab == null) return true;
 
         foreach (var dir in directions)
         {
             if (!placedRooms.TryGetValue(gridPos + dir, out Room neighbour)) continue;
 
-            if (RoomHasExit(neighbour, -dir) && !RoomHasExit(bossRoomPrefab, dir))
+            if (RoomHasExit(neighbour, -dir) && !RoomHasExit(currentTheme.bossRoomPrefab, dir))
                 return false;
         }
         return true;
@@ -1143,11 +1122,11 @@ public class RoomGenerator : MonoBehaviour
             }
 
             // Insert a bridge room at bestGap.
-            List<Room> bridgeCandidates = roomPrefabs.FindAll(p => PrefabFitsNeighbours(p, bestGap));
-            if (bridgeCandidates.Count == 0) bridgeCandidates = roomPrefabs;
+            List<Room> bridgeCandidates = currentTheme.roomPrefabs.FindAll(p => PrefabFitsNeighbours(p, bestGap));
+            if (bridgeCandidates.Count == 0) bridgeCandidates = currentTheme.roomPrefabs;
 
             Room bridgePrefab = bridgeCandidates[RogueDifficultyManager.RoomRNG.Next(0, bridgeCandidates.Count)];
-            Vector3 bridgeWorld = new Vector3(bestGap.x * roomWidth, 0f, bestGap.y * roomHeight);
+            Vector3 bridgeWorld = new Vector3(bestGap.x * currentTheme.roomWidth, 0f, bestGap.y * currentTheme.roomHeight);
             Room bridge = Instantiate(bridgePrefab, bridgeWorld, Quaternion.identity);
             bridge.position = bestGap;
             bridge.roomType = RoomType.Normal;
@@ -1350,8 +1329,8 @@ public class RoomGenerator : MonoBehaviour
     }
 
     public Vector2Int WorldToGrid(Vector3 worldPos) => new Vector2Int(
-        Mathf.RoundToInt(worldPos.x / roomWidth),
-        Mathf.RoundToInt(worldPos.z / roomHeight)
+        Mathf.RoundToInt(worldPos.x / currentTheme.roomWidth),
+        Mathf.RoundToInt(worldPos.z / currentTheme.roomHeight)
     );
 
     bool IsSpecialRoomPriority(RoomType mine, RoomType theirs) =>
