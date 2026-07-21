@@ -17,14 +17,11 @@ public class ShopItem : MonoBehaviour
 
     TMP_Text price;
 
-    // ── Per-floor reservation tracking ──────────────────────────────────────
     static readonly HashSet<BaseItem> s_reservedItems = new HashSet<BaseItem>();
     static readonly HashSet<string> s_reservedWeapons = new HashSet<string>();
     static int s_trackedFloor = -1;
 
-    /// <summary>
-    /// Called once per floor (lazily, from Start) to wipe stale reservations.
-    /// </summary>
+
     static void TryResetForFloor()
     {
         int currentFloor = RogueDifficultyManager.Instance != null
@@ -39,11 +36,7 @@ public class ShopItem : MonoBehaviour
         }
     }
 
-    // ── Item helper ─────────────────────────────────────────────────────────
-    /// <summary>
-    /// Picks a random item that no other shop slot on this floor has already reserved.
-    /// Falls back to any item after 30 failed attempts (e.g. tiny item pool).
-    /// </summary>
+
     static BaseItem PickUniqueItem(DroptableType table)
     {
         const int maxAttempts = 30;
@@ -64,10 +57,6 @@ public class ShopItem : MonoBehaviour
         return fallback;
     }
 
-    // ── Weapon helper ────────────────────────────────────────────────────────
-    /// <summary>
-    /// Generates a weapon that no other shop slot on this floor has already reserved.
-    /// </summary>
     static AWeapon PickUniqueWeapon()
     {
         const int maxAttempts = 30;
@@ -89,7 +78,6 @@ public class ShopItem : MonoBehaviour
         return fallback;
     }
 
-    // ────────────────────────────────────────────────────────────────────────
 
     void Awake()
     {
@@ -110,7 +98,7 @@ public class ShopItem : MonoBehaviour
         return Mathf.CeilToInt(baseCost * multiplier);
     }
 
-    int getCost(Rarity rar)
+    public static int getCost(Rarity rar)
     {
         int baseCost = 2;
 
@@ -122,6 +110,10 @@ public class ShopItem : MonoBehaviour
 
             case Rarity.Uncommon:
                 baseCost = 7;
+                break;
+
+            case Rarity.Alchemy:
+                baseCost = 10;
                 break;
 
             case Rarity.Legendary:
@@ -147,7 +139,6 @@ public class ShopItem : MonoBehaviour
 
             cost = getCost(chosenItem.Rarity);
             price.text = $"${cost}";
-
             ItemPickup.CreatePickupConditional(chosenItem, transform, () =>
             {
                 var mgr = RogueDifficultyManager.Instance;
@@ -158,6 +149,7 @@ public class ShopItem : MonoBehaviour
                     purchased = true;
                     mgr.Gold -= cost;
                     HudMessageReceiver.Instance?.SendHudMessage($"Bought: {chosenItem}  (-{cost} gold)");
+                    Destroy(price);
                     return true;
                 }
                 else if (messageCooldown <= 0f)
@@ -167,7 +159,7 @@ public class ShopItem : MonoBehaviour
                     messageCooldown = 2f;
                 }
                 return false;
-            });
+            }, isShop: true);
         }
         else
         {
@@ -203,7 +195,7 @@ public class ShopItem : MonoBehaviour
                 }
 
                 return false;
-            }, weapon: chosenWeapon);
+            }, weapon: chosenWeapon, isShop: true);
         }
     }
 

@@ -19,6 +19,8 @@ public class BloodMachine : MonoBehaviour
 
     int bloodDonated;
 
+    public static bool BloodMachined;
+
     void Awake()
     {
         FullThreshold = RogueDifficultyManager.BloodRNG.Next(MinFullThreshold, MaxFullThreshold);
@@ -35,13 +37,14 @@ public class BloodMachine : MonoBehaviour
 
         Debug.Log($"bloodDonated: {bloodDonated}, FullThreshold: {FullThreshold}");
         if (bloodDonated == FullThreshold) return;
-        int damage = Mathf.FloorToInt(Plugin.MaxHealth * 0.25f); // 25% of the hp
-        if (Plugin.SelectedChar.HasPassive(Ultrarogue.Characters.Passive.HealFromBlood))
+        int damage = 50;
+
+        if (Plugin.SelectedChar.GetType() != typeof(Filth))
         {
-            damage = Mathf.RoundToInt(55f);
+            damage = 5;
         }
 
-        if(NewMovement.Instance.hp - damage <= 0)
+        if (NewMovement.Instance.hp - damage <= 0)
         {
             HudMessageReceiver.Instance.SendHudMessage("<color=red>NOT ENOUGH BLOOD</color>");
             return;
@@ -69,15 +72,18 @@ public class BloodMachine : MonoBehaviour
             }
             
         }
+
         if(Plugin.SelectedChar.GetType() != typeof(Filth))
         {
+            BloodMachined = true;
             NewMovement.Instance.GetHurt(damage, false, ignoreInvincibility: true);
         }
         else
         {
 
-            for (int i = 0; i < damage; i++)
+            for (int i = 0; i < damage; i++) // 5 damage
             {
+                BloodMachined = true;
                 NewMovement.Instance.GetHurt(1, false, ignoreInvincibility: true);
             }
         }

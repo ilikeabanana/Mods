@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Text;
 using TMPro;
 using Ultrarogue;
+using Ultrarogue.Characters;
 using Ultrarogue.Items;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 using UnityEngine.EventSystems;
 using UnityEngine.TextCore.Text;
 using UnityEngine.UI;
@@ -54,7 +56,7 @@ public class RogueDifficultyManager : MonoBehaviour
         itemUIObjects = new Dictionary<string, GameObject>();
 
         itemsUI = GameObject.Find("Items").transform.Find("Panel").gameObject;
-        itemsUI.SetActive(false);
+        itemsUI.SetActive(true);
         itemParent = itemsUI.GetComponent<GridLayoutGroup>();
 
         Transform stats = GameObject.Find("Items").transform.Find("Stats");
@@ -62,6 +64,12 @@ public class RogueDifficultyManager : MonoBehaviour
         statSpeedText = stats.Find("StatSpeed/Stt").GetComponent<TMP_Text>();
         statDamageText = stats.Find("StatDamage/Stt").GetComponent<TMP_Text>();
         statAtkSpeedText = stats.Find("StatAtkSpeed/Stt").GetComponent<TMP_Text>();
+
+        if(Plugin.SelectedChar.GetType() == typeof(Filth))
+        {
+            stats.Find("StatAtkSpeed").gameObject.SetActive(false);
+        }
+
         statCooldownText = stats.Find("StatCooldown/Stt").GetComponent<TMP_Text>();
         statFloorText = stats.Find("StatFloor/Stt").GetComponent<TMP_Text>();
 
@@ -74,7 +82,24 @@ public class RogueDifficultyManager : MonoBehaviour
         GameObject tooltipHost = new GameObject("ItemTooltip");
         tooltipHost.transform.SetParent(GameObject.Find("Items").transform.root, false); // top of canvas
         tooltipHost.AddComponent<ItemTooltip>();
+
+       
     }
+    void Start()
+    {
+        activeHolder = Addressables.LoadAssetAsync<GameObject>("Assets/Modding/RogueMode/ActiveHolder.prefab").WaitForCompletion();
+
+
+        Transform ChargeParent = NewMovement.Instance.transform.Find("Main Camera/HUD Camera/HUD/GunCanvas/StatsPanel/Filler/Panel (3)");
+
+        charge = Instantiate(Addressables.LoadAssetAsync<GameObject>("Assets/Modding/RogueMode/ActiveCharge.prefab").WaitForCompletion(), ChargeParent);
+        charge.GetComponent<Slider>().value = 0;
+    }
+
+    GameObject charge;
+
+    GameObject activeHolder;
+    GameObject gun;
 
     void UpdateStatsUI()
     {
@@ -212,6 +237,18 @@ public class RogueDifficultyManager : MonoBehaviour
 
     void Update()
     {
+        if (gun == null)
+        {
+            if (activeHolder != null)
+            {
+                gun = Plugin.MakeGun(5, activeHolder);
+                gun.SetActive(false);
+                Plugin.holder = gun.GetComponent<ActiveHolder>();
+
+                Plugin.holder.chargeUI = charge.GetComponent<Slider>();
+            }
+
+        }
         Gold = Mathf.Clamp(Gold, 0, 99);
          
         if (!this.keepOpen)

@@ -31,7 +31,7 @@ namespace Ultrarogue
     [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
     public class Plugin : BaseUnityPlugin
     {
-        Harmony Harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
+        public static Harmony Harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
 
         internal static new ManualLogSource Logger { get; private set; } = null!;
 
@@ -52,6 +52,8 @@ namespace Ultrarogue
         public static List<BaseCharacter> characters = new List<BaseCharacter>();
 
         public static string GameSeed = "Banana";
+
+        public static ActiveHolder holder;
 
 #if RUNTIME_ROOMS
         DebugRoomGenerator debugGen;
@@ -109,7 +111,7 @@ namespace Ultrarogue
 
         public static bool HasGottenItem(BaseItem item)
         {
-            if(PlayerPrefs.GetInt($"ITEM_{item.ItemName}_SEEN", 0) > 0)
+            if (PlayerPrefs.GetInt($"ITEM_{item.ItemName}_SEEN", 0) > 0)
             {
                 return true;
             }
@@ -270,6 +272,7 @@ namespace Ultrarogue
 
         public static void LoadLevel(string seed)
         {
+            Harmony.PatchAll();
             if (string.IsNullOrEmpty(seed))
                 GameSeed = GenerateRandomString(6);
             else
@@ -319,7 +322,7 @@ namespace Ultrarogue
         }
         IEnumerator SpawnThings()
         {
-            yield return new WaitForSeconds(0.24f); // idk why 24 but lmao
+            yield return new WaitForSeconds(0.44f); // idk why 24 but lmao
             Logger.LogInfo($"I have reset difficulty to {CurrentDifficulty}");
             yield return null;
             AsyncOperationHandle<GameObject> RogueButtonPref = Addressables.LoadAssetAsync<GameObject>("Assets/Modding/RogueMode/RogueMode.prefab");
@@ -407,7 +410,71 @@ namespace Ultrarogue
                 GameObject Warn = Instantiate(Warning.Result, parentMen.transform);
             }
         }
+        public static GameObject MakeGun(int var, GameObject original)
+        {
+            int num = var;
+            // Making sure it isnt null to prevent errors
+            bool flag = MonoSingleton<GunControl>.Instance == null || MonoSingleton<StyleHUD>.Instance == null;
+            bool flag2 = flag;
+            // defining result
+            GameObject result;
+            if (flag2)
+            {
+                result = null;
+            }
+            else
+            {
+                // Checking everything so we dont get any errors
+                bool flag3 = !MonoSingleton<GunControl>.Instance.enabled || !MonoSingleton<StyleHUD>.Instance.enabled;
+                bool flag4 = flag3;
+                if (flag4)
+                {
+                    result = null;
+                }
+                else
+                {
+                    GameObject gameObject = UnityEngine.Object.Instantiate<GameObject>(original);
 
+                    if (gameObject.TryGetComponent<Collider>(out Collider col))
+                    {
+                        Destroy(col);
+                    }
+
+                    bool flag5 = gameObject == null;
+                    bool flag6 = flag5;
+                    if (flag6)
+                    {
+                        result = null;
+                    }
+                    else
+                    {
+                        Vector3 pos = gameObject.transform.position;
+                        Quaternion rot = gameObject.transform.rotation;
+                        // Assigning the transforms
+                        gameObject.transform.parent = MonoSingleton<GunControl>.Instance.transform;
+                        gameObject.transform.localPosition = pos;
+                        gameObject.transform.localRotation = rot;
+                        // Adding it to the slots
+                        MonoSingleton<GunControl>.Instance.slots[num].Add(gameObject);
+                        MonoSingleton<GunControl>.Instance.allWeapons.Add(gameObject);
+                        MonoSingleton<GunControl>.Instance.slotDict.Add(gameObject, num);
+                        MonoSingleton<StyleHUD>.Instance.weaponFreshness.Add(gameObject, 10f);
+                        // Setting the object inactive as default
+                        gameObject.SetActive(false);
+                        // Setting noweapons to false and doing yesweapons
+                        MonoSingleton<GunControl>.Instance.noWeapons = false;
+                        MonoSingleton<GunControl>.Instance.YesWeapon();
+                        // Setting every child inactive
+                        for (int k = 0; k < MonoSingleton<GunControl>.Instance.transform.childCount; k++)
+                        {
+                            MonoSingleton<GunControl>.Instance.transform.GetChild(k).gameObject.SetActive(false);
+                        }
+                        result = gameObject;
+                    }
+                }
+            }
+            return result;
+        }
 
         private void SceneManager_sceneLoaded(Scene arg0, LoadSceneMode arg1)
         {
@@ -752,6 +819,9 @@ namespace Ultrarogue
                     allowedTags == null ||
                     allowedTags.Count == 0 ||
                     x.itemTags.Any(tag => allowedTags.Contains(tag))
+                ) && (
+                    Plugin.holder.CurrentActive != null ||
+                    Plugin.holder.CurrentActive != x
                 )
             ).ToList();
         }
@@ -865,9 +935,12 @@ namespace Ultrarogue
             return tiems[rng.Next(0, tiems.Count)];
         }
 
-        public static void GiveItem(BaseItem item)
+        public static void GiveItem(BaseItem item, ItemPickup pedestal = null)
         {
             PlayerPrefs.SetInt($"ITEM_{item.ItemName}_SEEN", 1);
+            RogueTerminal terminal = FindObjectOfType<RogueTerminal>();
+            if (terminal != null)
+                terminal.RefreshItem(item);
             if (items.ContainsKey(item))
             {
                 items[item]++;
@@ -877,6 +950,21 @@ namespace Ultrarogue
             {
                 items.Add(item, 1);
                 item.OnGotten(items[item], true);
+            }
+
+            if (item is ActiveItem active)
+            {
+                if (holder.CurrentActive != null)
+                {
+                    if (pedestal != null)
+                    {
+                        pedestal.SwitchItem(holder.CurrentActive);
+                    }
+
+                    Plugin.RemoveItem(holder.CurrentActive);
+                }
+
+                holder.CurrentActive = active;
             }
 
             if (RogueDifficultyManager.Instance != null)
@@ -1252,7 +1340,7 @@ namespace Ultrarogue
             {
                 WeaponDescriptor desc = AssetsManager.prefToDescriptor(this.ToString(), Alternate);
                 string name = desc.weaponName;
-                if(name == "UNKNOWN")
+                if (name == "UNKNOWN")
                 {
                     switch (variant)
                     {
@@ -1429,7 +1517,7 @@ namespace Ultrarogue
             if (!Plugin.isInRogueScene()) return;
 
             int minDamage = 1;
-            if(RogueDifficultyManager.Instance != null && RogueDifficultyManager.Instance.floor >= 7)
+            if (RogueDifficultyManager.Instance != null && RogueDifficultyManager.Instance.floor >= 7)
             {
                 minDamage = Mathf.FloorToInt((RogueDifficultyManager.Instance.floor / 7f + 1));
                 minDamage = Mathf.Min(minDamage, damage);
@@ -1457,6 +1545,11 @@ namespace Ultrarogue
             if (!Plugin.isInRogueScene()) return;
             if (amount > 0)
                 amount = Mathf.Max(DamageReduction.CalculateChanges(amount), 1); // cannot go below 1
+            if (BloodMachine.BloodMachined)
+            {
+                BloodMachine.BloodMachined = false;
+                return;
+            }
             foreach (var effect in Plugin.onDamageEffects)
             {
                 effect.effect.Invoke((int)amount);
@@ -1497,6 +1590,11 @@ namespace Ultrarogue
             if (SelectedChar?.HasPassive(Passive.Greedy) != true) return;
 
             damage = ShopItem.GetScaledCost(damage / 10);
+
+
+            // Get scythes
+            int c = Plugin.GetItemCount("Reaper's Scythe");
+            damage *= c + 1; // so if you have 1 you take twice as many damage, 2 thrice as many, etc.
 
             if (damage > 0)
                 RogueDifficultyManager.Instance.Gold -= damage;
@@ -1582,8 +1680,9 @@ namespace Ultrarogue
         [HarmonyPrefix]
         public static bool DontHealIfV2Parry(NewMovement __instance, EnemyIdentifier eid = null, string customParryText = "")
         {
-            Plugin.Logger.LogInfo($"Parrying as {SelectedChar.Name} and we are in the rogue mode {isInRogueMode()}");
             if (!Plugin.isInRogueMode()) return true;
+            Plugin.Logger.LogInfo($"Parrying as {SelectedChar.Name} and we are in the rogue mode {isInRogueMode()}");
+
             MonoSingleton<TimeController>.Instance.ParryFlash();
             __instance.exploded = false;
             if (SelectedChar.HasPassive(Passive.HealFromBlood))
@@ -1890,7 +1989,16 @@ namespace Ultrarogue
 
             if (Plugin.SelectedChar.HasPassive(Passive.Greedy))
             {
-                if (RogueDifficultyManager.Instance != null) RogueDifficultyManager.Instance.Gold++;
+                Transform playerTransform = __instance.transform;
+
+                bool floorHit = Physics.Raycast(playerTransform.position, Vector3.down, out RaycastHit floorCheck, 40f, LayerMaskDefaults.Get(LMD.Environment));
+
+                Vector3 spawnPosition = floorHit ? floorCheck.point : playerTransform.position;
+
+                GameObject plc = new GameObject("ItemDropAnchor");
+                plc.transform.position = spawnPosition;
+                plc.transform.parent = Room.getObjectInsideRoom(spawnPosition).transform;
+                GoldPickup.CreatePickup(plc.transform);
 
             }
 
@@ -1902,10 +2010,22 @@ namespace Ultrarogue
         {
             if (!Plugin.isInRogueMode()) return;
             if (__instance.eid.dead) return;
+            foreach (var hitEffect in Plugin.hitEffects)
+            {
+                if (!hitEffect.runBeforeDamageCalc) continue;
+                if (Plugin.GetItemCount(hitEffect.itemName) <= 0)
+                {
+                    continue;
+                }
+                hitEffect.effect.Invoke(__instance.eid, multiplier);
+            }
             Weapon weaponUsed = Plugin.HitterToWeapon(__instance.eid.hitter);
             if (Plugin.damageMultipliers.ContainsKey(weaponUsed))
                 multiplier = Plugin.damageMultipliers[weaponUsed].CalculateChanges(multiplier);
             multiplier = Plugin.globalDamageMult.CalculateChanges(multiplier);
+
+            
+
             foreach (var mod in Plugin.dmgModifiers)
             {
                 float mult = mod.damageModifier(__instance.eid);
@@ -1914,6 +2034,45 @@ namespace Ultrarogue
 
             foreach (var hitEffect in Plugin.hitEffects)
             {
+                if (hitEffect.runBeforeDamageCalc) continue;
+                if (Plugin.GetItemCount(hitEffect.itemName) <= 0)
+                {
+                    continue;
+                }
+                hitEffect.effect.Invoke(__instance.eid, multiplier);
+            }
+
+        }
+        [HarmonyPatch(typeof(Drone), nameof(Drone.GetHurt))]
+        [HarmonyPrefix]
+        public static void ActivateHitEffects(ref float multiplier, GameObject sourceWeapon, Drone __instance)
+        {
+            if (!Plugin.isInRogueMode()) return;
+            if (__instance.eid.dead) return;
+            Weapon weaponUsed = Plugin.HitterToWeapon(__instance.eid.hitter);
+            if (Plugin.damageMultipliers.ContainsKey(weaponUsed))
+                multiplier = Plugin.damageMultipliers[weaponUsed].CalculateChanges(multiplier);
+            multiplier = Plugin.globalDamageMult.CalculateChanges(multiplier);
+
+            foreach (var hitEffect in Plugin.hitEffects)
+            {
+                if (!hitEffect.runBeforeDamageCalc) continue;
+                if (Plugin.GetItemCount(hitEffect.itemName) <= 0)
+                {
+                    continue;
+                }
+                hitEffect.effect.Invoke(__instance.eid, multiplier);
+            }
+
+            foreach (var mod in Plugin.dmgModifiers)
+            {
+                float mult = mod.damageModifier(__instance.eid);
+                multiplier *= mult;
+            }
+
+            foreach (var hitEffect in Plugin.hitEffects)
+            {
+                if (hitEffect.runBeforeDamageCalc) continue;
                 if (Plugin.GetItemCount(hitEffect.itemName) <= 0)
                 {
                     continue;
@@ -2130,10 +2289,13 @@ namespace Ultrarogue
         public string itemName;
         public Action<EnemyIdentifier, float> effect;
 
-        public HitEffect(string itemName, Action<EnemyIdentifier, float> effect)
+        public bool runBeforeDamageCalc;
+
+        public HitEffect(string itemName, Action<EnemyIdentifier, float> effect, bool runBeforeDamageCalc = false)
         {
             this.itemName = itemName;
             this.effect = effect;
+            this.runBeforeDamageCalc = runBeforeDamageCalc;
 
             Plugin.hitEffects.Add(this);
         }
@@ -2282,7 +2444,7 @@ namespace Ultrarogue
                 __instance.AddPoints(15, "", eid, sourceWeapon);
                 if (dead)
                 {
-                    if(eid.FullName.ToLower() == "filth")
+                    if (eid.FullName.ToLower() == "filth")
                     {
                         __instance.AddPoints(75, "FRIENDLY KILL", eid, sourceWeapon);
                     }
@@ -2290,12 +2452,14 @@ namespace Ultrarogue
                     {
                         __instance.AddPoints(75, "ROADKILL", eid, sourceWeapon);
                     }
-                    
+
                 }
             }
 
         }
     }
+
+
 }
 
 // Every day, i imagine a future where i can be with you

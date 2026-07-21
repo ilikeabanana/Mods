@@ -267,6 +267,10 @@ public static class SceneLoader
             Plugin.LoadLevel("");
             return false;
         }
+        else
+        {
+            Plugin.Harmony.UnpatchSelf();
+        }
 
         return true;
     }

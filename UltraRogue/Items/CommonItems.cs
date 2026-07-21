@@ -489,4 +489,25 @@ namespace Ultrarogue.Items
             damageChange.damageChange.percentage = 0;
         }
     }
+
+    public class Test : ActiveItem
+    {
+        public override string ItemName => "Damage Book";
+        public override int ChargeRequired => 3;
+        public override string itemDescription => "On activation, gain 50% damage temporarily (resets when exiting combat).";
+        Change change = new Change();
+        PlayerChange plr;
+        public override void OnStart()
+        {
+            plr = new PlayerChange(globalDamageMult: change);
+        }
+        public override void OnUse()
+        {
+            change.percentage = 0.50f;
+        }
+        public override void OnUpdate(int count)
+        {
+            if (!Room.isFighting) change.percentage = 0;
+        }
+    }
 }

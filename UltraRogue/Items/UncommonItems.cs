@@ -42,6 +42,34 @@ namespace Ultrarogue.Items
         public override bool CanOnlyHaveOne => true;
     }
 
+    public class BowlLasagna : BaseItem
+    {
+        public override string ItemName => "Bowl of Lasagna";
+        public override string itemDescription => "Increase all stats by +15%";
+        public override Rarity Rarity => Rarity.Uncommon;
+        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Utility };
+        Change change = new Change();
+        PlayerChange plr;
+        public override void OnStart()
+        {
+            plr = new PlayerChange(change, null, change, change, change, null, globalDamageMult: change);
+        }
+
+        public override void OnUpdate(int count)
+        {
+            if (Plugin.SelectedChar.HasPassive(Passive.HealFromBlood))
+                plr.maxHealth = new Change();
+            else
+                plr.maxHealth = change;
+            change.percentage = 0.15f * count;
+        }
+        public override void OnRemoval()
+        {
+
+            change.percentage = 0;
+        }
+    }
+
     public class Panopticon : BaseItem
     {
         public override Rarity Rarity => Rarity.Uncommon;
@@ -365,6 +393,50 @@ namespace Ultrarogue.Items
                 proj.enemyThatGotHit = eid;
                 missle.transform.position = CameraController.Instance.GetDefaultPos() + Vector3.up * 3.5f;
             });
+        }
+    }
+
+    [HarmonyPatch]
+    public class Repeater : ActiveItem
+    {
+        public override string ItemName => "Repeater";
+        public override int ChargeRequired => 2;
+        public override string itemDescription => "Repeat the last damage dealt to the same enemy, if that enemy is dead. Apply it to a random enemy.";
+        public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
+
+        public override Rarity Rarity => Rarity.Uncommon;
+
+        static EnemyIdentifier lastHit;
+        static float lastHitDmg;
+        static string lastHitter;
+
+        public override void OnStart()
+        {
+            new HitEffect(ItemName, (eid, dmg) =>
+            {
+                lastHit = eid;
+                lastHitDmg = dmg;
+                lastHitter = eid.hitter;
+            }, true);
+        }
+
+        public override void OnUse()
+        {
+            if(lastHit == null || lastHit.dead)
+            {
+                List<EnemyIdentifier> eids = EnemyTracker.Instance.GetCurrentEnemies();
+                lastHit = eids[Random.Range(0, eids.Count)];
+            }
+
+            lastHit.hitter = lastHitter;
+            lastHit.DeliverDamage(lastHit.gameObject, Vector3.zero, lastHit.transform.position, lastHitDmg, false);
+        }
+
+        public override void OnRemoval()
+        {
+            lastHit = null;
+            lastHitDmg = 0;
+            lastHitter = null;
         }
     }
 }

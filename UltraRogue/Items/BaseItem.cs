@@ -9,6 +9,17 @@ using UnityEngine.UI;
 
 namespace Ultrarogue.Items
 {
+    public abstract class ActiveItem : BaseItem
+    {
+        public virtual bool ConsumeOnUse => false;
+        public virtual int ChargeRequired => 0;
+
+        public virtual void OnUse()
+        {
+
+        }
+    }
+
     public abstract class BaseItem
     {
         public virtual bool CanOnlyHaveOne => false;

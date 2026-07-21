@@ -18,7 +18,9 @@ public class RogueTerminal : MonoBehaviour
     public TMP_Text ItemInfoNameName;
     public TMP_Text ItemInfoInfo;
     public TMP_Text TipDay;
-     
+
+    private Dictionary<BaseItem, GameObject> itemButtons = new Dictionary<BaseItem, GameObject>();
+
     void Awake()
     {
         FillItems();
@@ -44,24 +46,36 @@ public class RogueTerminal : MonoBehaviour
     void FillItem(BaseItem item)
     {
         GameObject itemButC = Instantiate(ItemPrefab);
-        itemButC.transform.Find("Background/Enemy").GetComponent<Image>().sprite = item.ItemIcon;
-
-        //if(item.materialOverride != null)
-        //    itemButC.transform.Find("Background/Enemy").GetComponent<Image>().material = item.materialOverride;
-        itemButC.transform.Find("Background").GetComponent<Image>().color = rarityToColor(item.Rarity);
         itemButC.transform.SetParent(ItemPrefab.transform.parent, false);
 
-        if (!Plugin.HasGottenItem(item))
+        itemButC.transform.Find("Background/Enemy").GetComponent<Image>().sprite = item.ItemIcon;
+        itemButC.transform.Find("Background").GetComponent<Image>().color = rarityToColor(item.Rarity);
+
+        itemButtons[item] = itemButC;
+
+        RefreshItem(item);
+    }
+
+    public void RefreshItem(BaseItem item)
+    {
+        if (!itemButtons.TryGetValue(item, out GameObject button))
+            return;
+
+        Image icon = button.transform.Find("Background/Enemy").GetComponent<Image>();
+        Button btn = button.GetComponent<Button>();
+
+        btn.onClick.RemoveAllListeners();
+
+        if (Plugin.HasGottenItem(item))
         {
-            itemButC.transform.Find("Background/Enemy").GetComponent<Image>().color = Color.black;
-            itemButC.GetComponent<Button>().onClick.AddListener(() => FillInfoButEvil(item));
+            icon.color = Color.white;
+            btn.onClick.AddListener(() => FillInfo(item));
         }
         else
         {
-
-            itemButC.GetComponent<Button>().onClick.AddListener(() => FillInfo(item));
+            icon.color = Color.black;
+            btn.onClick.AddListener(() => FillInfoButEvil(item));
         }
-
     }
     Color rarityToColor(Rarity rar)
     {

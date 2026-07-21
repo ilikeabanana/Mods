@@ -18,6 +18,11 @@ public class AssetsManager
 
     public static GameObject VirtueBeam;
     public static GameObject BreakParticle;
+    public static GameObject CoinGet;
+    public static GameObject CoinFlash;
+
+    public static Sprite KeySprite;
+    public static Sprite CoinSprite;
 
     // Enemies grouped by their EnemyType enum
     public static Dictionary<EnemyType, List<SpawnableObject>> enemiesByType
@@ -44,8 +49,21 @@ public class AssetsManager
     public static Sprite ArmKnuckleBlaster;
     public static Sprite ArmWhiplash;
 
+    public static GameObject KeyPrefab;
+    public static GameObject CoinPrefab;
+
+    private static bool _initStarted = false;
+
     public static void Init()
     {
+        if (_initStarted) return;   // prevent duplicate concurrent loads
+        _initStarted = true;
+
+        descriptors.Clear();
+        enemiesByType.Clear();
+        enemiesByClass.Clear();
+        _loadsDone = 0;
+
         Plugin.Instance.StartCoroutine(GetAllSpawnables());
         Plugin.Instance.StartCoroutine(GetAllEnemies());
 
@@ -77,6 +95,18 @@ public class AssetsManager
             healingEffect = Addressables
                 .LoadAssetAsync<GameObject>(
                     "Assets/Particles/HealingEffect.prefab")
+                .WaitForCompletion();
+
+        if (CoinGet == null)
+            CoinGet = Addressables
+                .LoadAssetAsync<GameObject>(
+                    "Assets/Particles/CoinGet.prefab")
+                .WaitForCompletion();
+
+        if (CoinFlash == null)
+            CoinFlash = Addressables
+                .LoadAssetAsync<GameObject>(
+                    "Assets/Particles/Flashes/CoinFlash.prefab")
                 .WaitForCompletion();
 
         if (funnyPowerIntroSpawn == null)

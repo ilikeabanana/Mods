@@ -23,6 +23,44 @@ namespace Ultrarogue.Items
             Plugin.luck = 0;
         }
     }
+
+    public class Dice : ActiveItem
+    {
+        public override string ItemName => "Dice";
+        public override string itemDescription => "Reroll items";
+        public override Rarity Rarity => Rarity.Legendary;
+        public override int ChargeRequired => 5;
+        public override void OnUse()
+        {
+            Room currentRoom = Room.getObjectInsideRoom(NewMovement.Instance.transform.position);
+            ItemPickup[] pickups = currentRoom.GetComponentsInChildren<ItemPickup>();
+            foreach (var item in pickups)
+            {
+                DroptableType drop = DroptableType.CommonOnly;
+
+                switch (item.item.Rarity)
+                {
+                    case Rarity.Legendary:
+                        drop = DroptableType.LegendaryOnly;
+                        break;
+                    case Rarity.Uncommon:
+                        drop = DroptableType.UncommonOnly;
+                        break;
+                    case Rarity.Common:
+                        drop = DroptableType.CommonOnly;
+                        break;
+                    case Rarity.Alchemy:
+                        drop = DroptableType.Planetarium;
+                        break;
+                }
+
+                BaseItem randomItem = Plugin.GiveRandomItem(RogueDifficultyManager.ItemRNG, drop);
+                item.SwitchItem(randomItem);
+            }
+            
+        }
+    }
+
     [HarmonyPatch]
     public class ToolbarsFavorite : BaseItem
     {
@@ -54,43 +92,6 @@ namespace Ultrarogue.Items
                     __instance.ricochetAmount *= 2;
                 else if (__instance.ricochetAmount == 0)
                     taggedBeams.Add(__instance);
-            }
-        }
-
-        [HarmonyPatch(typeof(RevolverBeam), "PiercingShotCheck")]
-        static class PiercingShotCheckPatch
-        {
-            static void Prefix(RevolverBeam __instance, out bool __state)
-            {
-                __state = __instance.fadeOut;
-            }
-
-            static void Postfix(RevolverBeam __instance, bool __state)
-            {
-                if (!Plugin.isInRogueScene()) return;
-                if (!taggedBeams.Contains(__instance)) return;
-                if (__state || !__instance.fadeOut) return;
-
-                // Access private shotHitPoint via reflection
-                Vector3 hitPoint = (Vector3)typeof(RevolverBeam)
-                    .GetField("shotHitPoint", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                    .GetValue(__instance);
-
-                SpawnExplosion(hitPoint);
-                taggedBeams.Remove(__instance);
-            }
-        }
-
-        [HarmonyPatch(typeof(RevolverBeam), "HitSomething")]
-        static class HitSomethingPatch
-        {
-            static void Postfix(RevolverBeam __instance, PhysicsCastResult hit)
-            {
-                if (!Plugin.isInRogueScene()) return;
-                if (!taggedBeams.Contains(__instance)) return;
-
-                SpawnExplosion(hit.point);
-                taggedBeams.Remove(__instance);
             }
         }
     }
@@ -498,7 +499,7 @@ namespace Ultrarogue.Items
     public class Soulcatcher : BaseItem
     {
         public override string ItemName => "Soulcatcher";
-        public override string itemDescription => "Each kill permanently increases damage by 1% up to +90% (+90% per stack)";
+        public override string itemDescription => "Each kill increases damage by 10% for the room";
         public override Rarity Rarity => Rarity.Legendary;
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         Change dmgChange;
@@ -513,14 +514,15 @@ namespace Ultrarogue.Items
             {
                 int count = Plugin.GetItemCount(this);
                 if (count <= 0) return;
-                if (killBonus >= 0.9f * count) return;
-                killBonus += 0.01f;
+                killBonus += 0.1f;
             });
         }
 
         public override void OnUpdate(int count)
         {
             dmgChange.percentage = killBonus;
+            if (!Room.isFighting)
+                killBonus = 0;
         }
 
         public override void OnRemoval()
@@ -534,7 +536,7 @@ namespace Ultrarogue.Items
     public class CerberusHead : BaseItem
     {
         public override string ItemName => "Cerberus Head";
-        public override string itemDescription => "All weapons deal +70% more damage";
+        public override string itemDescription => "All weapons deal +100% more damage";
         public override Rarity Rarity => Rarity.Legendary;
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         Change dmgChange;
@@ -547,7 +549,7 @@ namespace Ultrarogue.Items
 
         public override void OnUpdate(int count)
         {
-            dmgChange.percentage = 0.70f * count;
+            dmgChange.percentage = count;
         }
 
         public override void OnRemoval()

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 
 namespace Ultrarogue.SceneStuff
 {
@@ -14,19 +15,19 @@ namespace Ultrarogue.SceneStuff
             {
                 pickedUp = true;
                 RogueDifficultyManager.Instance.Keys++;
+                Instantiate(AssetsManager.CoinFlash, transform.position, Quaternion.identity);
                 Destroy(gameObject);
             }
         }
 
-        public static void CreatePickup(Vector3 position)
+        public static void CreatePickup(Transform position)
         {
-            GameObject pickup = GameObject.CreatePrimitive(PrimitiveType.Quad);
-            pickup.GetComponent<Collider>().enabled = false;
+            if (AssetsManager.KeyPrefab == null)
+                AssetsManager.KeyPrefab = Addressables.LoadAssetAsync<GameObject>("Assets/Modding/RogueMode/Key.prefab").WaitForCompletion();
+            GameObject pickup = Instantiate(AssetsManager.KeyPrefab);
             pickup.AddComponent<KeyPickup>();
-            Material mat = new Material(DefaultReferenceManager.Instance.masterShader);
-            pickup.GetComponent<MeshRenderer>().material = mat;
-            pickup.transform.position = position + Vector3.up * 3;
-            pickup.transform.localScale *= 3;
+            pickup.transform.position = position.position + Vector3.up;
+            pickup.transform.parent = position;
         }
     }
 }

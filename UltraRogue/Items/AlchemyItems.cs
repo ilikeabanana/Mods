@@ -81,12 +81,13 @@ namespace Ultrarogue.Items
             new PlayerChange(amazingChange, attackSpeed: amazingChange, cooldownReduction: amazingChange, globalDamageMult: amazingChange);
         }
     }
-    public class WildCard : BaseItem
+    public class WildCard : ActiveItem
     {
         public override string ItemName => "Wild Card";
-        public override string itemDescription => "Each room, <color=yellow>one random stat doubles</color>. <color=red>Another random stat is halved</color>.";
+        public override string itemDescription => "On Activation, <color=yellow>one random stat doubles</color>. <color=red>Another random stat is halved</color>.";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage, ItemTag.Utility };
         public override Rarity Rarity => Rarity.Alchemy;
+        public override int ChargeRequired => 3;
 
         Change buffedStat = new Change();
         Change nerfedStat = new Change();
@@ -117,7 +118,7 @@ namespace Ultrarogue.Items
             if(firstPickup)
                 Reroll();
         }
-        public override void RoomEnter()
+        public override void OnUse()
         {
             Reroll();
         }
@@ -136,7 +137,7 @@ namespace Ultrarogue.Items
 
             // Buff is now 2x per stack, nerf is only 0.6x (was 0.5x) — always net positive
             statSlots[buffIndex].postMultiplier = 1f + (1f * count);       // same
-            statSlots[nerfIndex].postMultiplier = Mathf.Pow(0.6f, count); // was 0.5f
+            statSlots[nerfIndex].postMultiplier = Mathf.Pow(0.5f, count); // was 0.5f
         }
 
         public override void OnRemoval()

@@ -792,12 +792,24 @@ public class Room : MonoBehaviour
     }
 
     bool tookNoDamage = true;
+
+    Transform getPlc()
+    {
+        Vector3 itemPos = spawnPoints[Random.Range(0, spawnPoints.Count)].position;
+        itemPos += new Vector3(Random.Range(-1, 1), 0, Random.Range(-1, 1));
+        GameObject plc = new GameObject("ItemDropAnchor");
+        plc.transform.position = itemPos;
+        plc.transform.parent = transform;
+        return plc.transform;
+    }
     void OnRoomCleared()
     {
         UnblockExits();
         MonoSingleton<MusicManager>.Instance.ArenaMusicEnd();
         MonoSingleton<TimeController>.Instance.SlowDown(0.15f);
         MonoSingleton<StainVoxelManager>.Instance.ClearAll();
+        if(Plugin.holder.CurrentActive != null)
+            Plugin.holder.Charge();
         GasolineProjectile[] projs = GameObject.FindObjectsByType<GasolineProjectile>(FindObjectsInactive.Include, FindObjectsSortMode.None);
         foreach (var proj in projs)
         {
@@ -826,11 +838,8 @@ public class Room : MonoBehaviour
 
             if (getChanceVal(enemyRando) <= itemChance)
             {
-                Vector3 itemPos = spawnPoints[Random.Range(0, spawnPoints.Count)].position;
-                GameObject plc = new GameObject("ItemDropAnchor");
-                plc.transform.position = itemPos;
-                plc.transform.parent = transform;
-                StartCoroutine(spawnItem(plc.transform));
+                
+                StartCoroutine(spawnItem(getPlc()));
             }
             else
             {
@@ -842,15 +851,20 @@ public class Room : MonoBehaviour
                 }
                 else if (chanceVal <= 0.44f)
                 {
-                    RogueDifficultyManager.Instance.Keys++;
+                    KeyPickup.CreatePickup(getPlc());
                     if (tookNoDamage)
                         Debug.Log("[Room] Flawless clear! Awarded a key.");
+                } else if(chanceVal <= 0.59f) // 15% chance
+                {
+                    Chest.CreateChest(getPlc());
+                    if (tookNoDamage)
+                        Debug.Log("[Room] Flawless clear! Awarded a chest.");
                 }
                 else
                 {
                     int goldAmount = enemyRando.Next(1, tookNoDamage ? 4 : 3);
                     for (int i = 0; i < goldAmount; i++)
-                        RogueDifficultyManager.Instance.Gold++;
+                        GoldPickup.CreatePickup(getPlc());
                     if (tookNoDamage)
                         Debug.Log($"[Room] Flawless clear! Awarded {goldAmount} gold.");
                 }

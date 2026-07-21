@@ -1,5 +1,8 @@
 using System.Collections.Generic;
+using Ultrarogue.SceneStuff;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
+using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.UI;
 
 public class MinimapUI : MonoBehaviour
@@ -43,6 +46,13 @@ public class MinimapUI : MonoBehaviour
              "Leave null to fall back to NewMovement.Instance's camera.")]
     public Transform lookTarget;
 
+    [Header("Pickup Icons")]
+    [Tooltip("Icon size as a fraction of cellSize.")]
+    [Range(0.15f, 0.7f)]
+    public float iconFraction = 0.48f;
+    [Tooltip("How often (in seconds) rooms are rescanned for pickups.")]
+    public float pickupScanInterval = 0.5f;
+
     [Header("Animation")]
     public float pulseSpeed = 2.8f;
 
@@ -63,6 +73,12 @@ public class MinimapUI : MonoBehaviour
     // ── Arrow state ───────────────────────────────────────────────────────────
     private RectTransform _arrowRT;
     private Image _arrowImg;
+
+    // ── Pickup icon state ─────────────────────────────────────────────────────
+    private readonly Dictionary<Image, Image> _keyIconByCell = new();
+    private readonly Dictionary<Image, Image> _coinIconByCell = new();
+    private readonly Dictionary<Image, Image> _itemIconByCell = new();
+    private float _pickupScanTimer;
 
     private static readonly Vector2Int[] Dirs =
         { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right };
@@ -109,6 +125,14 @@ public class MinimapUI : MonoBehaviour
 
         // Update arrow position & rotation.
         UpdateArrow();
+
+        // Periodically rescan visible rooms for key/coin pickups.
+        _pickupScanTimer += Time.deltaTime;
+        if (_pickupScanTimer >= pickupScanInterval)
+        {
+            _pickupScanTimer = 0f;
+            RefreshPickupIcons();
+        }
     }
 
     // ── Public API ────────────────────────────────────────────────────────────
@@ -123,6 +147,9 @@ public class MinimapUI : MonoBehaviour
         _corridors.Clear();
         _visited.Clear();
         _scouted.Clear();
+        _keyIconByCell.Clear();
+        _coinIconByCell.Clear();
+        _itemIconByCell.Clear();
         _currentPos = new Vector2Int(int.MinValue, 0);
         _placedRooms = placedRooms;
         _outlineRT = null;
@@ -236,6 +263,9 @@ public class MinimapUI : MonoBehaviour
                 foreach (var c in groupCells)
                     _cells[c] = mergedCell;
 
+                // One shared pair of pickup icons for the whole merged room.
+                CreatePickupIcons(mergedCell);
+
                 continue;
             }
 
@@ -245,6 +275,8 @@ public class MinimapUI : MonoBehaviour
                 pxPos, new Vector2(cellSize, cellSize));
             cell.color = Color.clear;
             _cells[pos] = cell;
+
+            CreatePickupIcons(cell);
         }
 
         // Arrow sits on top of everything.
@@ -260,6 +292,9 @@ public class MinimapUI : MonoBehaviour
         _corridors.Clear();
         _visited.Clear();
         _scouted.Clear();
+        _keyIconByCell.Clear();
+        _coinIconByCell.Clear();
+        _itemIconByCell.Clear();
         _placedRooms = null;
         _currentPos = new Vector2Int(int.MinValue, 0);
         _outlineRT = null;
@@ -425,6 +460,136 @@ public class MinimapUI : MonoBehaviour
         return Sprite.Create(tex, new Rect(0, 0, S, S), new Vector2(0.5f, 0.5f));
     }
 
+    // ── Pickup icon helpers ──────────────────────────────────────────────────
+
+    /// <summary>
+    /// Creates (initially hidden) key/coin/item icon Images anchored to a room cell.
+    /// Any combination can be shown at once, laid out side by side.
+    /// </summary>
+    void CreatePickupIcons(Image cell)
+    {
+        var cellRT = cell.GetComponent<RectTransform>();
+        float iconSize = cellSize * iconFraction;
+        float offsetX = iconSize * 0.9f;
+
+        Image keyIcon = MakeImage(cell.gameObject.name + "_KeyIcon", minimapPanel,
+            cellRT.anchoredPosition + new Vector2(0f, 0f), new Vector2(iconSize, iconSize));
+        keyIcon.sprite = GetKeySprite();
+        keyIcon.color = Color.white;
+        keyIcon.raycastTarget = false;
+        keyIcon.gameObject.SetActive(false);
+        keyIcon.transform.SetAsLastSibling();
+
+        Image coinIcon = MakeImage(cell.gameObject.name + "_CoinIcon", minimapPanel,
+            cellRT.anchoredPosition + new Vector2(0f, 0f), new Vector2(iconSize, iconSize));
+        coinIcon.sprite = GetCoinSprite();
+        coinIcon.color = Color.white;
+        coinIcon.raycastTarget = false;
+        coinIcon.gameObject.SetActive(false);
+        coinIcon.transform.SetAsLastSibling();
+
+        // Item icon's sprite is per-item, so it's left null here and assigned
+        // dynamically in RefreshPickupIcons whenever an ItemPickup is found.
+        Image itemIcon = MakeImage(cell.gameObject.name + "_ItemIcon", minimapPanel,
+            cellRT.anchoredPosition + new Vector2(0f, 0f), new Vector2(iconSize, iconSize));
+        itemIcon.color = Color.white;
+        itemIcon.raycastTarget = false;
+        itemIcon.gameObject.SetActive(false);
+        itemIcon.transform.SetAsLastSibling();
+
+        _keyIconByCell[cell] = keyIcon;
+        _coinIconByCell[cell] = coinIcon;
+        _itemIconByCell[cell] = itemIcon;
+    }
+
+    /// <summary>
+    /// Scans every room the player has seen (visited or scouted) for key/coin
+    /// pickups still present in it, and toggles the matching minimap icons.
+    /// </summary>
+    void RefreshPickupIcons()
+    {
+        if (_placedRooms == null) return;
+
+        // Large rooms share one Image across several grid positions — only
+        // process each unique cell once per pass.
+        var processed = new HashSet<Image>();
+
+        foreach (var kvp in _cells)
+        {
+            Vector2Int pos = kvp.Key;
+            Image cell = kvp.Value;
+
+            if (!processed.Add(cell)) continue;
+
+            if (!_keyIconByCell.TryGetValue(cell, out var keyIcon) ||
+                !_coinIconByCell.TryGetValue(cell, out var coinIcon) ||
+                !_itemIconByCell.TryGetValue(cell, out var itemIcon))
+                continue;
+
+            bool seen = _visited.Contains(pos) && _scouted.Contains(pos);
+            if (!seen)
+            {
+                keyIcon.gameObject.SetActive(false);
+                coinIcon.gameObject.SetActive(false);
+                itemIcon.gameObject.SetActive(false);
+                continue;
+            }
+
+            if (!_placedRooms.TryGetValue(pos, out Room room) || room == null)
+            {
+                keyIcon.gameObject.SetActive(false);
+                coinIcon.gameObject.SetActive(false);
+                itemIcon.gameObject.SetActive(false);
+                continue;
+            }
+
+            // Room is itself a MonoBehaviour, so we can search its children directly.
+            bool hasKey = room.GetComponentInChildren<KeyPickup>() != null;
+            bool hasCoin = room.GetComponentInChildren<GoldPickup>() != null;
+            ItemPickup itemPickup = room.GetComponentInChildren<ItemPickup>();
+
+            keyIcon.gameObject.SetActive(hasKey);
+            coinIcon.gameObject.SetActive(hasCoin);
+
+            if (itemPickup != null && itemPickup.item != null)
+            {
+                itemIcon.sprite = itemPickup.item.ItemIcon;
+                itemIcon.gameObject.SetActive(itemIcon.sprite != null);
+            }
+            else
+            {
+                itemIcon.gameObject.SetActive(false);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Lazily loads and caches the key icon sprite on AssetsManager.KeySprite.
+    /// </summary>
+    static Sprite GetKeySprite()
+    {
+        if (AssetsManager.KeySprite == null)
+        {
+            AssetsManager.KeySprite = Addressables
+                .LoadAssetAsync<Sprite>("Assets/Modding/RogueMode/KeyIcon.png")
+                .WaitForCompletion();
+        }
+        return AssetsManager.KeySprite;
+    }
+
+    /// <summary>
+    /// Lazily loads and caches the coin icon sprite on AssetsManager.CoinSprite.
+    /// </summary>
+    static Sprite GetCoinSprite()
+    {
+        if (AssetsManager.CoinSprite == null)
+        {
+            AssetsManager.CoinSprite = Addressables
+                .LoadAssetAsync<Sprite>("Assets/Modding/RogueMode/CoinIcon.png")
+                .WaitForCompletion();
+        }
+        return AssetsManager.CoinSprite;
+    }
 
     // ── Existing helpers ──────────────────────────────────────────────────────
 
@@ -438,6 +603,7 @@ public class MinimapUI : MonoBehaviour
             if (_placedRooms.ContainsKey(n)) _scouted.Add(n);
         }
         RefreshAll();
+        RefreshPickupIcons();
     }
     public void RevealAll()
     {
