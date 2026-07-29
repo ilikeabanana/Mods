@@ -231,18 +231,105 @@ namespace Ultrarogue.Items
 
             // Cap the movement penalty at -40% regardless of item count
             float rawPenalty = itemCount * (0.02f * count); // was 0.05f
-            movementChange.percentage = -1 * Mathf.Min(rawPenalty, 0.40f);
+            movementChange.percentage = -1 * rawPenalty;
         }
     }
-    //public class Null : BaseItem
-    //{
-    //    public override string ItemName => "<voffset=2px><size=120%><color=#00ffff>N</color></size></voffset><anim f=1 a=3 w=50><voffset=4px><color=#ff00ff>U</color></voffset><voffset=-2px><size=80%><color=#ffff00>L</color></size></voffset><voffset=6px><color=#00ff00>L</color></voffset></anim>";
-    //    public override string itemDescription => "50% chance for every item to be replaced with a pure stat upgrade.";
+    public class Null : BaseItem
+    {
+        public static Null I;
+        public override string NameDisplayOverride => "<voffset=2px><size=120%><color=#00ffff>N</color></size></voffset><voffset=4px><color=#ff00ff>U</color></voffset><voffset=-2px><size=80%><color=#ffff00>L</color></size></voffset><voffset=6px><color=#00ff00>L</color></voffset>";
+        public override string ItemName => "Null";
+        public override string itemDescription => "50% chance for every item to be replaced with a pure stat upgrade.";
+        public override Material materialOverride => AssetsManager.getAlchemy();
+        public override Rarity Rarity => Rarity.Alchemy;
+        //fortitudo - Damage 10% up
+        //velocitas - Speed 10% up
+        //rapidiatis - Attack speed 10 % up
+        //refrigescant - cooldown 10% up
 
-    //    public override Rarity Rarity => Rarity.Alchemy;
-    //fortitudo - Damage 10% up
-    //velocitas - Speed 10% up
-    //rapidiatis - Attack speed 10 % up
-    //refrigescant - cooldown 10% up
-    //}
+        public override void OnStart()
+        {
+            base.OnStart();
+            I = this;
+        }
+    }
+
+    public class Fortitudo : BaseItem
+    {
+        public override string ItemName => "Fortitudo";
+        public override string itemDescription => "Increase damage by 20%";
+        public override Material materialOverride => AssetsManager.getAlchemy();
+        Change c = new Change();
+        public override Rarity Rarity => Rarity.NullItem;
+
+        public override void OnStart()
+        {
+            base.OnStart();
+            new PlayerChange(globalDamageMult: c);
+        }
+        public override void OnUpdate(int count)
+        {
+            base.OnUpdate(count);
+            c.percentage = 0.30f * count;
+        }
+    }
+
+    public class Velocitas : BaseItem
+    {
+        public override string ItemName => "Velocitas";
+        public override string itemDescription => "Increase speed by 30%";
+        public override Material materialOverride => AssetsManager.getAlchemy();
+        Change c = new Change();
+        public override Rarity Rarity => Rarity.NullItem;
+        public override void OnStart()
+        {
+            base.OnStart();
+            new PlayerChange(moveSpeed: c);
+        }
+        public override void OnUpdate(int count)
+        {
+            base.OnUpdate(count);
+            c.percentage = 0.30f * count;
+        }
+    }
+
+    public class Rapidiatis : BaseItem
+    {
+        public override Material materialOverride => AssetsManager.getAlchemy();
+        public override string ItemName => "Rapidiatis";
+        public override string itemDescription => "Increase attackspeed by 20%";
+
+        Change c = new Change();
+        public override Rarity Rarity => Rarity.NullItem;
+        public override void OnStart()
+        {
+            base.OnStart();
+            new PlayerChange(attackSpeed: c);
+        }
+        public override void OnUpdate(int count)
+        {
+            base.OnUpdate(count);
+            c.percentage = 0.30f * count;
+        }
+    }
+
+    public class Refrigescant : BaseItem
+    {
+        public override Material materialOverride => AssetsManager.getAlchemy();
+        public override string ItemName => "Refrigescant";
+        public override string itemDescription => "Increase cooldown reduction by 30%";
+
+        Change c = new Change();
+        public override Rarity Rarity => Rarity.NullItem;
+        public override void OnStart()
+        {
+            base.OnStart();
+            new PlayerChange(cooldownReduction: c);
+        }
+        public override void OnUpdate(int count)
+        {
+            base.OnUpdate(count);
+            c.percentage = 0.30f * count;
+        }
+    }
 }

@@ -25,6 +25,7 @@ public enum RoomType
     Shop,
     Gambling,
     Secret,
+    ChallengeRoom,
     OtherSpecialRoom
 }
 
@@ -80,6 +81,14 @@ public class Room : MonoBehaviour
     public bool TriggerSoftlockCheck = true;
 
     [HideInInspector] public Room ParentRoom;
+
+    [Header("Challenge Room")]
+    [Tooltip("How many waves a Challenge Room spawns")]
+    public int ChallengeWaveCount = 4;
+    [Tooltip("Multiplier applied to SpawnCredits for each successive challenge wave")]
+    public float ChallengeWaveMultiplier = 1.42f;
+
+    private bool inChallengeSequence = false;
 
     /// <summary>
     /// Dynamically fetches the correct exit transform based on which grid cell is being checked.
@@ -178,6 +187,10 @@ public class Room : MonoBehaviour
                 StartCoroutine(SpawnEnemies());
                 break;
 
+            case RoomType.ChallengeRoom:
+                StartCoroutine(SpawnChallengeWaves());
+                break;
+
             case RoomType.Treasure:
                 RoomGenerator.Instance.planetChance -= 0.2f;
                 break;
@@ -224,6 +237,51 @@ public class Room : MonoBehaviour
     private bool _activatorsWereUsed = false;
     private float _activatorSettleUntil = 0f;
     private const float ActivatorSettleTime = 6f;
+
+    /// <summary>
+    /// Runs the Challenge Room sequence: spawns ChallengeWaveCount waves back-to-back,
+    /// waiting for each wave to be fully cleared before starting the next. SpawnCredits
+    /// is multiplied by ChallengeWaveMultiplier every wave so the fight escalates.
+    /// Room-cleared rewards/exit-unlocking are suppressed until the final wave dies.
+    /// </summary>
+    IEnumerator SpawnChallengeWaves()
+    {
+        int baseCredits = SpawnCredits;
+        if (baseCredits <= 0)
+        {
+            Plugin.Logger.LogWarning("[Room] ChallengeRoom has 0 SpawnCredits — skipping challenge sequence.");
+            yield break;
+        }
+
+        for (int wave = 0; wave < ChallengeWaveCount; wave++)
+        {
+            bool isFinalWave = wave == ChallengeWaveCount - 1;
+
+            // While true, Update() won't run the normal "room cleared" reward/unlock
+            // logic even though hasSpawnedEnemies briefly becomes true between waves.
+            inChallengeSequence = !isFinalWave;
+
+            SpawnCredits = Mathf.Max(1, Mathf.RoundToInt(baseCredits * Mathf.Pow(ChallengeWaveMultiplier, wave)));
+            Plugin.Logger.LogInfo($"[Room] Challenge wave {wave + 1}/{ChallengeWaveCount} — {SpawnCredits} spawn credits (base {baseCredits}).");
+
+            hasSpawnedEnemies = false;
+            rewardGiven = false;
+
+            yield return StartCoroutine(SpawnEnemies());
+
+            // Wait for every enemy from this wave to die before moving on.
+            while (true)
+            {
+                EnemyIdentifier[] enemies = GetComponentsInChildren<EnemyIdentifier>();
+                bool anyAlive = enemies.Any(e => e != null && !e.dead);
+                if (!anyAlive) break;
+                yield return new WaitForSeconds(WavePollRate);
+            }
+
+            if (!isFinalWave)
+                yield return new WaitForSeconds(1f);
+        }
+    }
 
     IEnumerator SpawnEnemies()
     {
@@ -772,7 +830,7 @@ public class Room : MonoBehaviour
                 tookNoDamage = false;
         }
 
-        if (!hasSpawnedEnemies || rewardGiven) return;
+        if (!hasSpawnedEnemies || rewardGiven || inChallengeSequence) return;
 
         if (_activatorsWereUsed && Time.time < _activatorSettleUntil) return;
 
@@ -808,7 +866,7 @@ public class Room : MonoBehaviour
         MonoSingleton<MusicManager>.Instance.ArenaMusicEnd();
         MonoSingleton<TimeController>.Instance.SlowDown(0.15f);
         MonoSingleton<StainVoxelManager>.Instance.ClearAll();
-        if(Plugin.holder.CurrentActive != null)
+        if (Plugin.holder.CurrentActive != null)
             Plugin.holder.Charge();
         GasolineProjectile[] projs = GameObject.FindObjectsByType<GasolineProjectile>(FindObjectsInactive.Include, FindObjectsSortMode.None);
         foreach (var proj in projs)
@@ -818,8 +876,10 @@ public class Room : MonoBehaviour
         rewardGiven = true;
         isFighting = false;
 
-        if (!isBossRoom)
+        if (!isBossRoom && roomType != RoomType.ChallengeRoom)
         {
+            
+
             if (!Plugin.SelectedChar.HasPassive(Passive.HealFromBlood) && Plugin.SelectedChar.GetType() != typeof(Filth))
             {
                 int currentHp = MonoSingleton<NewMovement>.Instance.hp;
@@ -838,7 +898,7 @@ public class Room : MonoBehaviour
 
             if (getChanceVal(enemyRando) <= itemChance)
             {
-                
+
                 StartCoroutine(spawnItem(getPlc()));
             }
             else
@@ -854,7 +914,8 @@ public class Room : MonoBehaviour
                     KeyPickup.CreatePickup(getPlc());
                     if (tookNoDamage)
                         Debug.Log("[Room] Flawless clear! Awarded a key.");
-                } else if(chanceVal <= 0.59f) // 15% chance
+                }
+                else if (chanceVal <= 0.59f) // 15% chance
                 {
                     Chest.CreateChest(getPlc());
                     if (tookNoDamage)
@@ -872,14 +933,28 @@ public class Room : MonoBehaviour
         }
         else
         {
-            Vector3 spawnPos = transform.position + new Vector3(
-                Random.Range(-2f, 2f), 1f, Random.Range(-2f, 2f));
-            GameObject plc = new GameObject("aaaaaaaaaaaa");
-            plc.transform.position = spawnPos;
-            plc.transform.parent = transform;
-            StartCoroutine(spawnItem(plc.transform));
-            NewMovement.Instance.FullHeal();
-            StartCoroutine(SpawnPortalWhenClear());
+            if (isBossRoom)
+            {
+                Vector3 spawnPos = transform.position + new Vector3(
+                    Random.Range(-2f, 2f), 1f, Random.Range(-2f, 2f));
+                GameObject plc = new GameObject("aaaaaaaaaaaa");
+                plc.transform.position = spawnPos;
+                plc.transform.parent = transform;
+                StartCoroutine(spawnItem(plc.transform));
+                NewMovement.Instance.FullHeal();
+                StartCoroutine(SpawnPortalWhenClear());
+            }
+            else
+            {
+                if (roomType == RoomType.ChallengeRoom)
+                {
+                    Transform itemSpawn = transform.Find("Button/Pedestal");
+                    ItemPickup.CreatePickup(Plugin.GiveRandomItem(table: DroptableType.Challenge), itemSpawn);
+                    Instantiate(AssetsManager.spawnEffect, itemSpawn.position, Quaternion.identity);
+                }
+
+            }
+
         }
 
         foreach (var door in FindObjectsByType<Door>(FindObjectsInactive.Include, FindObjectsSortMode.None))

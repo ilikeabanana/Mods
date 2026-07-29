@@ -61,7 +61,7 @@ public class ItemPickup : MonoBehaviour
         return Plugin.SelectedChar != null && Plugin.SelectedChar.HasPassive(Passive.Greedy);
     }
 
-    public void SwitchItem(BaseItem item)
+    public void SwitchItem(BaseItem item, bool RemoveCondition = true, float delay = 3)
     {
         Material mat = new Material(item.materialOverride ? item.materialOverride : AssetsManager.weaponMat);
         mat.mainTexture = item.ItemTexture;
@@ -69,10 +69,10 @@ public class ItemPickup : MonoBehaviour
         gameObject.GetComponent<MeshRenderer>().material = mat;
 
         this.item = item;
+        if(RemoveCondition)
+            canPickup = () => true;
 
-        canPickup = () => true;
-
-        t = 3; // 3 second delay before another pickup
+        t = delay; // 3 second delay before another pickup
         pickedUp = false;
     }
 
@@ -125,8 +125,14 @@ public class ItemPickup : MonoBehaviour
         };
     }
 
-    public static void CreatePickup(BaseItem item, Transform position, float offset = 3)
+    public static void CreatePickup(BaseItem item, Transform position, float offset = 3, float delay = 0)
     {
+        int c = Plugin.GetItemCount(Null.I);
+        if (c > 0)
+        {
+            if (UnityEngine.Random.value <= 0.5f)
+                item = Plugin.GiveRandomItem(table: DroptableType.Null);
+        }
         GameObject pickup = GameObject.CreatePrimitive(PrimitiveType.Quad);
         pickup.GetComponent<Collider>().enabled = false;
         ItemPickup p =pickup.AddComponent<ItemPickup>();
@@ -138,12 +144,19 @@ public class ItemPickup : MonoBehaviour
         pickup.transform.position = position.position + Vector3.up * offset;
         pickup.transform.parent = position;
         pickup.transform.localScale *= 3;
-
+        p.t = delay;
         if (HasShoppingPassive())
             AddShopPrefab(p, offset);
     }
-    public static void CreatePickupConditional(BaseItem item, Transform position, Func<bool> pickupCon, float offset = 3, bool isShop = false)
+    public static void CreatePickupConditional(BaseItem item, Transform position, Func<bool> pickupCon, float offset = 3, bool isShop = false, float delay = 0)
     {
+        int c = Plugin.GetItemCount(Null.I);
+        if(c > 0)
+        {
+            if (UnityEngine.Random.value <= 0.5f)
+                item = Plugin.GiveRandomItem(table: DroptableType.Null);
+        }
+
         GameObject pickup = GameObject.CreatePrimitive(PrimitiveType.Quad);
         pickup.GetComponent<Collider>().enabled = false;
         pickup.AddComponent<ItemPickup>().item = item;
@@ -154,7 +167,7 @@ public class ItemPickup : MonoBehaviour
         pickup.transform.position = position.position + Vector3.up * offset;
         pickup.transform.localScale *= 3;
         pickup.transform.parent = position;
-
+        pickup.GetComponent<ItemPickup>().t = delay;
         if (HasShoppingPassive() && !isShop)
             AddShopPrefab(pickup.GetComponent<ItemPickup>(), offset);
     }
@@ -169,5 +182,7 @@ public enum DroptableType
     LegendaryOnly,
     UncommonOnly,
     CommonOnly,
-    BloodMachine
+    BloodMachine,
+    Challenge,
+    Null
 }

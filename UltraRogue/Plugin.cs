@@ -526,13 +526,17 @@ namespace Ultrarogue
                 // List of items to spawn
                 List<BaseItem> items = new List<BaseItem>
                 {
-                    Plugin.getItem("Eye of God"),
-                    Plugin.getItem("Small Kit"),
-                    Plugin.getItem("Fusion"),
-                    Plugin.getItem("Improvement"),
-                    Plugin.getItem("Dual Gun"),
-                    Plugin.getItem("Jumper Cable"),
-                    Plugin.getItem("Ration Card")
+                    Plugin.getItem("Null"),
+                    Plugin.getItem("Fortitudo"),
+                    Plugin.getItem("Velocitas"),
+                    Plugin.getItem("Rapidiatis"),
+                    Plugin.getItem("Refrigescant"),
+                    Plugin.getItem("Hitscan on hit"),
+                    Plugin.getItem("Damage Book"),
+                    Plugin.getItem("Bowl of Lasagna"),
+                    Plugin.getItem("Repeater"),
+                    Plugin.getItem("Dice"),
+
                 };
 
                 for (int i = 0; i < items.Count; i++)
@@ -704,15 +708,14 @@ namespace Ultrarogue
                 }
             }
 
-            // Filth passive: attack speed bonuses are converted into movement speed instead
             if (SelectedChar != null && SelectedChar.GetType() == typeof(Filth))
             {
                 moveChange.ApplyChangeToChange(atkSpeedChange);
-                atkSpeedChange = new Change(); // zero out attack speed
+                atkSpeedChange = new Change();
             }
 
-            NewMovement.Instance.walkSpeed = Mathf.Max(moveChange.CalculateChanges(normalMoveSpeed), normalMoveSpeed * 0.05f);
-            NewMovement.Instance.airAcceleration = Mathf.Max(moveChange.CalculateChanges(normalairAccelaration), normalairAccelaration * 0.05f);
+            NewMovement.Instance.walkSpeed = Mathf.Max(moveChange.CalculateChanges(normalMoveSpeed), normalMoveSpeed * 0.2f);
+            NewMovement.Instance.airAcceleration = Mathf.Max(moveChange.CalculateChanges(normalairAccelaration), normalairAccelaration * 0.2f);
             NewMovement.Instance.jumpPower = jumpChange.CalculateChanges(normalJumpHeight);
             globalDamageMult = globalDamageChange;
             MaxHealth = Mathf.RoundToInt(hpChange.CalculateChanges(100f));
@@ -811,9 +814,6 @@ namespace Ultrarogue
                     !x.CanOnlyHaveOne ||
                     GetItemCount(x) <= 0
                 ) && (
-                    x.ItemName != "Thunder Boomerang" ||
-                    weapons.Any(w => w.weapon == Weapon.Revolver && w.variant == Variant.Green)
-                ) && (
                     // If allowedTags is null or empty, allow everything.
                     // Otherwise, the item must share at least one tag with the allowed list.
                     allowedTags == null ||
@@ -851,6 +851,12 @@ namespace Ultrarogue
             {Rarity.Uncommon, 0.15f },
             {Rarity.Legendary, 0.05f }
         });
+        public static DropTable ChallengeTable = new DropTable(new Dictionary<Rarity, float>()
+        {
+            {Rarity.Common, 0.80f },
+            {Rarity.Uncommon, 0.15f },
+            {Rarity.Legendary, 0.05f }
+        }, new List<ItemTag>() { ItemTag.Damage });
 
         public static DropTable CommonTable = new DropTable(new Dictionary<Rarity, float>()
         {
@@ -881,10 +887,16 @@ namespace Ultrarogue
 
         public static DropTable BloodTable = new DropTable(new Dictionary<Rarity, float>()
         {
-            { Rarity.Common,    0.25f },
-            { Rarity.Uncommon,  0.65f },
-            { Rarity.Legendary, 0.1f  }
+            { Rarity.Common,    0.40f },
+            { Rarity.Uncommon,  0.55f },
+            { Rarity.Legendary, 0.05f  }
         }, new List<ItemTag>() { ItemTag.Health });
+
+        public static DropTable NullTable = new DropTable(new Dictionary<Rarity, float>()
+        {
+            { Rarity.NullItem,    1 },
+        });
+
         #endregion Tables
 
         static DropTable getDroptable(DroptableType type)
@@ -904,6 +916,11 @@ namespace Ultrarogue
                 case DroptableType.BloodMachine:
                     return BloodTable;
 
+                case DroptableType.Challenge:
+                    return ChallengeTable;
+                case DroptableType.Null:
+                    return NullTable;
+
                 case DroptableType.Boss:
                 case DroptableType.RandomDrop:
                 case DroptableType.Shop:
@@ -922,17 +939,42 @@ namespace Ultrarogue
             Rarity rarity = getRarityBasedOnDropTable(dTable, rng);
 
             // Use the drop table's allowedTags to restrict the item pool.
-            // An empty allowedTags list on DropTable means "all tags allowed".
-            List<BaseItem> tiems = getRarityItems(rarity, dTable.allowedTags);
+            List<BaseItem> items = getRarityItems(rarity, dTable.allowedTags);
 
-            // Safety fallback: if the tag filter produced an empty pool, ignore tags and pick from everything.
-            if (tiems.Count == 0)
+            // Safety fallback.
+            if (items.Count == 0)
             {
                 Plugin.Logger.LogWarning($"[GiveRandomItem] Tag-filtered pool for rarity {rarity} was empty — falling back to unfiltered pool.");
-                tiems = getRarityItems(rarity);
+                items = getRarityItems(rarity);
             }
 
-            return tiems[rng.Next(0, tiems.Count)];
+            // Calculate total weight.
+            float totalWeight = 0f;
+            foreach (BaseItem item in items)
+            {
+                if (item.SpawnWeight > 0)
+                    totalWeight += item.SpawnWeight;
+            }
+
+            // Fallback if all weights are zero or negative.
+            if (totalWeight <= 0f)
+                return items[rng.Next(items.Count)];
+
+            // Pick a weighted random value.
+            float roll = (float)(rng.NextDouble() * totalWeight);
+
+            foreach (BaseItem item in items)
+            {
+                if (item.SpawnWeight <= 0)
+                    continue;
+
+                roll -= item.SpawnWeight;
+                if (roll <= 0f)
+                    return item;
+            }
+
+            // Floating point safety.
+            return items[items.Count - 1];
         }
 
         public static void GiveItem(BaseItem item, ItemPickup pedestal = null)
@@ -1310,8 +1352,38 @@ namespace Ultrarogue
             {
                 AWeapon generated;
 
-                Weapon weaponEnum = (Weapon)RogueDifficultyManager.RoomRNG.Next(0, System.Enum.GetValues(typeof(Weapon)).Length);
-                Variant variantEnum = (Variant)RogueDifficultyManager.RoomRNG.Next(0, System.Enum.GetValues(typeof(Variant)).Length);
+                Weapon weaponEnum = (Weapon)RogueDifficultyManager.RoomRNG.Next(
+                    0,
+                    System.Enum.GetValues(typeof(Weapon)).Length
+                );
+
+                Variant variantEnum;
+
+                if (Plugin.GetItemCount("Thunder Boomerang") > 1 &&
+                    weaponEnum == Weapon.Revolver)
+                {
+                    // Double chance for Green variant
+                    List<Variant> weightedVariants = new List<Variant>();
+
+                    foreach (Variant v in System.Enum.GetValues(typeof(Variant)))
+                    {
+                        weightedVariants.Add(v);
+
+                        if (v == Variant.Green)
+                            weightedVariants.Add(v);
+                    }
+
+                    variantEnum = weightedVariants[
+                        RogueDifficultyManager.RoomRNG.Next(0, weightedVariants.Count)
+                    ];
+                }
+                else
+                {
+                    variantEnum = (Variant)RogueDifficultyManager.RoomRNG.Next(
+                        0,
+                        System.Enum.GetValues(typeof(Variant)).Length
+                    );
+                }
 
                 bool alt = false;
                 if (CanBeAlternate(weaponEnum))

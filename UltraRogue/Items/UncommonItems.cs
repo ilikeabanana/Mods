@@ -197,7 +197,7 @@ namespace Ultrarogue.Items
     public class WillOWisp : BaseItem
     {
         public override string ItemName => "Will-o'-the-Maurice";
-        public override string itemDescription => "On kill, 35% chance to detonate the corpse for 350% damage in a 6m radius (+6m and +350% per stack)";
+        public override string itemDescription => "On kill, 35% chance to detonate the corpse for 350% damage in a 6m radius (+2m and +50% per stack)";
         public override Rarity Rarity => Rarity.Uncommon;
         public override string ItemIconName => "WillOMaurice";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
@@ -218,8 +218,8 @@ namespace Ultrarogue.Items
             yield return new WaitForSeconds(0.25f);
             int count = Plugin.GetItemCount(this);
 
-            float radius = 6f * count;
-            float damage = 3.5f * count;
+            float radius = 6f + (2f * count - 1);
+            float damage = 3.5f + (0.5f * count - 1);
 
             GameObject explosion = Object.Instantiate(DefaultReferenceManager.Instance.explosion, position, Quaternion.identity);
             foreach (var exp in explosion.GetComponentsInChildren<Explosion>())

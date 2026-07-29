@@ -20,6 +20,7 @@ public class FloorTheme : MonoBehaviour
     public Room bossRoomPrefab;
     public Room planetariumPrefab;
     public Room startRoomPrefab;
+    public Room challengeRoomPrefab;
     [Tooltip("Other special rooms")]
     public List<Room> specialRoomPrefabs = new List<Room>();
     [Tooltip("SECRET ROOOMMMS")]

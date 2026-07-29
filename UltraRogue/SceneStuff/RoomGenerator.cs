@@ -640,6 +640,11 @@ public class RoomGenerator : MonoBehaviour
 
         TryPlaceSpecialRoom(ref candidates, currentTheme.treasureRoomPrefab);
         TryPlaceSpecialRoom(ref candidates, currentTheme.shopRoomPrefab);
+        if (RogueDifficultyManager.RoomRNG.NextDouble() <= 0.45f && NewMovement.Instance.hp == Plugin.MaxHealth) // 45% chance when you have full hp
+        {
+            TryPlaceSpecialRoom(ref candidates, currentTheme.challengeRoomPrefab);
+        }
+        
         if (RogueDifficultyManager.Instance.floor % 2 == 0 && RogueDifficultyManager.Instance.Gold >= 5)
         {
             TryPlaceSpecialRoom(ref candidates, currentTheme.gamblingRoomPrefab);
@@ -781,7 +786,10 @@ public class RoomGenerator : MonoBehaviour
         Room room = Instantiate(prefab, worldPos, Quaternion.identity);
         room.position = pos;
         room.roomType = roomType;
-        room.SpawnCredits = 0;
+        if (room.roomType != RoomType.ChallengeRoom)
+            room.SpawnCredits = 0;
+        else
+            room.SpawnCredits = 3;
 
         AlignRoomToNeighborExit(room, pos);
 

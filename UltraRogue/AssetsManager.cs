@@ -20,6 +20,7 @@ public class AssetsManager
     public static GameObject BreakParticle;
     public static GameObject CoinGet;
     public static GameObject CoinFlash;
+    public static GameObject RevolverBeam;
 
     public static Sprite KeySprite;
     public static Sprite CoinSprite;
@@ -101,6 +102,12 @@ public class AssetsManager
             CoinGet = Addressables
                 .LoadAssetAsync<GameObject>(
                     "Assets/Particles/CoinGet.prefab")
+                .WaitForCompletion();
+
+        if (RevolverBeam == null)
+            RevolverBeam = Addressables
+                .LoadAssetAsync<GameObject>(
+                    "Assets/Prefabs/Attacks and Projectiles/Hitscan Beams/Revolver Beam.prefab")
                 .WaitForCompletion();
 
         if (CoinFlash == null)

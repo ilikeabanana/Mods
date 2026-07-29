@@ -30,6 +30,7 @@ namespace Ultrarogue.Items
 
         }
 
+        public virtual string NameDisplayOverride => "";
         public virtual string ItemName => "";
         public virtual string itemDescription => string.Empty;
         public virtual string itemLore => "This is a placeholder. write something sad here :(";
@@ -38,6 +39,7 @@ namespace Ultrarogue.Items
         public virtual List<ItemTag> itemTags => new List<ItemTag>();
         public virtual List<Plugin.Weapon> WeaponRequirements => new List<Plugin.Weapon>();
         public virtual List<Plugin.Weapon> WeaponProvisions => new List<Plugin.Weapon>();
+        public virtual float SpawnWeight => 1;
         public virtual void OnGotten(int count, bool firstPickup)
         {
 
@@ -70,7 +72,8 @@ namespace Ultrarogue.Items
 
         public override string ToString()
         {
-            return $"Item name: {ItemName}, description: {itemDescription}";
+            string name = string.IsNullOrEmpty(NameDisplayOverride) ? ItemName : NameDisplayOverride;
+            return $"Item name: {name}, description: {itemDescription}";
         }
 
         public Sprite ItemIcon

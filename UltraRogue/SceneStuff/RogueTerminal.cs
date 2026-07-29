@@ -89,6 +89,8 @@ public class RogueTerminal : MonoBehaviour
                 return Color.green;
             case Rarity.Legendary:
                 return Color.yellow;
+            case Rarity.NullItem:
+                return Color.red;
             default:
                 return Color.white;
         }
@@ -131,7 +133,8 @@ public class RogueTerminal : MonoBehaviour
             { Rarity.Common, 0 },
             { Rarity.Uncommon, 1 },
             { Rarity.Legendary, 2 },
-            { Rarity.Alchemy, 3 }
+            { Rarity.Alchemy, 3 },
+            { Rarity.NullItem, 4 }
         };
 
         foreach (var item in Plugin.possibleItems.OrderBy(i => rarityOrder[i.Rarity]))

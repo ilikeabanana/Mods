@@ -65,34 +65,66 @@ namespace Ultrarogue.Items
     public class ToolbarsFavorite : BaseItem
     {
         public override string ItemName => "Thunder Boomerang";
-        public override string itemDescription => "Double the hitscan bounce count. Bouncing hitscan attacks explode now.";
+        public override string itemDescription => "Double the hitscan bounce count. Every 20 (-15% per stack) units a hitscan travels, it zaps nearby enemies.";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         public override Rarity Rarity => Rarity.Legendary;
-        public override List<Plugin.Weapon> WeaponRequirements => new List<Plugin.Weapon>() { Plugin.Weapon.Revolver };
 
         internal static readonly HashSet<RevolverBeam> taggedBeams = new HashSet<RevolverBeam>();
-
+        public override float SpawnWeight => 0.8f; // Slightly lower spawn weight
         private static void SpawnExplosion(Vector3 point)
         {
-            GameObject go = Object.Instantiate(MonoSingleton<DefaultReferenceManager>.Instance.explosion, point, Quaternion.identity);
-            foreach (Explosion exp in go.GetComponentsInChildren<Explosion>())
-                exp.canHit = AffectedSubjects.EnemiesOnly;
+            EnemyIdentifier.Zap(point, 0.5f);
+            //GameObject go = Object.Instantiate(MonoSingleton<DefaultReferenceManager>.Instance.explosion, point, Quaternion.identity);
+            //foreach (Explosion exp in go.GetComponentsInChildren<Explosion>())
+            //    exp.canHit = AffectedSubjects.EnemiesOnly;
         }
 
-        [HarmonyPatch(typeof(RevolverBeam), "Start")]
-        static class StartPatch
+        [HarmonyPatch(typeof(RevolverBeam), "Shoot")]
+        class ShootPatch
         {
             static void Postfix(RevolverBeam __instance)
             {
-                if (!Plugin.isInRogueScene()) return;
-                if (Plugin.GetItemCount("Thunder Boomerang") == 0) return;
-                if (__instance.beamType == BeamType.Enemy || __instance.beamType == BeamType.MaliciousFace) return;
+                if (!Plugin.isInRogueScene())
+                    return;
 
-                if (__instance.previouslyHitTransform == null)
-                    __instance.ricochetAmount *= 2;
-                else if (__instance.ricochetAmount == 0)
-                    taggedBeams.Add(__instance);
+                if (Plugin.GetItemCount("Thunder Boomerang") == 0)
+                    return;
+                if (__instance.beamType == BeamType.Enemy) return;
+                if (__instance.beamType == BeamType.MaliciousFace) return;
+                LineRenderer lr = __instance.GetComponent<LineRenderer>();
+
+                Vector3 start = lr.GetPosition(0);
+                Vector3 end = lr.GetPosition(1);
+
+                float distance = Vector3.Distance(start, end);
+                Vector3 direction = (end - start).normalized;
+
+                int stacks = Plugin.GetItemCount("Thunder Boomerang");
+
+                // 20 units at 1 stack, then 15% less spacing per extra stack
+                float zapSpacing = 20f * Mathf.Pow(0.85f, stacks - 1);
+
+                // Prevent absurd values at very high stack counts if desired
+                zapSpacing = Mathf.Max(zapSpacing, 0.0001f);
+
+                for (float i = zapSpacing; i < distance; i += zapSpacing)
+                {
+                    SpawnExplosion(start + direction * i);
+                }
             }
+        }
+        [HarmonyPatch(typeof(RevolverBeam), nameof(RevolverBeam.Start))]
+        [HarmonyPriority(Priority.Last)]
+        public static void Prefix(RevolverBeam __instance)
+        {
+            if (!Plugin.isInRogueScene()) return;
+            int count = Plugin.GetItemCount("Thunder Boomerang");
+            if (count <= 0) return;
+            if (__instance.hasBeenRicocheter) return;
+            if (__instance.beamType == BeamType.Enemy) return;
+            if (__instance.beamType == BeamType.MaliciousFace) return;
+            __instance.ricochetAmount *= 2;
+            if (__instance.hitAmount < 2) __instance.hitAmount = 2;
         }
     }
 
@@ -314,6 +346,7 @@ namespace Ultrarogue.Items
             "Every 100% damage dealt increases activation chance by 3% (+3% per stack) " +
             "and beam damage by 50% (+50% per stack).";
 
+        public override float SpawnWeight => 0.75f;
         public override List<ItemTag> itemTags =>
             new List<ItemTag>() { ItemTag.Utility };
 

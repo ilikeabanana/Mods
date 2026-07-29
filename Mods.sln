@@ -23,6 +23,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ultrachaos", "UltraChaos\Ul
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KawKaw", "NyonKawKaw\KawKaw.csproj", "{537AE9D6-69DE-4E60-B579-B9D12496F4B3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shield Mod", "ShieldMod\Shield Mod.csproj", "{78940F73-B7EA-4A05-9DF3-6FDB5645293E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -69,6 +71,10 @@ Global
 		{537AE9D6-69DE-4E60-B579-B9D12496F4B3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{537AE9D6-69DE-4E60-B579-B9D12496F4B3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{537AE9D6-69DE-4E60-B579-B9D12496F4B3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{78940F73-B7EA-4A05-9DF3-6FDB5645293E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{78940F73-B7EA-4A05-9DF3-6FDB5645293E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{78940F73-B7EA-4A05-9DF3-6FDB5645293E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{78940F73-B7EA-4A05-9DF3-6FDB5645293E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

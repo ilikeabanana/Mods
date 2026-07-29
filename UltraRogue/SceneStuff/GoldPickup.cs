@@ -22,6 +22,11 @@ public class GoldPickup : MonoBehaviour
             Destroy(gameObject);
         }
     }
+
+    void OnCollisionEnter()
+    {
+
+    }
     public static GameObject CreatePickup(Transform position, float pickupDelay = 0)
     {
         if(AssetsManager.CoinPrefab == null)

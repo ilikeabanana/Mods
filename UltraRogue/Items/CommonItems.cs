@@ -37,6 +37,62 @@ namespace Ultrarogue.Items
         }
     }
 
+    public class HitscanSlop : BaseItem
+    {
+        public override string ItemName => "Hitscan on hit";
+        public override string itemDescription => "25% chance on hit to fire a revolver beam to the nearest enemy dealing 50% (+50% per stack) TOTAL damage";
+        public override float SpawnWeight => 0.9f;
+        public override void OnStart()
+        {
+            base.OnStart();
+            new HitEffect(ItemName, (eid, dmg) =>
+            {
+                int c = Plugin.GetItemCount(this);
+                if (c <= 0) return;
+                if (eid.hitter == ItemName) return;
+
+                if(Plugin.canExecute(25, eid.hitter))
+                {
+                    GameObject beam = Object.Instantiate(AssetsManager.RevolverBeam, CameraController.Instance.GetDefaultPos(), Quaternion.identity);
+
+                    RevolverBeam pew = beam.GetComponent<RevolverBeam>();
+                    pew.hitterOverride = ItemName;
+                    pew.damage = dmg * (0.5f * c);
+                    List<EnemyIdentifier> enemies = EnemyTracker.Instance.GetCurrentEnemies();
+
+                    EnemyIdentifier nearest = null;
+                    float closestSqrDist = float.MaxValue;
+
+                    foreach (EnemyIdentifier enemy in enemies)
+                    {
+                        if (enemy == null)
+                            continue;
+
+                        if (enemy == eid)
+                            continue;
+
+                        if (enemy.dead)
+                            continue;
+
+                        float sqrDist = (enemy.transform.position - beam.transform.position).sqrMagnitude;
+
+                        if (sqrDist < closestSqrDist)
+                        {
+                            closestSqrDist = sqrDist;
+                            nearest = enemy;
+                        }
+                    }
+
+                    if (nearest != null)
+                    {
+                        beam.transform.forward = (nearest.transform.position - beam.transform.position).normalized;
+                    }
+
+                }
+            }, true);
+        }
+    }
+
     public class Monocle : BaseItem
     {
         public override string ItemName => "Monocle";

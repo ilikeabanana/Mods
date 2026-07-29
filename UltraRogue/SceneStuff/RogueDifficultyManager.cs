@@ -779,8 +779,8 @@ public class ItemHoverHandler : MonoBehaviour, IPointerEnterHandler, IPointerExi
         string desc = string.IsNullOrEmpty(Item.itemDescription)
             ? "No description available."
             : Item.itemDescription;
-
-        ItemTooltip.Instance.Show(Item.ItemName, desc, eventData.position);
+        string name = string.IsNullOrEmpty(Item.NameDisplayOverride) ? Item.ItemName : Item.NameDisplayOverride;
+        ItemTooltip.Instance.Show(name, desc, eventData.position);
     }
 
     public void OnPointerExit(PointerEventData eventData)

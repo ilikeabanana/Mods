@@ -61,12 +61,16 @@ namespace Ultrarogue
             }
 
         SkipExtraction:
+            var previousTransform = Addressables.ResourceManager.InternalIdTransformFunc;
+
             Addressables.ResourceManager.InternalIdTransformFunc = (location) =>
             {
                 string id = location.InternalId;
                 if (id.Contains("Ultrarogue.Bundleloader.EpicScene"))
                     return id.Replace("Ultrarogue.Bundleloader.EpicScene", EpicScene);
-                return id;
+
+                // Not ours — defer to whatever was set before us (e.g. another mod's BundleLoader)
+                return previousTransform != null ? previousTransform(location) : id;
             };
 
             Addressables.LoadContentCatalogAsync(
