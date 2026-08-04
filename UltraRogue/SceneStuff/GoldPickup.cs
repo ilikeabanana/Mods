@@ -1,4 +1,6 @@
-﻿using Ultrarogue.Items;
+﻿using HarmonyLib;
+using Ultrarogue;
+using Ultrarogue.Items;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 
@@ -23,10 +25,6 @@ public class GoldPickup : MonoBehaviour
         }
     }
 
-    void OnCollisionEnter()
-    {
-
-    }
     public static GameObject CreatePickup(Transform position, float pickupDelay = 0)
     {
         if(AssetsManager.CoinPrefab == null)
@@ -37,5 +35,18 @@ public class GoldPickup : MonoBehaviour
         pickup.transform.parent = position;
         g.t = pickupDelay;
         return pickup;
+    }
+}
+
+[HarmonyPatch(typeof(Water), nameof(Water.MarkObjectWet))]
+public class DestroyGoldIfInWater
+{
+    public static void Postfix(WaterObject wObj)
+    {
+        if (wObj.rbGO.TryGetComponent<GoldPickup>(out _))
+        {
+            Object.Destroy(wObj.rbGO);
+            return;
+        }
     }
 }

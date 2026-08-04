@@ -25,6 +25,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KawKaw", "NyonKawKaw\KawKaw
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shield Mod", "ShieldMod\Shield Mod.csproj", "{78940F73-B7EA-4A05-9DF3-6FDB5645293E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Specialist Dance", "SpecialistDanceModIDK\Specialist Dance.csproj", "{34A200E7-27C8-4A15-B358-906A6D4A54B7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -75,6 +77,10 @@ Global
 		{78940F73-B7EA-4A05-9DF3-6FDB5645293E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{78940F73-B7EA-4A05-9DF3-6FDB5645293E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{78940F73-B7EA-4A05-9DF3-6FDB5645293E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{34A200E7-27C8-4A15-B358-906A6D4A54B7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{34A200E7-27C8-4A15-B358-906A6D4A54B7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{34A200E7-27C8-4A15-B358-906A6D4A54B7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{34A200E7-27C8-4A15-B358-906A6D4A54B7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

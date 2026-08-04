@@ -39,7 +39,7 @@ public class BloodMachine : MonoBehaviour
         if (bloodDonated == FullThreshold) return;
         int damage = 50;
 
-        if (Plugin.SelectedChar.GetType() != typeof(Filth))
+        if (Plugin.SelectedChar.GetType() == typeof(Filth))
         {
             damage = 5;
         }

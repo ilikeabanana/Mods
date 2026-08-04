@@ -38,6 +38,7 @@ public class RogueDifficultyManager : MonoBehaviour
     public static System.Random BossRNG;
     public static System.Random BloodRNG;
     public static System.Random ChestRNG;
+    public static System.Random KeyEaterRNG;
     bool keepOpen;
     float doubleTap;
     void Awake()
@@ -49,6 +50,7 @@ public class RogueDifficultyManager : MonoBehaviour
         BossRNG = new System.Random(Plugin.GameSeed.GetHashCode() ^ 2);
         BloodRNG = new System.Random((int)Mathf.Log(Plugin.GameSeed.GetHashCode(), 2));
         ChestRNG = new System.Random((int)Mathf.PingPong(Plugin.GameSeed.GetHashCode(), 2)); // Im using random calculations
+        KeyEaterRNG = new System.Random((int)Mathf.DeltaAngle(Plugin.GameSeed.GetHashCode(), 2));
         Instance = this;
         Difficulty = Plugin.CurrentDifficulty;
 

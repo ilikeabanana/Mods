@@ -179,6 +179,7 @@ namespace Ultrarogue
             characters.Add(new Ultrarogue.Characters.GreedMachine());
             characters.Add(new Ultrarogue.Characters.RandomCharacter());
             characters.Add(new Ultrarogue.Characters.Filth());
+            characters.Add(new Ultrarogue.Characters.testcharacterthattestsoutwhichitemsandorweaponsworkinultrarogueasstartingitems());
 
 #if RUNTIME_ROOMS
             var genObj = new GameObject("DebugRoomGenerator");
@@ -290,16 +291,22 @@ namespace Ultrarogue
                 weapons.AddRange(SelectedChar.StartingWeapons);
             }
             Logger.LogInfo($"Item count: " + SelectedChar.StartingItems.Count);
+            ActiveItem activeLoad = null;
             if (SelectedChar.StartingItems.Count != 0)
             {
                 foreach (var item in SelectedChar.StartingItems)
                 {
                     Logger.LogInfo($"Giving item: " + item);
+                    if(Plugin.getItem(item) is ActiveItem active)
+                    {
+                        activeLoad = active;
+                        continue;
+                    }
                     Plugin.GiveItem(item);
                 }
             }
 
-            Plugin.Instance.StartCoroutine(SceneLoader.LoadLevelAsync(false));
+            Plugin.Instance.StartCoroutine(SceneLoader.LoadLevelAsync(false, activeLoad));
         }
         static List<string> inComMods = new List<string>()
         {
@@ -820,8 +827,11 @@ namespace Ultrarogue
                     allowedTags.Count == 0 ||
                     x.itemTags.Any(tag => allowedTags.Contains(tag))
                 ) && (
-                    Plugin.holder.CurrentActive != null ||
+                    Plugin.holder.CurrentActive == null ||
                     Plugin.holder.CurrentActive != x
+                ) && (
+                    !x.RequiresAtleastOneWeapon ||
+                    weapons.Any()
                 )
             ).ToList();
         }
@@ -1228,102 +1238,6 @@ namespace Ultrarogue
             return false;
         }
         #endregion
-        // Just for tests :DDD
-        void OnGUI()
-        {
-            if (NewMovement.Instance == null) return;
-            return;
-            GUIStyle labelStyle = new GUIStyle(GUI.skin.label);
-            labelStyle.fontSize = 14;
-            labelStyle.normal.textColor = Color.white;
-
-            GUIStyle headerStyle = new GUIStyle(GUI.skin.label);
-            headerStyle.fontSize = 16;
-            headerStyle.fontStyle = FontStyle.Bold;
-            headerStyle.normal.textColor = Color.yellow;
-
-            int x = 10, y = 10, lineHeight = 20;
-
-            GUI.Label(new Rect(x, y, 300, lineHeight), "=== ULTRAROGUE STATS ===", headerStyle);
-            y += lineHeight + 4;
-
-            // Movement
-            float currentSpeed = NewMovement.Instance.walkSpeed;
-            float speedDiff = currentSpeed - normalMoveSpeed;
-            GUI.Label(new Rect(x, y, 300, lineHeight), $"Move Speed: {currentSpeed:F1} ({(speedDiff >= 0 ? "+" : "")}{speedDiff:F1})", labelStyle);
-            y += lineHeight;
-
-            // Jump
-            float currentJump = NewMovement.Instance.jumpPower;
-            float jumpDiff = currentJump - normalJumpHeight;
-            GUI.Label(new Rect(x, y, 300, lineHeight), $"Jump Power: {currentJump:F1} ({(jumpDiff >= 0 ? "+" : "")}{jumpDiff:F1})", labelStyle);
-            y += lineHeight;
-
-            // Global Damage
-            float globalMult = globalDamageMult.CalculateChanges(1f);
-            GUI.Label(new Rect(x, y, 300, lineHeight), $"Global Damage Mult: x{globalMult:F2}", labelStyle);
-            y += lineHeight;
-            float speedatkDiff = AttackSpeed.CalculateChanges(1f) - 1;
-            GUI.Label(new Rect(x, y, 300, lineHeight), $"Attack Speed: {AttackSpeed.CalculateChanges(1f):F1} ({(speedatkDiff >= 0 ? "+" : "")}{speedatkDiff:F1})", labelStyle);
-            y += lineHeight + 4;
-
-            // Per-weapon damage
-            GUI.Label(new Rect(x, y, 300, lineHeight), "-- Weapon Damage --", headerStyle);
-            y += lineHeight + 2;
-
-            foreach (var kvp in damageMultipliers)
-            {
-                float weaponMult = kvp.Value.CalculateChanges(1f);
-                Color color = weaponMult > 1f ? Color.green : weaponMult < 1f ? Color.red : Color.white;
-                labelStyle.normal.textColor = color;
-                GUI.Label(new Rect(x, y, 300, lineHeight), $"{kvp.Key}: x{weaponMult:F2}", labelStyle);
-                y += lineHeight;
-            }
-            if (RogueDifficultyManager.Instance != null)
-            {
-                y += 4;
-                labelStyle.normal.textColor = Color.white;
-                GUI.Label(new Rect(x, y, 300, lineHeight), "-- ROGUE STATS --", headerStyle);
-                y += lineHeight + 2;
-
-                GUI.Label(new Rect(x, y, 300, lineHeight), $"Difficulty: {RogueDifficultyManager.Instance.Difficulty}", labelStyle);
-                y += lineHeight;
-                GUI.Label(new Rect(x, y, 300, lineHeight), $"Gold: {RogueDifficultyManager.Instance.Gold}", labelStyle);
-                y += lineHeight;
-            }
-
-
-
-
-            // Items
-            y += 4;
-            labelStyle.normal.textColor = Color.white;
-            GUI.Label(new Rect(x, y, 300, lineHeight), "-- Items --", headerStyle);
-            y += lineHeight + 2;
-
-            if (items.Count == 0)
-            {
-                labelStyle.normal.textColor = Color.gray;
-                GUI.Label(new Rect(x, y, 300, lineHeight), "No items", labelStyle);
-                y += lineHeight;
-            }
-            else
-            {
-                foreach (var kvp in items)
-                {
-                    Color rarityColor = kvp.Key.Rarity switch
-                    {
-                        Rarity.Common => Color.white,
-                        Rarity.Uncommon => Color.green,
-                        Rarity.Legendary => Color.yellow,
-                        _ => Color.white
-                    };
-                    labelStyle.normal.textColor = rarityColor;
-                    GUI.Label(new Rect(x, y, 300, lineHeight), $"{kvp.Key.ItemName} x{kvp.Value}", labelStyle);
-                    y += lineHeight;
-                }
-            }
-        }
     }
 
     public enum Rarity
@@ -2229,7 +2143,7 @@ namespace Ultrarogue
             public override Branch BuildTree(GameConsole.Console con)
             {
                 string name = "ultrarogue";
-                Node[] array = new Node[4];
+                Node[] array = new Node[6];
 
                 List<Node> list = new List<Node>();
 
@@ -2307,6 +2221,28 @@ namespace Ultrarogue
                 // Now build the branch with the complete array
                 GameConsole.CommandTree.Branch brC = CommandRoot.Branch("curses", listC.ToArray());
                 array[2] = brC;
+
+                array[3] = CommandRoot.Leaf<int>("givemoney", (amount) =>
+                {
+                    if(RogueDifficultyManager.Instance == null)
+                    {
+                        Log.Error($"Noe Manager!");
+                        return;
+                    }
+
+                    RogueDifficultyManager.Instance.Gold += amount;
+                }, true);
+
+                array[4] = CommandRoot.Leaf<int>("givekeys", (amount) =>
+                {
+                    if(RogueDifficultyManager.Instance == null)
+                    {
+                        Log.Error($"Noe Manager!");
+                        return;
+                    }
+
+                    RogueDifficultyManager.Instance.Keys += amount;
+                }, true);
 
                 return CommandRoot.Branch(name, array);
             }

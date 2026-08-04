@@ -13,6 +13,7 @@ using BepLogSource = BepInEx.Logging.ManualLogSource;
 using BepLogger = BepInEx.Logging.Logger;
 using Unity.AI.Navigation;
 using System.Collections.Generic;
+using Ultrarogue.Items;
 
 /// <summary> Handles loading and accessing the empty scene. </summary>
 [HarmonyPatch]
@@ -107,7 +108,7 @@ public static class SceneLoader
     static bool LoadingScene = false;
 
     /// <summary> Asynchronously loads the Empty level. </summary>
-    public static IEnumerator LoadLevelAsync(bool noSplash)
+    public static IEnumerator LoadLevelAsync(bool noSplash, ActiveItem itemToGiveAfter = null)
     {
         if (LoadingScene) yield break;
         LoadingScene = true;
@@ -162,11 +163,11 @@ public static class SceneLoader
 
         //new GameObject("generator").AddComponent<RoomGenerator>();
         new GameObject("NavMesh").AddComponent<NavMeshSurface>();
-        Plugin.Instance.StartCoroutine(PlayPixelAnimation());
+        Plugin.Instance.StartCoroutine(PlayPixelAnimation(itemToGiveAfter));
         LoadingScene = false;
     }
 
-    static IEnumerator PlayPixelAnimation()
+    static IEnumerator PlayPixelAnimation(ActiveItem itemToGive)
     {
         // Wait until PostProcessV2_Handler is ready
         yield return new WaitUntil(() => PostProcessV2_Handler.Instance != null);
@@ -218,6 +219,8 @@ public static class SceneLoader
         MonoSingleton<StatsManager>.Instance.StartTimer();
         NewMovement.Instance.hp = Plugin.MaxHealth;
         yield return new WaitForSeconds(3f);
+        if(itemToGive != null)
+            Plugin.GiveItem(itemToGive);
         Disable();
     }
 

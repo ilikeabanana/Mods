@@ -70,6 +70,7 @@ namespace Ultrarogue.Items
         public override Rarity Rarity => Rarity.Legendary;
 
         internal static readonly HashSet<RevolverBeam> taggedBeams = new HashSet<RevolverBeam>();
+        public override List<Plugin.Weapon> WeaponRequirements => new List<Plugin.Weapon>() { Plugin.Weapon.Revolver };
         public override float SpawnWeight => 0.8f; // Slightly lower spawn weight
         private static void SpawnExplosion(Vector3 point)
         {
@@ -334,6 +335,7 @@ namespace Ultrarogue.Items
         public override string ItemName => "Dual Gun";
         public override string itemDescription => "Have a 20% (+15% per stack) to get a dual wield";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Utility };
+        public override bool RequiresAtleastOneWeapon => true;
     }
     [HarmonyPatch]
     public class EyeOfGod : BaseItem

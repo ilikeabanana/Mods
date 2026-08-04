@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using Ultrarogue;
 using Ultrarogue.SceneStuff;
@@ -12,38 +13,56 @@ public class Chest : MonoBehaviour
     List<ChestLootpool> pools;
 
     bool pickedUp = false;
-
     Animator anim;
+
+    public float openDelay = 0f;
+    float openTimer = 0f;
 
     void Awake()
     {
         anim = GetComponent<Animator>();
-
         pools = new List<ChestLootpool>()
-        {
+        { 
             new ChestLootpool(1, 4),                          // Gold only
-            new ChestLootpool(0, 3, 0, 2),                     // Key AND Gold
-            new ChestLootpool(MinKeys: 1, MaxKeys: 3),          // Key only
+            new ChestLootpool(0, 3, 0, 2),                    // Key AND Gold
+            new ChestLootpool(MinKeys: 1, MaxKeys: 3),        // Key only
             new ChestLootpool(open: () =>
             {
-                SpawnAtChest(anchor => ItemPickup.CreatePickup(Plugin.GiveRandomItem(), anchor));
-            }, weight: 0.1f), // Item spawning
+                SpawnAtChest(anchor => ItemPickup.CreatePickup(Plugin.GiveRandomItem(), anchor, 4, 1));
+            }, weight: 0.3f),                                 // Item spawning 
             new ChestLootpool(open: () =>
             {
                 SpawnableObject filth = AssetsManager.GetEnemiesOfType(EnemyType.Filth)[0];
 
                 Instantiate(filth.gameObject, transform.position, Quaternion.identity).transform.parent = transform.parent;
                 Instantiate(filth.gameObject, transform.position, Quaternion.identity).transform.parent = transform.parent;
-            }), // Two filth
+            }),                                               // Two filth
         };
     }
+    void OnEnable()
+    {
 
+        if (pickedUp)
+        {
+            anim.Play("Open", 0, 1);
+            anim.Update(0);
+        }
+    }
 
     void Update()
-    {
+    { 
+        if (openTimer < openDelay)
+        {
+            openTimer += Time.deltaTime;
+            return;
+        }
+
+            
+
         if (Vector3.Distance(NewMovement.Instance.transform.position, transform.position) <= 2f)
         {
             if (pickedUp) return;
+
             pickedUp = true;
 
             anim.SetTrigger("Open");
@@ -65,7 +84,7 @@ public class Chest : MonoBehaviour
             SpawnAt(anchor =>
             {
                 GameObject g = GoldPickup.CreatePickup(anchor, 1);
-                g.GetComponent<Rigidbody>().AddForce(transform.forward * 3, ForceMode.VelocityChange);
+                g.GetComponent<Rigidbody>().AddForce(transform.right * 3, ForceMode.VelocityChange);
             });
         }
 
@@ -78,6 +97,7 @@ public class Chest : MonoBehaviour
     ChestLootpool PickPool()
     {
         float totalWeight = 0f;
+
         foreach (var p in pools)
             totalWeight += p.weight;
 
@@ -87,6 +107,7 @@ public class Chest : MonoBehaviour
         foreach (var p in pools)
         {
             cumulative += p.weight;
+
             if (roll <= cumulative)
                 return p;
         }
@@ -94,9 +115,9 @@ public class Chest : MonoBehaviour
         return pools[pools.Count - 1];
     }
 
-    void SpawnAt(System.Action<Transform> createPickup)
+    void SpawnAt(Action<Transform> createPickup)
     {
-        Vector3 itemPos = transform.position + transform.forward * 4;
+        Vector3 itemPos = transform.position + (-transform.right) * 4;
         itemPos += new Vector3(Random.Range(-1f, 1f), 0, Random.Range(-1f, 1f));
 
         GameObject anchor = new GameObject("ItemDropAnchor");
@@ -106,7 +127,7 @@ public class Chest : MonoBehaviour
         createPickup(anchor.transform);
     }
 
-    void SpawnAtChest(System.Action<Transform> createPickup)
+    void SpawnAtChest(Action<Transform> createPickup)
     {
         Vector3 itemPos = transform.position;
 
@@ -119,16 +140,23 @@ public class Chest : MonoBehaviour
 
     public static GameObject prefab;
 
-    public static void CreateChest(Transform position)
+    public static GameObject CreateChest(Transform position, float openDelay = 0f)
     {
         if (prefab == null)
             prefab = Addressables.LoadAssetAsync<GameObject>("Assets/Modding/RogueMode/Chest.prefab").WaitForCompletion();
+
         GameObject pickup = Instantiate(prefab);
-        pickup.AddComponent<Chest>();
+
+        Chest chest = pickup.AddComponent<Chest>();
+        chest.openDelay = openDelay;
+
         pickup.transform.position = position.position + (Vector3.up / 2);
         pickup.transform.parent = position;
+
+        return pickup;
     }
 }
+
 
 public class ChestLootpool
 {
@@ -142,7 +170,13 @@ public class ChestLootpool
 
     public Action open;
 
-    public ChestLootpool(int MinGold = 0, int MaxGold = 0, int MinKeys = 0, int MaxKeys = 0, Action open = null, float weight = 1)
+    public ChestLootpool(
+        int MinGold = 0,
+        int MaxGold = 0,
+        int MinKeys = 0,
+        int MaxKeys = 0,
+        Action open = null,
+        float weight = 1)
     {
         this.MinGold = MinGold;
         this.MaxGold = MaxGold;

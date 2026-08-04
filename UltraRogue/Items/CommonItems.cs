@@ -42,6 +42,7 @@ namespace Ultrarogue.Items
         public override string ItemName => "Hitscan on hit";
         public override string itemDescription => "25% chance on hit to fire a revolver beam to the nearest enemy dealing 50% (+50% per stack) TOTAL damage";
         public override float SpawnWeight => 0.9f;
+        public override List<Plugin.Weapon> WeaponProvisions => new List<Plugin.Weapon>() { Plugin.Weapon.Revolver };
         public override void OnStart()
         {
             base.OnStart();
@@ -66,9 +67,6 @@ namespace Ultrarogue.Items
                     foreach (EnemyIdentifier enemy in enemies)
                     {
                         if (enemy == null)
-                            continue;
-
-                        if (enemy == eid)
                             continue;
 
                         if (enemy.dead)
@@ -142,7 +140,7 @@ namespace Ultrarogue.Items
             plc.transform.position = spawnPosition;
             plc.transform.parent = Room.getObjectInsideRoom(spawnPosition).transform;
             // Spawn a random uncommon item
-            ItemPickup.CreatePickup(Plugin.GiveRandomItem(RogueDifficultyManager.ChestRNG, DroptableType.UncommonOnly), plc.transform);
+            ItemPickup.CreatePickup(Plugin.GiveRandomItem(RogueDifficultyManager.ChestRNG, DroptableType.UncommonOnly), plc.transform, delay: 2);
 
             if (Room.pedestalItem == null)
                 Room.pedestalItem = Addressables.LoadAssetAsync<GameObject>("Assets/Modding/RogueMode/Draghtnim/Pedestal.prefab").WaitForCompletion();

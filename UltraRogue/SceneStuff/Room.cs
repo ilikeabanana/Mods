@@ -711,7 +711,7 @@ public class Room : MonoBehaviour
             RoomGenerator.Instance.Doors.Add(door);
             door.transform.parent = null;
             door.SetActive(true);
-            if (roomType == RoomType.Normal || roomType == RoomType.Boss || roomType == RoomType.Start) return;
+            if (roomType == RoomType.Normal || roomType == RoomType.Boss || roomType == RoomType.Start || roomType == RoomType.ChallengeRoom) return;
             if (RogueDifficultyManager.Instance.floor == 1) return;
             if (Random.value <= 0.75f && Plugin.CurrentDifficulty != 2) return;
             door.GetComponentInChildren<Door>().gameObject.AddComponent<Lockable>();
@@ -845,7 +845,7 @@ public class Room : MonoBehaviour
 
     bool isFlying(EnemyType type)
     {
-        List<EnemyType> flyers = new List<EnemyType>() { EnemyType.Drone, EnemyType.Mindflayer, EnemyType.Providence, EnemyType.Virtue };
+        List<EnemyType> flyers = new List<EnemyType>() { EnemyType.Drone, EnemyType.Mindflayer, EnemyType.Providence, EnemyType.Virtue, EnemyType.Mandalore, EnemyType.Power };
         return flyers.Contains(type);
     }
 

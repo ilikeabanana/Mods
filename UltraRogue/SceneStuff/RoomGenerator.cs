@@ -85,6 +85,8 @@ public class RoomGenerator : MonoBehaviour
     {
         StopAllCoroutines();
         planetChance += 0.2f;
+
+        planetChance = Mathf.Max(planetChance, 0.01f);
         StatsManager.Instance.StopTimer();
         MusicManager.Instance.StopMusic();
         CurseManager.FloorExit();
@@ -1267,21 +1269,21 @@ public class RoomGenerator : MonoBehaviour
         if (player == null) return false;
         if (_isTeleportingToErrorRoom) return false;
 
-        Vector2Int playerGrid = WorldToGrid(player.transform.position);
-
-        if (placedRooms.ContainsKey(playerGrid)) return false;
-
         GameObject errorRoom = GameObject.Find("ErrorRoom");
         if (errorRoom != null)
         {
             float dist = Vector3.Distance(player.transform.position, errorRoom.transform.position);
+            var audio = errorRoom.GetComponentInChildren<AudioSource>(true);
+            audio.volume = dist <= ErrorRoomRadius ? 1 : 0;
             if (dist <= ErrorRoomRadius) return false;
         }
+
+        Vector2Int playerGrid = WorldToGrid(player.transform.position);
+        if (placedRooms.ContainsKey(playerGrid)) return false;
         if (!canDoTheErrorRoom) return false;
 
         return true;
     }
-
     IEnumerator TeleportPlayerToErrorRoom(NewMovement player, GameObject errorRoom = null)
     {
         yield return new WaitForSeconds(0.15f);

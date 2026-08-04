@@ -30,6 +30,8 @@ namespace Ultrarogue.Items
 
         }
 
+        public virtual bool RequiresAtleastOneWeapon => false;
+
         public virtual string NameDisplayOverride => "";
         public virtual string ItemName => "";
         public virtual string itemDescription => string.Empty;
