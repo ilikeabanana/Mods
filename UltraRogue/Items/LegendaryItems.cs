@@ -333,7 +333,7 @@ namespace Ultrarogue.Items
     {
         public override Rarity Rarity => Rarity.Legendary;
         public override string ItemName => "Dual Gun";
-        public override string itemDescription => "Have a 20% (+15% per stack) to get a dual wield";
+        public override string itemDescription => "Have a 5% (+10% per stack) to get a dual wield";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Utility };
         public override bool RequiresAtleastOneWeapon => true;
     }
@@ -568,28 +568,28 @@ namespace Ultrarogue.Items
         }
     }
 
+    [HarmonyPatch]
     public class CerberusHead : BaseItem
     {
         public override string ItemName => "Cerberus Head";
-        public override string itemDescription => "All weapons deal +100% more damage";
+        public override string itemDescription => "All Explosions caused by the player (rockets, projectile boosts, instakills) are 50% larger and do 100% more damage (25% larger and 50% damage per stack) (Your explosions no longer damage you)";
         public override Rarity Rarity => Rarity.Legendary;
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
-        Change dmgChange;
 
-        public override void OnStart()
-        {
-            dmgChange = new Change(percentage: 0);
-            new PlayerChange(globalDamageMult: dmgChange);
-        }
 
-        public override void OnUpdate(int count)
+        [HarmonyPatch(typeof(Explosion), nameof(Explosion.Start))]
+        public static void Prefix(Explosion __instance)
         {
-            dmgChange.percentage = count;
-        }
+            int c = Plugin.GetItemCount("Cerberus Head");
 
-        public override void OnRemoval()
-        {
-            dmgChange.percentage = 0;
+            if (c <= 0) return;
+
+            if (__instance.enemy) return;
+
+            __instance.maxSize *= 1f + 0.5f + 0.25f * (c - 1);
+            __instance.damage = Mathf.RoundToInt(__instance.damage * (2f + 0.5f * (c - 1)));
+
+            __instance.hasHitPlayer = true;
         }
     }
 

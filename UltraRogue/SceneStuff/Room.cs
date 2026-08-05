@@ -141,10 +141,10 @@ public class Room : MonoBehaviour
                 StartCoroutine(SpawnBoss());
                 break;
 
-            case RoomType.Normal:
+            case RoomType.Normal: 
                 int c = Plugin.GetItemCount("Dual Gun");
                 if (c > 0)
-                    if (Plugin.canExecute(Plugin.LogarithmicChance(c - 1, 0.15f, 0.25f, 0.9f) * 100, ""))
+                    if (Plugin.canExecute(Plugin.LogarithmicChance(c - 1, 0.10f, 0.05f, 0.9f) * 100, ""))
                     {
                         MonoSingleton<CameraController>.Instance.CameraShake(0.35f);
                         if (MonoSingleton<PlayerTracker>.Instance.playerType == PlayerType.Platformer)
@@ -281,7 +281,7 @@ public class Room : MonoBehaviour
             if (!isFinalWave)
                 yield return new WaitForSeconds(1f);
         }
-    }
+    } 
 
     IEnumerator SpawnEnemies()
     {
@@ -521,11 +521,10 @@ public class Room : MonoBehaviour
                     int floor = RogueDifficultyManager.Instance.floor;
 
                     float floorHealthMult = 1f + (floor * 0.015f);
-                    if (floor > 9)
-                        floorHealthMult += (floor - 9) * 0.03f;
-
-                    // Safety clamp regardless of floor value
-                    floorHealthMult = Mathf.Clamp(floorHealthMult, 1f, 2f);
+                    if (floor > 7)
+                        floorHealthMult += (floor - 7) * 0.03f;
+                    if (floor > 10)
+                        floorHealthMult += (floor - 9) * 0.12f;
 
                     float baseHealth = enemyComp.health;
                     float scaledHealth = baseHealth * floorHealthMult;

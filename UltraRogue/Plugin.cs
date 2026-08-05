@@ -179,7 +179,7 @@ namespace Ultrarogue
             characters.Add(new Ultrarogue.Characters.GreedMachine());
             characters.Add(new Ultrarogue.Characters.RandomCharacter());
             characters.Add(new Ultrarogue.Characters.Filth());
-            characters.Add(new Ultrarogue.Characters.testcharacterthattestsoutwhichitemsandorweaponsworkinultrarogueasstartingitems());
+            //characters.Add(new Ultrarogue.Characters.testcharacterthattestsoutwhichitemsandorweaponsworkinultrarogueasstartingitems());
 
 #if RUNTIME_ROOMS
             var genObj = new GameObject("DebugRoomGenerator");

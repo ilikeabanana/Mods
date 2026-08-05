@@ -252,6 +252,7 @@ public class RogueDifficultyManager : MonoBehaviour
 
         }
         Gold = Mathf.Clamp(Gold, 0, 99);
+        Keys = Mathf.Clamp(Keys, 0, 99);
          
         if (!this.keepOpen)
         {
@@ -482,7 +483,7 @@ public class RogueDifficultyManager : MonoBehaviour
                 options.Add(new BossPick(new List<BossEntry>()
             {
                 new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.MinosPrime)[0].gameObject,
-                    healthMod: 55, healthPerFloorMod: 18, startFloor: 8,
+                    healthMod: 0, healthAddition: -15, healthPerFloorMod: 18, startFloor: 8,
                     radianceBuffs: 0, radianceBuffsPerFloor: 0.35f),
             }));
                 options.Add(new BossPick(new List<BossEntry>()
@@ -494,23 +495,17 @@ public class RogueDifficultyManager : MonoBehaviour
                 options.Add(new BossPick(new List<BossEntry>()
             {
                 new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.MirrorReaper)[0].gameObject,
-                    healthAddition: 45, healthPerFloorMod: 18, startFloor: 8,
+                    healthAddition: 45, healthPerFloorMod: 25, startFloor: 8,
                     radianceBuffs: 0, radianceBuffsPerFloor: 1f),
-            }));
-                options.Add(new BossPick(new List<BossEntry>()
-            {
-                new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.BigJohnator)[0].gameObject,
-                    healthMod: 130, healthPerFloorMod: 18, startFloor: 8,
-                    radianceBuffs: 0, radianceBuffsPerFloor: 0.5f),
             }));
                 options.Add(new BossPick(new List<BossEntry>()
             {
                 new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.MaliciousFace)[0].gameObject,
                     healthMod: 95, healthPerFloorMod: 60, startFloor: 8,
-                    radianceBuffs: 0, radianceBuffsPerFloor: 1f),
+                    radianceBuffs: 0, radianceBuffsPerFloor: 0.751f),
                 new BossEntry(AssetsManager.GetEnemiesOfType(EnemyType.MaliciousFace)[0].gameObject,
                     healthMod: 95, healthPerFloorMod: 60, startFloor: 8,
-                    radianceBuffs: 0, radianceBuffsPerFloor: 1f),
+                    radianceBuffs: 0, radianceBuffsPerFloor: 0.751f),
             }));
                 break;
         }
