@@ -55,7 +55,7 @@ namespace Ultrarogue.Items
                 }
 
                 BaseItem randomItem = Plugin.GiveRandomItem(RogueDifficultyManager.ItemRNG, drop);
-                item.SwitchItem(randomItem);
+                item.SwitchItem(randomItem, RemoveCondition: false, delay: 1);
             }
             
         }
@@ -102,14 +102,18 @@ namespace Ultrarogue.Items
 
                 int stacks = Plugin.GetItemCount("Thunder Boomerang");
 
-                // 20 units at 1 stack, then 15% less spacing per extra stack
+                // Clamp spacing to something sane — don't let it collapse toward zero
                 float zapSpacing = 20f * Mathf.Pow(0.85f, stacks - 1);
+                zapSpacing = Mathf.Max(zapSpacing, 2f); // was 0.0001f
 
-                // Prevent absurd values at very high stack counts if desired
-                zapSpacing = Mathf.Max(zapSpacing, 0.0001f);
+                // Hard cap on total zap points regardless of distance/stacks
+                const int maxZaps = 25;
+                int zapCount = Mathf.Min(maxZaps, Mathf.FloorToInt(distance / zapSpacing));
 
-                for (float i = zapSpacing; i < distance; i += zapSpacing)
+                for (int n = 1; n <= zapCount; n++)
                 {
+                    float i = n * zapSpacing;
+                    if (i >= distance) break;
                     SpawnExplosion(start + direction * i);
                 }
             }

@@ -33,7 +33,7 @@ namespace Ultrarogue.Items
         }
         IEnumerator ensureCorrectHP()
         {
-            yield return new WaitForEndOfFrame();
+            yield return new WaitForSeconds(0.12f);
             NewMovement.Instance.hp = Plugin.MaxHealth;
         }
 
@@ -61,11 +61,10 @@ namespace Ultrarogue.Items
         {
             I.amazingChange.percentage = Plugin.GetItemCount(I.ItemName);
         }
-        public override void OnUpdate(int count)
+        public override void OnNewFloor(int count)
         {
-            float cap = count;
-            if (amazingChange.percentage < cap)
-                amazingChange.percentage = Mathf.Min(cap, amazingChange.percentage + (0.005f * count * Time.deltaTime));
+            base.OnNewFloor(count);
+            Reset();
         }
 
         public override void OnStart()
@@ -74,7 +73,7 @@ namespace Ultrarogue.Items
             new DamageTakenEffect(ItemName, (d) =>
             {
                 int c = Plugin.GetItemCount(ItemName);
-                if (c <= 0 || d <= 0) return;
+                if (c <= 0 || d <= 0) return; 
 
                 amazingChange.percentage = Mathf.Max(-0.5f, amazingChange.percentage - (0.02f * c));
             });
@@ -121,6 +120,11 @@ namespace Ultrarogue.Items
         public override void OnUse()
         {
             Reroll();
+        }
+
+        public override bool CanAutoActivate()
+        {
+            return true;
         }
 
         void Reroll()

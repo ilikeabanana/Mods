@@ -555,6 +555,11 @@ namespace Ultrarogue.Items
         {
             plr = new PlayerChange(globalDamageMult: change);
         }
+        public override bool CanAutoActivate()
+        {
+            return Room.isFighting;
+        }
+
         public override void OnUse()
         {
             change.percentage = 0.50f;

@@ -18,6 +18,11 @@ namespace Ultrarogue.Items
         {
 
         }
+
+        public virtual bool CanAutoActivate()
+        {
+            return false;
+        }
     }
 
     public abstract class BaseItem

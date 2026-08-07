@@ -46,6 +46,7 @@ public class Chest : MonoBehaviour
         {
             anim.Play("Open", 0, 1);
             anim.Update(0);
+            if (SettingsManager.DestroyChestsOnOpen) Destroy(gameObject);
         }
     }
 
@@ -59,14 +60,15 @@ public class Chest : MonoBehaviour
 
             
 
-        if (Vector3.Distance(NewMovement.Instance.transform.position, transform.position) <= 2f)
+        if (Vector3.Distance(NewMovement.Instance.transform.position, transform.position) <= 2.5f)
         {
             if (pickedUp) return;
 
             pickedUp = true;
 
             anim.SetTrigger("Open");
-
+            if (SettingsManager.DestroyChestsOnOpen)
+                Destroy(gameObject, 15);
             OpenChest();
         }
     }

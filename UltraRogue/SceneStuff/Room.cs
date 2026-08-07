@@ -865,8 +865,8 @@ public class Room : MonoBehaviour
         MonoSingleton<MusicManager>.Instance.ArenaMusicEnd();
         MonoSingleton<TimeController>.Instance.SlowDown(0.15f);
         MonoSingleton<StainVoxelManager>.Instance.ClearAll();
-        if (Plugin.holder.CurrentActive != null)
-            Plugin.holder.Charge();
+        if (ActiveManager.Instance.CurrentActive != null)
+            ActiveManager.Instance.Charge();
         GasolineProjectile[] projs = GameObject.FindObjectsByType<GasolineProjectile>(FindObjectsInactive.Include, FindObjectsSortMode.None);
         foreach (var proj in projs)
         {
@@ -897,7 +897,7 @@ public class Room : MonoBehaviour
 
             if (getChanceVal(enemyRando) <= itemChance)
             {
-
+                HudMessageReceiver.Instance.SendHudMessage("An item appeared!");
                 StartCoroutine(spawnItem(getPlc()));
             }
             else
@@ -910,21 +910,33 @@ public class Room : MonoBehaviour
                 }
                 else if (chanceVal <= 0.44f)
                 {
-                    KeyPickup.CreatePickup(getPlc());
+                    if(SettingsManager.CoinPickups)
+                        KeyPickup.CreatePickup(getPlc());
+                    else
+                        RogueDifficultyManager.Instance.Keys++;
+
+                    HudMessageReceiver.Instance.SendHudMessage("You received 1 key");
+
                     if (tookNoDamage)
                         Debug.Log("[Room] Flawless clear! Awarded a key.");
                 }
                 else if (chanceVal <= 0.59f) // 15% chance
                 {
                     Chest.CreateChest(getPlc());
+                    HudMessageReceiver.Instance.SendHudMessage("A chest appeared!");
                     if (tookNoDamage)
                         Debug.Log("[Room] Flawless clear! Awarded a chest.");
                 }
                 else
                 {
                     int goldAmount = enemyRando.Next(1, tookNoDamage ? 4 : 3);
-                    for (int i = 0; i < goldAmount; i++)
-                        GoldPickup.CreatePickup(getPlc());
+
+                    HudMessageReceiver.Instance.SendHudMessage($"You received {goldAmount} gold");
+                    if (!SettingsManager.CoinPickups)
+                        RogueDifficultyManager.Instance.Gold += goldAmount;
+                    else
+                        for (int i = 0; i < goldAmount; i++)
+                                GoldPickup.CreatePickup(getPlc());
                     if (tookNoDamage)
                         Debug.Log($"[Room] Flawless clear! Awarded {goldAmount} gold.");
                 }

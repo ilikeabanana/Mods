@@ -6,6 +6,7 @@ using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.ResourceLocations;
 using UnityEngine.ResourceManagement.AsyncOperations;
+using UnityEngine.InputSystem;
 
 public class AssetsManager
 {
@@ -52,6 +53,12 @@ public class AssetsManager
 
     public static GameObject KeyPrefab;
     public static GameObject CoinPrefab;
+
+
+
+    public static InputActionAsset RogueInputs;
+    public static InputAction UseActiveKey;
+
 
     private static bool _initStarted = false;
 

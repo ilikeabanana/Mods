@@ -5,6 +5,7 @@ using TMPro;
 using Ultrarogue;
 using Ultrarogue.Characters;
 using Ultrarogue.Items;
+using Ultrarogue.SceneStuff;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.EventSystems;
@@ -89,19 +90,23 @@ public class RogueDifficultyManager : MonoBehaviour
     }
     void Start()
     {
-        activeHolder = Addressables.LoadAssetAsync<GameObject>("Assets/Modding/RogueMode/ActiveHolder.prefab").WaitForCompletion();
-
-
         Transform ChargeParent = NewMovement.Instance.transform.Find("Main Camera/HUD Camera/HUD/GunCanvas/StatsPanel/Filler/Panel (3)");
 
         charge = Instantiate(Addressables.LoadAssetAsync<GameObject>("Assets/Modding/RogueMode/ActiveCharge.prefab").WaitForCompletion(), ChargeParent);
         charge.GetComponent<Slider>().value = 0;
+
+        currentActiveImage = Instantiate(Addressables.LoadAssetAsync<GameObject>("Assets/Modding/RogueMode/CurrentActiveImage.prefab").WaitForCompletion(), ChargeParent);
+
+        currentActiveImage.SetActive(false);
+
+        charge.SetActive(false);
+
+        ActiveManager.Instance.ChargeMeter = charge.GetComponent<Slider>();
+        ActiveManager.Instance.CurrentActiveItemImage = currentActiveImage.GetComponent<Image>();
     }
 
     GameObject charge;
-
-    GameObject activeHolder;
-    GameObject gun;
+    GameObject currentActiveImage;
 
     void UpdateStatsUI()
     {
@@ -239,18 +244,6 @@ public class RogueDifficultyManager : MonoBehaviour
 
     void Update()
     {
-        if (gun == null)
-        {
-            if (activeHolder != null)
-            {
-                gun = Plugin.MakeGun(5, activeHolder);
-                gun.SetActive(false);
-                Plugin.holder = gun.GetComponent<ActiveHolder>();
-
-                Plugin.holder.chargeUI = charge.GetComponent<Slider>();
-            }
-
-        }
         Gold = Mathf.Clamp(Gold, 0, 99);
         Keys = Mathf.Clamp(Keys, 0, 99);
          

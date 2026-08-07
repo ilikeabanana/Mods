@@ -401,7 +401,7 @@ namespace Ultrarogue.Items
     {
         public override string ItemName => "Repeater";
         public override int ChargeRequired => 2;
-        public override string itemDescription => "Repeat the last damage dealt to the same enemy, if that enemy is dead. Apply it to a random enemy.";
+        public override string itemDescription => "Deal twice the damage of your last attack. If the original target is dead, deal it to a random enemy instead.";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
 
         public override Rarity Rarity => Rarity.Uncommon;
@@ -410,6 +410,8 @@ namespace Ultrarogue.Items
         static float lastHitDmg;
         static string lastHitter;
 
+        bool DamagedEnemy = false;
+
         public override void OnStart()
         {
             new HitEffect(ItemName, (eid, dmg) =>
@@ -417,9 +419,14 @@ namespace Ultrarogue.Items
                 lastHit = eid;
                 lastHitDmg = dmg;
                 lastHitter = eid.hitter;
+                DamagedEnemy = true;
             }, true);
         }
-
+        public override bool CanAutoActivate()
+        {
+            List<EnemyIdentifier> eids = EnemyTracker.Instance.GetCurrentEnemies();
+            return DamagedEnemy && eids.Count > 0;
+        }
         public override void OnUse()
         {
             if(lastHit == null || lastHit.dead)
@@ -429,7 +436,10 @@ namespace Ultrarogue.Items
             }
 
             lastHit.hitter = lastHitter;
-            lastHit.DeliverDamage(lastHit.gameObject, Vector3.zero, lastHit.transform.position, lastHitDmg, false);
+            lastHit.DeliverDamage(lastHit.gameObject, Vector3.zero, lastHit.transform.position, lastHitDmg * 2, false);
+
+            lastHit = null;
+            DamagedEnemy = false;
         }
 
         public override void OnRemoval()

@@ -16,8 +16,10 @@ using ULTRAKILL.Enemy;
 using Ultrarogue.Characters;
 using Ultrarogue.Curses;
 using Ultrarogue.Items;
+using Ultrarogue.SceneStuff;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
+using UnityEngine.InputSystem;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -52,9 +54,6 @@ namespace Ultrarogue
         public static List<BaseCharacter> characters = new List<BaseCharacter>();
 
         public static string GameSeed = "Banana";
-
-        public static ActiveHolder holder;
-
 #if RUNTIME_ROOMS
         DebugRoomGenerator debugGen;
 #endif
@@ -327,6 +326,9 @@ namespace Ultrarogue
         {
             return Chainloader.PluginInfos.ContainsKey("duviz.ultrakill.ultraeditor");
         }
+
+        static bool FirstLoad = true;
+
         IEnumerator SpawnThings()
         {
             yield return new WaitForSeconds(0.44f); // idk why 24 but lmao
@@ -349,6 +351,8 @@ namespace Ultrarogue
             yield return new WaitUntil(() => RogueMenu.IsDone);
             GameObject parentMen = GameObject.FindObjectOfType<OptionsMenuToManager>().gameObject;
 
+            AssetsManager.RogueInputs = Addressables.LoadAssetAsync<InputActionAsset>("Assets/Modding/RogueMode/UltrarogueActions.inputactions").WaitForCompletion();
+            AssetsManager.RogueInputs.Enable();
             GameObject men = Instantiate(RogueMenu.Result, parentMen.transform);
             men.SetActive(false);
 
@@ -363,6 +367,29 @@ namespace Ultrarogue
                 }
                 LoadLevel(seedField.text);
             });
+
+
+            AssetsManager.UseActiveKey = AssetsManager.RogueInputs.FindAction("Use Active", true);
+            var scheme = AssetsManager.RogueInputs.controlSchemes[0];
+
+            if (FirstLoad)
+            {
+                RogueInputSave.CaptureDefaults(AssetsManager.UseActiveKey, scheme); // must come first
+                RogueInputSave.LoadBindings(AssetsManager.UseActiveKey, scheme);
+                FirstLoad = false;
+            }
+
+            var existing = men.GetComponentInChildren<ControlsOptionsKey>(true);
+            var rogueKey = existing.gameObject.AddComponent<RogueControlsOptionsKey>();
+
+            rogueKey.Init(existing);
+            Destroy(existing);
+            rogueKey.RebuildBindings(AssetsManager.UseActiveKey, scheme);
+
+            Destroy(existing);
+            rogueKey.Init(existing);
+            rogueKey.RebuildBindings(AssetsManager.UseActiveKey, scheme);
+
 
             TMP_Text info = men.transform.Find("Info/InfoText").GetComponent<TMP_Text>();
             TMP_Text cName = men.transform.Find("Info/CharName").GetComponent<TMP_Text>();
@@ -416,71 +443,18 @@ namespace Ultrarogue
                 yield return new WaitUntil(() => Warning.IsDone);
                 GameObject Warn = Instantiate(Warning.Result, parentMen.transform);
             }
-        }
-        public static GameObject MakeGun(int var, GameObject original)
-        {
-            int num = var;
-            // Making sure it isnt null to prevent errors
-            bool flag = MonoSingleton<GunControl>.Instance == null || MonoSingleton<StyleHUD>.Instance == null;
-            bool flag2 = flag;
-            // defining result
-            GameObject result;
-            if (flag2)
-            {
-                result = null;
-            }
-            else
-            {
-                // Checking everything so we dont get any errors
-                bool flag3 = !MonoSingleton<GunControl>.Instance.enabled || !MonoSingleton<StyleHUD>.Instance.enabled;
-                bool flag4 = flag3;
-                if (flag4)
-                {
-                    result = null;
-                }
-                else
-                {
-                    GameObject gameObject = UnityEngine.Object.Instantiate<GameObject>(original);
 
-                    if (gameObject.TryGetComponent<Collider>(out Collider col))
-                    {
-                        Destroy(col);
-                    }
+            Toggle chestToggle = men.transform.Find("SettingsPanel/ChestOpen").GetComponentInChildren<Toggle>();
+            Toggle coinToggle = men.transform.Find("SettingsPanel/CoinPickup").GetComponentInChildren<Toggle>();
+            Toggle activeToggle = men.transform.Find("SettingsPanel/AutoActive").GetComponentInChildren<Toggle>();
 
-                    bool flag5 = gameObject == null;
-                    bool flag6 = flag5;
-                    if (flag6)
-                    {
-                        result = null;
-                    }
-                    else
-                    {
-                        Vector3 pos = gameObject.transform.position;
-                        Quaternion rot = gameObject.transform.rotation;
-                        // Assigning the transforms
-                        gameObject.transform.parent = MonoSingleton<GunControl>.Instance.transform;
-                        gameObject.transform.localPosition = pos;
-                        gameObject.transform.localRotation = rot;
-                        // Adding it to the slots
-                        MonoSingleton<GunControl>.Instance.slots[num].Add(gameObject);
-                        MonoSingleton<GunControl>.Instance.allWeapons.Add(gameObject);
-                        MonoSingleton<GunControl>.Instance.slotDict.Add(gameObject, num);
-                        MonoSingleton<StyleHUD>.Instance.weaponFreshness.Add(gameObject, 10f);
-                        // Setting the object inactive as default
-                        gameObject.SetActive(false);
-                        // Setting noweapons to false and doing yesweapons
-                        MonoSingleton<GunControl>.Instance.noWeapons = false;
-                        MonoSingleton<GunControl>.Instance.YesWeapon();
-                        // Setting every child inactive
-                        for (int k = 0; k < MonoSingleton<GunControl>.Instance.transform.childCount; k++)
-                        {
-                            MonoSingleton<GunControl>.Instance.transform.GetChild(k).gameObject.SetActive(false);
-                        }
-                        result = gameObject;
-                    }
-                }
-            }
-            return result;
+            chestToggle.isOn = SettingsManager.DestroyChestsOnOpen;
+            coinToggle.isOn = SettingsManager.CoinPickups;
+            activeToggle.isOn = SettingsManager.AutoActive;
+
+            chestToggle.onValueChanged.AddListener((x) => SettingsManager.DestroyChestsOnOpen = x);
+            coinToggle.onValueChanged.AddListener((x) => SettingsManager.CoinPickups = x);
+            activeToggle.onValueChanged.AddListener((x) => SettingsManager.AutoActive = x);
         }
 
         private void SceneManager_sceneLoaded(Scene arg0, LoadSceneMode arg1)
@@ -827,8 +801,8 @@ namespace Ultrarogue
                     allowedTags.Count == 0 ||
                     x.itemTags.Any(tag => allowedTags.Contains(tag))
                 ) && (
-                    Plugin.holder.CurrentActive == null ||
-                    Plugin.holder.CurrentActive != x
+                    ActiveManager.Instance.CurrentActive == null ||
+                    ActiveManager.Instance.CurrentActive != x
                 ) && (
                     !x.RequiresAtleastOneWeapon ||
                     weapons.Any()
@@ -1006,17 +980,17 @@ namespace Ultrarogue
 
             if (item is ActiveItem active)
             {
-                if (holder.CurrentActive != null)
+                if (ActiveManager.Instance.CurrentActive != null)
                 {
                     if (pedestal != null)
                     {
-                        pedestal.SwitchItem(holder.CurrentActive);
+                        pedestal.SwitchItem(ActiveManager.Instance.CurrentActive);
                     }
 
-                    Plugin.RemoveItem(holder.CurrentActive);
+                    Plugin.RemoveItem(ActiveManager.Instance.CurrentActive);
                 }
 
-                holder.CurrentActive = active;
+                ActiveManager.Instance.CurrentActive = active;
             }
 
             if (RogueDifficultyManager.Instance != null)

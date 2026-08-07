@@ -5,6 +5,7 @@ using TMPro;
 using Ultrarogue;
 using Ultrarogue.Characters;
 using Ultrarogue.Items;
+using Ultrarogue.SceneStuff;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 
@@ -45,7 +46,7 @@ public class ItemPickup : MonoBehaviour
                 NewMovement.Instance.FullHeal();
             }
 
-            bool Remove = Plugin.holder.CurrentActive == null;
+            bool Remove = ActiveManager.Instance.CurrentActive == null;
 
             Plugin.GiveItem(item, this);
             if (item is not ActiveItem || Remove)
