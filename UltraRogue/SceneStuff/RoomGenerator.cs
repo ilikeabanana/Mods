@@ -73,10 +73,21 @@ public class RoomGenerator : MonoBehaviour
 
     public float planetChance = 0.01f;
 
+
+    public bool OnDebugMode = false;
+
+    public void SwitchTheme(FloorTheme PreviousTheme, FloorTheme NewTheme)
+    {
+        if (PreviousTheme != null) PreviousTheme.OnThemeSwitch.Revert();
+        NewTheme.OnThemeSwitch.Invoke();
+    }
+
+
     void Awake()
     {
         Room.roomIndex = 0;
         Instance = this;
+        SwitchTheme(null, currentTheme);
         StartCoroutine(GenerateRooms());
     }
     bool canDoTheErrorRoom = false;
@@ -125,7 +136,7 @@ public class RoomGenerator : MonoBehaviour
         canDoTheErrorRoom = false;
         guaranteedCombatRoomsWithCredits = 0;
 
-        yield return new WaitUntil(() => DefaultReferenceManager.Instance != null);
+        yield return new WaitUntil(() => DefaultReferenceManager.Instance != null || OnDebugMode);
         if (!firstTime) yield return new WaitForSeconds(6f);
         if (currentTheme.roomPrefabs == null || currentTheme.roomPrefabs.Count == 0)
         {
@@ -282,7 +293,8 @@ public class RoomGenerator : MonoBehaviour
 
     Transform GetExitFacing(Room room, Vector2Int dir)
     {
-        Plugin.Logger.LogInfo($"Getting exit for room {room.gameObject.name}");
+        if (!OnDebugMode)
+            Plugin.Logger.LogInfo($"Getting exit for room {room.gameObject.name}");
         return room.GetExit(dir);
     }
 
@@ -541,7 +553,8 @@ public class RoomGenerator : MonoBehaviour
         int ny = -(ly + dir.y);
         bool isInternal = (nx >= 0 && nx < w && ny >= 0 && ny < h);
 
-        Plugin.Logger.LogInfo($"[AssignSubExit] dir={dir} lx={lx} ly={ly} nx={nx} ny={ny} w={w} h={h} isInternal={isInternal} source={source.name}");
+        if(!OnDebugMode)
+            Plugin.Logger.LogInfo($"[AssignSubExit] dir={dir} lx={lx} ly={ly} nx={nx} ny={ny} w={w} h={h} isInternal={isInternal} source={source.name}");
 
         if (isInternal)
         {
@@ -567,14 +580,16 @@ public class RoomGenerator : MonoBehaviour
 
         if (dir == Vector2Int.up)
         {
-            Plugin.Logger.LogInfo($"[AssignSubExit] UP: exitsTop={(source.exitsTop == null ? "NULL" : source.exitsTop.Length.ToString())} index=lx={lx}");
+            if (!OnDebugMode)
+                Plugin.Logger.LogInfo($"[AssignSubExit] UP: exitsTop={(source.exitsTop == null ? "NULL" : source.exitsTop.Length.ToString())} index=lx={lx}");
             return (source.exitsTop != null && lx < source.exitsTop.Length)
                 ? source.exitsTop[lx] : null;
         }
 
         if (dir == Vector2Int.down)
         {
-            Plugin.Logger.LogInfo($"[AssignSubExit] DOWN: exitsBottom={(source.exitsBottom == null ? "NULL" : source.exitsBottom.Length.ToString())} index=lx={lx}");
+            if (!OnDebugMode)
+                Plugin.Logger.LogInfo($"[AssignSubExit] DOWN: exitsBottom={(source.exitsBottom == null ? "NULL" : source.exitsBottom.Length.ToString())} index=lx={lx}");
             return (source.exitsBottom != null && lx < source.exitsBottom.Length)
                 ? source.exitsBottom[lx] : null;
         }
@@ -697,6 +712,7 @@ public class RoomGenerator : MonoBehaviour
 
     void TryPlaceSpecialRoom(ref List<Vector2Int> candidates, Room prefabRoom)
     {
+        if (prefabRoom == null) return;
         Vector2Int pos = Vector2Int.zero;
         bool found = false;
 
@@ -706,7 +722,7 @@ public class RoomGenerator : MonoBehaviour
         {
             pos = candidates[0];
             candidates.RemoveAt(0);
-
+             
             candidates.RemoveAll(c =>
             {
                 foreach (var d in directions)
@@ -952,6 +968,7 @@ public class RoomGenerator : MonoBehaviour
 
     IEnumerator buildDaMesh()
     {
+        if (OnDebugMode) yield break;
         yield return new WaitForSeconds(0.1f);
 
         if (SandboxNavmesh.Instance != null)
@@ -1221,6 +1238,11 @@ public class RoomGenerator : MonoBehaviour
         _nextActivationCheck = Time.time + ActivationCheckInterval;
         UpdateRoomActivation();
         CheckOutOfBounds();
+
+        if(OnDebugMode && HudMessageReceiver.Instance != null)
+        {
+            HudMessageReceiver.Instance.SendHudMessage("DEBUG MODE IS ON DISABLE ITTTTTTTTT");
+        }
     }
 
     void UpdateRoomActivation()

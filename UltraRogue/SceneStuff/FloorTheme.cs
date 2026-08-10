@@ -9,6 +9,8 @@ public class FloorTheme : MonoBehaviour
     public int StartFloor;
     public string Name;
 
+    public UltrakillEvent OnThemeSwitch;
+
     [Header("Room Prefabs")]
     [Tooltip("Normal combat room prefabs — one is chosen at random per room.")]
     public List<Room> roomPrefabs = new List<Room>();

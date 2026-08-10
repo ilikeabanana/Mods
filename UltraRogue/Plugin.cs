@@ -41,6 +41,8 @@ namespace Ultrarogue
         public static List<HitEffect> hitEffects = new List<HitEffect>();
         public static List<DamageTakenEffect> onDamageEffects = new List<DamageTakenEffect>();
         public static List<DamageModifier> dmgModifiers = new List<DamageModifier>();
+        public static List<ProjectileStartEffect> projectileStartEffects = new List<ProjectileStartEffect>();
+        public static List<ProjectileCollideEffect> projectileCollideEffects = new List<ProjectileCollideEffect>();
 
         public static List<BaseItem> possibleItems = new List<BaseItem>();
 
@@ -270,9 +272,10 @@ namespace Ultrarogue
             weapons.Clear();
         }
 
-        public static void LoadLevel(string seed)
+        public static void LoadLevel(string seed, bool isRestart = false)
         {
-            Harmony.PatchAll();
+            if(!isRestart)
+                Harmony.PatchAll();
             if (string.IsNullOrEmpty(seed))
                 GameSeed = GenerateRandomString(6);
             else
@@ -296,7 +299,7 @@ namespace Ultrarogue
                 foreach (var item in SelectedChar.StartingItems)
                 {
                     Logger.LogInfo($"Giving item: " + item);
-                    if(Plugin.getItem(item) is ActiveItem active)
+                    if (Plugin.getItem(item) is ActiveItem active)
                     {
                         activeLoad = active;
                         continue;
@@ -1211,6 +1214,49 @@ namespace Ultrarogue
             if (value <= chance / 100) return true;
             return false;
         }
+
+        public static void InvokeProjectileStart(GameObject projectile, ProjectileType type)
+        {
+            if (!isInRogueMode()) return;
+            if (projectile == null) return;
+
+            foreach (var startEffect in projectileStartEffects)
+            {
+                if (GetItemCount(startEffect.itemName) <= 0) continue;
+                startEffect.effect.Invoke(projectile, type);
+            }
+        }
+
+        public static void InvokeProjectileCollide(GameObject projectile, ProjectileType type, GameObject other)
+        {
+            if (!isInRogueMode()) return;
+            if (projectile == null) return;
+
+            foreach (var collideEffect in projectileCollideEffects)
+            {
+                if (GetItemCount(collideEffect.itemName) <= 0) continue;
+                collideEffect.effect.Invoke(projectile, type, other);
+            }
+        }
+
+        public static bool TryGetEnemy(GameObject hit, out EnemyIdentifier eid)
+        {
+            if ((hit.gameObject.layer == 10 || hit.gameObject.layer == 11) && (hit.gameObject.CompareTag("Head") || hit.gameObject.CompareTag("Body") || hit.gameObject.CompareTag("Limb") || hit.gameObject.CompareTag("EndLimb") || hit.gameObject.CompareTag("Enemy")))
+            {
+                if (hit.TryGetComponent<EnemyIdentifierIdentifier>(out EnemyIdentifierIdentifier eidid))
+                    eid = eidid.eid;
+                else
+                    hit.TryGetComponent<EnemyIdentifier>(out eid);
+
+                if (eid != null)
+                {
+                    return true;
+                }
+            }
+
+            eid = null;
+            return false;
+        }
         #endregion
     }
 
@@ -1984,7 +2030,7 @@ namespace Ultrarogue
                 multiplier = Plugin.damageMultipliers[weaponUsed].CalculateChanges(multiplier);
             multiplier = Plugin.globalDamageMult.CalculateChanges(multiplier);
 
-            
+
 
             foreach (var mod in Plugin.dmgModifiers)
             {
@@ -2043,6 +2089,79 @@ namespace Ultrarogue
         }
     }
 
+
+    [HarmonyPatch]
+    public class ProjectilePatches
+    {
+
+        [HarmonyPatch(typeof(RevolverBeam), "Start")]
+        [HarmonyPrefix]
+        public static void RevolverBeamStart(RevolverBeam __instance)
+        {
+            Plugin.InvokeProjectileStart(__instance.gameObject, ProjectileType.Hitscan);
+        }
+
+        [HarmonyPatch(typeof(Projectile), "Start")]
+        [HarmonyPostfix]
+        public static void ProjectileStart(Projectile __instance)
+        {
+            Plugin.InvokeProjectileStart(__instance.gameObject, ProjectileType.Projectile);
+        }
+
+        [HarmonyPatch(typeof(Grenade), "Start")]
+        [HarmonyPostfix]
+        public static void GrenadeStart(Grenade __instance)
+        {
+            Plugin.InvokeProjectileStart(__instance.gameObject, ProjectileType.Rocket);
+        }
+
+        [HarmonyPatch(typeof(Nail), "Start")]
+        [HarmonyPostfix]
+        public static void NailStart(Nail __instance)
+        {
+            Plugin.InvokeProjectileStart(__instance.gameObject, ProjectileType.Nail);
+        }
+
+
+        [HarmonyPatch(typeof(RevolverBeam), "ExecuteHits")]
+        [HarmonyPostfix]
+        public static void RevolverBeamHit(RevolverBeam __instance, PhysicsCastResult currentHit)
+        {
+            if (currentHit.collider == null) return;
+            if (currentHit.collider.gameObject == null) return;
+            GameObject other = currentHit.collider.gameObject;
+            Plugin.InvokeProjectileCollide(__instance.gameObject, ProjectileType.Hitscan, other);
+        }
+
+        [HarmonyPatch(typeof(Projectile), "Collided")]
+        [HarmonyPostfix]
+        public static void ProjectileCollided(Projectile __instance, Collider other)
+        {
+            Plugin.InvokeProjectileCollide(__instance.gameObject, ProjectileType.Projectile, other != null ? other.gameObject : null);
+        }
+
+        [HarmonyPatch(typeof(Grenade), nameof(Grenade.Collision), new System.Type[] {typeof(Collider), typeof(Vector3)})]
+        [HarmonyPostfix]
+        public static void GrenadeCollision(Grenade __instance, Collider other, Vector3 velocity)
+        {
+            Plugin.InvokeProjectileCollide(__instance.gameObject, ProjectileType.Rocket, other != null ? other.gameObject : null);
+        }
+
+        [HarmonyPatch(typeof(Nail), "OnCollisionEnter")]
+        [HarmonyPostfix]
+        public static void NailCollisionEnter(Nail __instance, Collision other)
+        {
+            Plugin.InvokeProjectileCollide(__instance.gameObject, ProjectileType.Nail, other != null ? other.gameObject : null);
+        }
+
+        [HarmonyPatch(typeof(Nail), "OnTriggerEnter")]
+        [HarmonyPostfix]
+        public static void NailTriggerEnter(Nail __instance, Collider other)
+        {
+            Plugin.InvokeProjectileCollide(__instance.gameObject, ProjectileType.Nail, other != null ? other.gameObject : null);
+        }
+
+    }
 
     [HarmonyPatch(typeof(EnemyIdentifier), nameof(EnemyIdentifier.StartBurning))]
     public static class BurningHeal
@@ -2198,7 +2317,7 @@ namespace Ultrarogue
 
                 array[3] = CommandRoot.Leaf<int>("givemoney", (amount) =>
                 {
-                    if(RogueDifficultyManager.Instance == null)
+                    if (RogueDifficultyManager.Instance == null)
                     {
                         Log.Error($"Noe Manager!");
                         return;
@@ -2209,7 +2328,7 @@ namespace Ultrarogue
 
                 array[4] = CommandRoot.Leaf<int>("givekeys", (amount) =>
                 {
-                    if(RogueDifficultyManager.Instance == null)
+                    if (RogueDifficultyManager.Instance == null)
                     {
                         Log.Error($"Noe Manager!");
                         return;
@@ -2280,6 +2399,41 @@ namespace Ultrarogue
             this.runBeforeDamageCalc = runBeforeDamageCalc;
 
             Plugin.hitEffects.Add(this);
+        }
+    }
+
+    public enum ProjectileType
+    {
+        Hitscan,
+        Nail,
+        Projectile,
+        Rocket
+    }
+    public class ProjectileStartEffect
+    {
+        public string itemName;
+        public Action<GameObject, ProjectileType> effect;
+
+        public ProjectileStartEffect(string itemName, Action<GameObject, ProjectileType> effect)
+        {
+            this.itemName = itemName;
+            this.effect = effect;
+
+            Plugin.projectileStartEffects.Add(this);
+        }
+    }
+
+    public class ProjectileCollideEffect
+    {
+        public string itemName;
+        public Action<GameObject, ProjectileType, GameObject> effect;
+
+        public ProjectileCollideEffect(string itemName, Action<GameObject, ProjectileType, GameObject> effect)
+        {
+            this.itemName = itemName;
+            this.effect = effect;
+
+            Plugin.projectileCollideEffects.Add(this);
         }
     }
     public class DamageTakenEffect

@@ -120,7 +120,7 @@ public static class SceneLoader
             SceneHelper.Instance.loadingBlocker.SetActive(true);
 
             string randomMessage = messages[Random.Range(0, messages.Length)];
-            if (SteamClient.IsLoggedOn)
+            if (SteamClient.IsValid && SteamClient.IsLoggedOn)
             {
                 if (customMessagesForYoutubers.ContainsKey(SteamClient.SteamId) && Random.value <= 0.25f)
                 {
@@ -267,7 +267,7 @@ public static class SceneLoader
     {
         if (sceneName == SceneName)
         {
-            Plugin.LoadLevel("");
+            Plugin.LoadLevel("", true);
             return false;
         }
         else

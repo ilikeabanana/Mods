@@ -8,8 +8,12 @@ namespace Ultrarogue.Items
 {
     public class Reaper : BaseItem
     {
+        const float DamageMultiplierPerStack = 1f;
+        const float HpMultiplierPerStack = 0.5f;
+        const float HpSyncDelay = 0.12f;
+
         public override string ItemName => "Reaper's Scythe";
-        public override string itemDescription => "Double your damage, <color=red>BUT LOSE 50% OF YOUR MAXIMUM HP</color>.";
+        public override string itemDescription => $"Multiply your damage by {1 + DamageMultiplierPerStack} per stack, <color=red>BUT LOSE {(1 - HpMultiplierPerStack) * 100}% OF YOUR MAXIMUM HP per stack</color>.";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
 
         public override Material materialOverride => AssetsManager.getAlchemy();
@@ -22,8 +26,8 @@ namespace Ultrarogue.Items
         }
         public override void OnUpdate(int count)
         {
-            float amountToThing = Mathf.Pow(0.5f, count);
-            dmg.postMultiplier = count + 1;
+            float amountToThing = Mathf.Pow(HpMultiplierPerStack, count);
+            dmg.postMultiplier = count + DamageMultiplierPerStack;
             HP.postMultiplier = amountToThing;
         }
 
@@ -33,7 +37,7 @@ namespace Ultrarogue.Items
         }
         IEnumerator ensureCorrectHP()
         {
-            yield return new WaitForSeconds(0.12f);
+            yield return new WaitForSeconds(HpSyncDelay);
             NewMovement.Instance.hp = Plugin.MaxHealth;
         }
 
@@ -45,8 +49,12 @@ namespace Ultrarogue.Items
     }
     public class FragileParts : BaseItem
     {
+        const float BonusPerStack = 1f;
+        const float DecayPerHitPerStack = 0.02f;
+        const float MinPercentage = -0.5f;
+
         public override string ItemName => "Fragile Parts";
-        public override string itemDescription => "Double all your stats, <color=red>TAKING DAMAGE REDUCES VALUES BY 2%</color>";
+        public override string itemDescription => $"Increase all your stats by {BonusPerStack * 100}% per stack, <color=red>TAKING DAMAGE REDUCES VALUES BY {DecayPerHitPerStack * 100}%</color>";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage, ItemTag.Utility };
         public override Rarity Rarity => Rarity.Alchemy;
         Change amazingChange = new Change();
@@ -54,12 +62,12 @@ namespace Ultrarogue.Items
         public static FragileParts I { get; set; }
         public override void OnGotten(int count, bool firstPickup)
         {
-            amazingChange.percentage = count;
+            amazingChange.percentage = count * BonusPerStack;
         }
 
         public static void Reset()
         {
-            I.amazingChange.percentage = Plugin.GetItemCount(I.ItemName);
+            I.amazingChange.percentage = Plugin.GetItemCount(I.ItemName) * BonusPerStack;
         }
         public override void OnNewFloor(int count)
         {
@@ -73,15 +81,18 @@ namespace Ultrarogue.Items
             new DamageTakenEffect(ItemName, (d) =>
             {
                 int c = Plugin.GetItemCount(ItemName);
-                if (c <= 0 || d <= 0) return; 
+                if (c <= 0 || d <= 0) return;
 
-                amazingChange.percentage = Mathf.Max(-0.5f, amazingChange.percentage - (0.02f * c));
+                amazingChange.percentage = Mathf.Max(MinPercentage, amazingChange.percentage - (DecayPerHitPerStack * c));
             });
             new PlayerChange(amazingChange, attackSpeed: amazingChange, cooldownReduction: amazingChange, globalDamageMult: amazingChange);
         }
     }
     public class WildCard : ActiveItem
     {
+        const float BuffMultiplierPerStack = 1f;
+        const float NerfMultiplierBase = 0.5f;
+
         public override string ItemName => "Wild Card";
         public override string itemDescription => "On Activation, <color=yellow>one random stat doubles</color>. <color=red>Another random stat is halved</color>.";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage, ItemTag.Utility };
@@ -92,7 +103,6 @@ namespace Ultrarogue.Items
         Change nerfedStat = new Change();
         Change neutral = new Change();
         public override Material materialOverride => AssetsManager.getAlchemy();
-        // All 7 stat slots, order matches the enum below
         Change[] statSlots;
 
         enum Stat { MoveSpeed, AttackSpeed, CooldownRed, DamageReduction, GlobalDamageMult }
@@ -102,7 +112,7 @@ namespace Ultrarogue.Items
         {
             statSlots = new Change[StatCount];
             for (int i = 0; i < StatCount; i++)
-                statSlots[i] = new Change(); // ← each gets its own object
+                statSlots[i] = new Change();
 
             new PlayerChange(
                 moveSpeed: statSlots[(int)Stat.MoveSpeed],
@@ -114,7 +124,7 @@ namespace Ultrarogue.Items
         }
         public override void OnGotten(int count, bool firstPickup)
         {
-            if(firstPickup)
+            if (firstPickup)
                 Reroll();
         }
         public override void OnUse()
@@ -139,9 +149,8 @@ namespace Ultrarogue.Items
             do { nerfIndex = UnityEngine.Random.Range(0, StatCount); }
             while (nerfIndex == buffIndex);
 
-            // Buff is now 2x per stack, nerf is only 0.6x (was 0.5x) — always net positive
-            statSlots[buffIndex].postMultiplier = 1f + (1f * count);       // same
-            statSlots[nerfIndex].postMultiplier = Mathf.Pow(0.5f, count); // was 0.5f
+            statSlots[buffIndex].postMultiplier = 1f + (BuffMultiplierPerStack * count);
+            statSlots[nerfIndex].postMultiplier = Mathf.Pow(NerfMultiplierBase, count);
         }
 
         public override void OnRemoval()
@@ -152,9 +161,12 @@ namespace Ultrarogue.Items
     }
     public class Overclock : BaseItem
     {
+        const float AttackAndDamagePerStack = 0.5f;
+        const float CooldownPenaltyPerStack = 0.50f;
+
         public override Material materialOverride => AssetsManager.getAlchemy();
         public override string ItemName => "Overclock";
-        public override string itemDescription => "Gain +50% attack speed and damage, but <color=red>-50% cooldown reduction</color>.";
+        public override string itemDescription => $"Gain +{AttackAndDamagePerStack * 100}% attack speed and damage, but <color=red>-{CooldownPenaltyPerStack * 100}% cooldown reduction</color>.";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage, ItemTag.Utility };
         public override Rarity Rarity => Rarity.Alchemy;
         Change speedAndDmg = new Change();
@@ -165,8 +177,8 @@ namespace Ultrarogue.Items
         }
         public override void OnUpdate(int count)
         {
-            speedAndDmg.percentage = 0.5f * count;
-            cooldownPenalty.percentage = -1 * (0.50f * count);
+            speedAndDmg.percentage = AttackAndDamagePerStack * count;
+            cooldownPenalty.percentage = -1 * (CooldownPenaltyPerStack * count);
         }
         public override void OnRemoval()
         {
@@ -176,34 +188,38 @@ namespace Ultrarogue.Items
     }
     public class DecayingEmpowerment : BaseItem
     {
+        const float InitialBonusPerStack = 1.0f;
+        const float RestorePerKillPerStack = 0.25f;
+        const float DecayRate = 0.02f;
+        const float DecayInterval = 1.5f;
+        const float MinPercentage = -0.7f;
+
         public override Material materialOverride => AssetsManager.getAlchemy();
         public override string ItemName => "Decaying Empowerment";
-        public override string itemDescription => "Start with +100% to all stats, but they <color=red>decay over time</color>. Kills <color=green>restore some power</color>.";
+        public override string itemDescription => $"Start with +{InitialBonusPerStack * 100}% to all stats, but they <color=red>decay over time</color>. Kills <color=green>restore some power</color>.";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage, ItemTag.Utility };
         public override Rarity Rarity => Rarity.Alchemy;
         Change allStats = new Change();
-        const float decayRate = 0.02f;     // was 0.05f — slower decay
-        const float decayInterval = 1.5f;  // was 0.85f — longer between ticks
         float nextDecayTime = 0f;
         public override void OnStart()
-        { 
+        {
             new PlayerChange(allStats, attackSpeed: allStats, cooldownReduction: allStats, globalDamageMult: allStats);
             new DeathEffect(ItemName, (enemy) =>
             {
                 int c = Plugin.GetItemCount(ItemName);
-                allStats.percentage = Mathf.Min(c * 1.0f, allStats.percentage + (0.25f * c));
+                allStats.percentage = Mathf.Min(c * InitialBonusPerStack, allStats.percentage + (RestorePerKillPerStack * c));
             });
         }
         public override void OnNewFloor(int count)
         {
-            allStats.percentage = count * 1.0f;
+            allStats.percentage = count * InitialBonusPerStack;
         }
         public override void OnUpdate(int count)
         {
             if (Time.time >= nextDecayTime)
             {
-                allStats.percentage = Mathf.Max(-0.7f, allStats.percentage - (decayRate * count));
-                nextDecayTime = Time.time + decayInterval;
+                allStats.percentage = Mathf.Max(MinPercentage, allStats.percentage - (DecayRate * count));
+                nextDecayTime = Time.time + DecayInterval;
             }
         }
         public override void OnRemoval()
@@ -212,14 +228,17 @@ namespace Ultrarogue.Items
         }
         public override void OnGotten(int count, bool firstPickup)
         {
-            allStats.percentage = count * 1.0f;
+            allStats.percentage = count * InitialBonusPerStack;
         }
     }
     public class Gluttony : BaseItem
     {
+        const float DamagePerItemPerStack = 0.10f;
+        const float SpeedPenaltyPerItemPerStack = 0.02f;
+
         public override Material materialOverride => AssetsManager.getAlchemy();
         public override string ItemName => "Gluttony";
-        public override string itemDescription => "Increase damage by 10% for every item, but reduce movement speed for by 2% every item.";
+        public override string itemDescription => $"Increase damage by {DamagePerItemPerStack * 100}% for every item, but reduce movement speed by {SpeedPenaltyPerItemPerStack * 100}% for every item.";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage, ItemTag.Utility };
         public override Rarity Rarity => Rarity.Alchemy;
         public Change everyOtherChange = new Change();
@@ -231,19 +250,20 @@ namespace Ultrarogue.Items
         public override void OnUpdate(int count)
         {
             int itemCount = Plugin.items.Sum((x) => x.Value);
-            everyOtherChange.percentage = itemCount * (0.10f * count);
+            everyOtherChange.percentage = itemCount * (DamagePerItemPerStack * count);
 
-            // Cap the movement penalty at -40% regardless of item count
-            float rawPenalty = itemCount * (0.02f * count); // was 0.05f
+            float rawPenalty = itemCount * (SpeedPenaltyPerItemPerStack * count);
             movementChange.percentage = -1 * rawPenalty;
         }
     }
     public class Null : BaseItem
     {
+        const float ReplaceChance = 50f;
+
         public static Null I;
         public override string NameDisplayOverride => "<voffset=2px><size=120%><color=#00ffff>N</color></size></voffset><voffset=4px><color=#ff00ff>U</color></voffset><voffset=-2px><size=80%><color=#ffff00>L</color></size></voffset><voffset=6px><color=#00ff00>L</color></voffset>";
         public override string ItemName => "Null";
-        public override string itemDescription => "50% chance for every item to be replaced with a pure stat upgrade.";
+        public override string itemDescription => $"{ReplaceChance}% chance for every item to be replaced with a pure stat upgrade.";
         public override Material materialOverride => AssetsManager.getAlchemy();
         public override Rarity Rarity => Rarity.Alchemy;
         //fortitudo - Damage 10% up
@@ -260,8 +280,10 @@ namespace Ultrarogue.Items
 
     public class Fortitudo : BaseItem
     {
+        const float BonusPerStack = 0.30f;
+
         public override string ItemName => "Fortitudo";
-        public override string itemDescription => "Increase damage by 20%";
+        public override string itemDescription => $"Increase damage by {BonusPerStack * 100}%";
         public override Material materialOverride => AssetsManager.getAlchemy();
         Change c = new Change();
         public override Rarity Rarity => Rarity.NullItem;
@@ -274,14 +296,16 @@ namespace Ultrarogue.Items
         public override void OnUpdate(int count)
         {
             base.OnUpdate(count);
-            c.percentage = 0.30f * count;
+            c.percentage = BonusPerStack * count;
         }
     }
 
     public class Velocitas : BaseItem
     {
+        const float BonusPerStack = 0.30f;
+
         public override string ItemName => "Velocitas";
-        public override string itemDescription => "Increase speed by 30%";
+        public override string itemDescription => $"Increase speed by {BonusPerStack * 100}%";
         public override Material materialOverride => AssetsManager.getAlchemy();
         Change c = new Change();
         public override Rarity Rarity => Rarity.NullItem;
@@ -293,15 +317,17 @@ namespace Ultrarogue.Items
         public override void OnUpdate(int count)
         {
             base.OnUpdate(count);
-            c.percentage = 0.30f * count;
+            c.percentage = BonusPerStack * count;
         }
     }
 
     public class Rapidiatis : BaseItem
     {
+        const float BonusPerStack = 0.30f;
+
         public override Material materialOverride => AssetsManager.getAlchemy();
         public override string ItemName => "Rapidiatis";
-        public override string itemDescription => "Increase attackspeed by 20%";
+        public override string itemDescription => $"Increase attackspeed by {BonusPerStack * 100}%";
 
         Change c = new Change();
         public override Rarity Rarity => Rarity.NullItem;
@@ -313,15 +339,17 @@ namespace Ultrarogue.Items
         public override void OnUpdate(int count)
         {
             base.OnUpdate(count);
-            c.percentage = 0.30f * count;
+            c.percentage = BonusPerStack * count;
         }
     }
 
     public class Refrigescant : BaseItem
     {
+        const float BonusPerStack = 0.30f;
+
         public override Material materialOverride => AssetsManager.getAlchemy();
         public override string ItemName => "Refrigescant";
-        public override string itemDescription => "Increase cooldown reduction by 30%";
+        public override string itemDescription => $"Increase cooldown reduction by {BonusPerStack * 100}%";
 
         Change c = new Change();
         public override Rarity Rarity => Rarity.NullItem;
@@ -333,7 +361,7 @@ namespace Ultrarogue.Items
         public override void OnUpdate(int count)
         {
             base.OnUpdate(count);
-            c.percentage = 0.30f * count;
+            c.percentage = BonusPerStack * count;
         }
     }
 }

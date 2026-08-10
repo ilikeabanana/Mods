@@ -27,6 +27,10 @@ namespace Ultrarogue.Items
 
     public abstract class BaseItem
     {
+        public Coroutine StartCoroutine(IEnumerator numerator)
+        {
+            return Plugin.Instance.StartCoroutine(numerator);
+        }
         public virtual bool CanOnlyHaveOne => false;
 
         public virtual Material materialOverride => null;
@@ -72,11 +76,6 @@ namespace Ultrarogue.Items
         {
 
         }
-        public void StartCoroutine(IEnumerator routine)
-        {
-            Plugin.Instance.StartCoroutine(routine);
-        }
-
         public override string ToString()
         {
             string name = string.IsNullOrEmpty(NameDisplayOverride) ? ItemName : NameDisplayOverride;

@@ -22,6 +22,7 @@ public class AssetsManager
     public static GameObject CoinGet;
     public static GameObject CoinFlash;
     public static GameObject RevolverBeam;
+    public static GameObject Rocket;
 
     public static Sprite KeySprite;
     public static Sprite CoinSprite;
@@ -103,6 +104,12 @@ public class AssetsManager
             healingEffect = Addressables
                 .LoadAssetAsync<GameObject>(
                     "Assets/Particles/HealingEffect.prefab")
+                .WaitForCompletion();
+
+        if (Rocket == null)
+            Rocket = Addressables
+                .LoadAssetAsync<GameObject>(
+                    "Assets/Prefabs/Attacks and Projectiles/Rocket.prefab")
                 .WaitForCompletion();
 
         if (CoinGet == null)

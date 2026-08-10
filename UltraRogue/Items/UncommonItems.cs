@@ -8,15 +8,12 @@ using UnityEngine.AddressableAssets;
 
 namespace Ultrarogue.Items
 {
-    // All uncommon items either:
-    //   a) use DamageModifier / DeathEffect / HitEffect which already gate on GetItemCount > 0, or
-    //   b) have no persistent state that survives item removal.
-    // None require an OnRemoval override.
-
     public class IgnitionTank : BaseItem
     {
+        const float DamagePerStack = 1f;
+
         public override string ItemName => "Ignition Tank";
-        public override string itemDescription => "Fire deals 100% more damage";
+        public override string itemDescription => $"Fire deals {DamagePerStack * 100}% more damage";
         public override Rarity Rarity => Rarity.Uncommon;
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         public override void OnStart()
@@ -26,10 +23,10 @@ namespace Ultrarogue.Items
                 int itemCount = Plugin.GetItemCount(this);
                 if (eid.hitter == "fire")
                 {
-                    return itemCount + 1;
+                    return 1f + (itemCount * DamagePerStack);
                 }
 
-                return 1;
+                return 1f;
             });
         }
     }
@@ -44,8 +41,10 @@ namespace Ultrarogue.Items
 
     public class BowlLasagna : BaseItem
     {
+        const float PercentPerStack = 0.15f;
+
         public override string ItemName => "Bowl of Lasagna";
-        public override string itemDescription => "Increase all stats by +15%";
+        public override string itemDescription => $"Increase all stats by +{PercentPerStack * 100}%";
         public override Rarity Rarity => Rarity.Uncommon;
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Utility };
         Change change = new Change();
@@ -61,24 +60,26 @@ namespace Ultrarogue.Items
                 plr.maxHealth = new Change();
             else
                 plr.maxHealth = change;
-            change.percentage = 0.15f * count;
+            change.percentage = PercentPerStack * count;
         }
         public override void OnRemoval()
         {
-
             change.percentage = 0;
         }
     }
 
     public class Panopticon : BaseItem
     {
+        const int BaseHeal = 5;
+        const int MaxHealsPerRoom = 7;
+
         public override Rarity Rarity => Rarity.Uncommon;
         public override string ItemName => "Panopticon";
-        public override string itemDescription => "On damage taken, heal 5 (+5 per stack) hp up to 7 times per room.";
+        public override string itemDescription => $"On damage taken, heal {BaseHeal} (+{BaseHeal} per stack) hp up to {MaxHealsPerRoom} times per room.";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Healing, ItemTag.Health };
 
 
-        int HealAmount = 7;
+        int HealAmount = MaxHealsPerRoom;
 
         public override void OnStart()
         {
@@ -88,7 +89,7 @@ namespace Ultrarogue.Items
 
                 if (c <= 0) return;
                 if (HealAmount <= 0) return;
-                NewMovement.Instance.GetHealth(5 * c, true, bloodsplatter: false);
+                NewMovement.Instance.GetHealth(BaseHeal * c, true, bloodsplatter: false);
                 HealAmount--;
                 Object.Instantiate(AssetsManager.healingEffect, NewMovement.Instance.transform.position, Quaternion.identity);
             });
@@ -99,9 +100,9 @@ namespace Ultrarogue.Items
 
         public override void OnUpdate(int count)
         {
-            if(!wasCombat && Room.isFighting)
+            if (!wasCombat && Room.isFighting)
             {
-                HealAmount = 7;
+                HealAmount = MaxHealsPerRoom;
                 wasCombat = true;
             }
 
@@ -116,8 +117,11 @@ namespace Ultrarogue.Items
 
     public class Executioner : BaseItem
     {
+        const float HpThreshold = 0.20f;
+        const float DamagePerStack = 1.0f;
+
         public override string ItemName => "Executioner";
-        public override string itemDescription => "Enemies below 20% HP take 100% more damage (+100% per stack)";
+        public override string itemDescription => $"Enemies below {HpThreshold * 100}% HP take {DamagePerStack * 100}% more damage (+{DamagePerStack * 100}% per stack)";
         public override Rarity Rarity => Rarity.Uncommon;
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
 
@@ -129,8 +133,8 @@ namespace Ultrarogue.Items
                 if (count <= 0) return 1f;
 
                 float hpPercent = eid.health / eid.GetComponent<Enemy>().originalHealth;
-                if (hpPercent < 0.20f)
-                    return 1f + (1.0f * count);
+                if (hpPercent < HpThreshold)
+                    return 1f + (DamagePerStack * count);
 
                 return 1f;
             });
@@ -139,8 +143,11 @@ namespace Ultrarogue.Items
 
     public class Fusion : BaseItem
     {
+        const float HpPerKill = 1f;
+        const float MaxHpCap = 50f;
+
         public override string ItemName => "Fusion";
-        public override string itemDescription => "Each kill permanently increases your max hp by 1 with a max of 50 (+50 per stack)";
+        public override string itemDescription => $"Each kill permanently increases your max hp by {HpPerKill} with a max of {MaxHpCap} (+{MaxHpCap} per stack)";
         public override Rarity Rarity => Ultrarogue.Rarity.Uncommon;
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.MaxHealth, ItemTag.Health };
         Change hpChange;
@@ -155,10 +162,10 @@ namespace Ultrarogue.Items
             {
                 int count = Plugin.GetItemCount(this);
                 if (count <= 0) return;
-                if (killBonus >= 50 * count) return;
-                killBonus += 1;
-                if(Plugin.SelectedChar.GetType() != typeof(Filth))
-                    NewMovement.Instance.GetHealth(1, true);
+                if (killBonus >= MaxHpCap * count) return;
+                killBonus += HpPerKill;
+                if (Plugin.SelectedChar.GetType() != typeof(Filth))
+                    NewMovement.Instance.GetHealth((int)HpPerKill, true);
             });
         }
 
@@ -169,7 +176,6 @@ namespace Ultrarogue.Items
 
         public override void OnRemoval()
         {
-            // Reset the accumulated kill bonus so it doesn't carry over if re-acquired
             killBonus = 0f;
             hpChange.addition = 0;
         }
@@ -177,8 +183,10 @@ namespace Ultrarogue.Items
 
     public class Combatblood : BaseItem
     {
+        const int HealPerStack = 6;
+
         public override string ItemName => "Combat blood";
-        public override string itemDescription => "On kill, restore 6 HP (+6 per stack)";
+        public override string itemDescription => $"On kill, restore {HealPerStack} HP (+{HealPerStack} per stack)";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Healing, ItemTag.Health };
         public override Rarity Rarity => Rarity.Uncommon;
         public override void OnStart()
@@ -188,7 +196,7 @@ namespace Ultrarogue.Items
                 int count = Plugin.GetItemCount(this);
                 if (count <= 0 || NewMovement.Instance == null) return;
 
-                int heal = 6 * count;
+                int heal = HealPerStack * count;
                 NewMovement.Instance.hp = Mathf.Min(NewMovement.Instance.hp + heal, Plugin.MaxHealth);
             });
         }
@@ -196,8 +204,14 @@ namespace Ultrarogue.Items
 
     public class WillOWisp : BaseItem
     {
+        const float Chance = 35f;
+        const float BaseDamageMultiplier = 3.5f;
+        const float DamagePerStackIncrement = 0.5f;
+        const float BaseRadius = 6f;
+        const float RadiusPerStack = 2f;
+
         public override string ItemName => "Will-o'-the-Maurice";
-        public override string itemDescription => "On kill, 35% chance to detonate the corpse for 350% damage in a 6m radius (+2m and +50% per stack)";
+        public override string itemDescription => $"On kill, {Chance}% chance to detonate the corpse for {BaseDamageMultiplier * 100}% damage in a {BaseRadius}m radius (+{RadiusPerStack}m and +{DamagePerStackIncrement * 100}% per stack)";
         public override Rarity Rarity => Rarity.Uncommon;
         public override string ItemIconName => "WillOMaurice";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
@@ -208,7 +222,7 @@ namespace Ultrarogue.Items
             {
                 int count = Plugin.GetItemCount(this);
                 if (count <= 0) return;
-                if (!Plugin.canExecute(35f, "")) return;
+                if (!Plugin.canExecute(Chance, "")) return;
                 Plugin.Instance.StartCoroutine(explody(eid.transform.position));
             });
         }
@@ -218,8 +232,8 @@ namespace Ultrarogue.Items
             yield return new WaitForSeconds(0.25f);
             int count = Plugin.GetItemCount(this);
 
-            float radius = 6f + (2f * count - 1);
-            float damage = 3.5f + (0.5f * count - 1);
+            float radius = BaseRadius + (RadiusPerStack * count - 1);
+            float damage = BaseDamageMultiplier + (DamagePerStackIncrement * count - 1);
 
             GameObject explosion = Object.Instantiate(DefaultReferenceManager.Instance.explosion, position, Quaternion.identity);
             foreach (var exp in explosion.GetComponentsInChildren<Explosion>())
@@ -234,8 +248,11 @@ namespace Ultrarogue.Items
     [HarmonyPatch]
     public class Bouncy : BaseItem
     {
+        const float BaseChance = 25f;
+        const float ChancePerStack = 15f;
+
         public override string ItemName => "Bouncy Hitscans";
-        public override string itemDescription => "All hitscans have a 25% (+15% chance per stack) to bounce (chance gets smaller every bounce)";
+        public override string itemDescription => $"All hitscans have a {BaseChance}% (+{ChancePerStack}% chance per stack) to bounce (chance gets smaller every bounce)";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Utility };
         public override Rarity Rarity => Rarity.Uncommon;
         public override List<Plugin.Weapon> WeaponRequirements => new List<Plugin.Weapon>() { Plugin.Weapon.Revolver };
@@ -248,7 +265,7 @@ namespace Ultrarogue.Items
             if (__instance.hasBeenRicocheter) return;
             if (__instance.beamType == BeamType.Enemy) return;
             if (__instance.beamType == BeamType.MaliciousFace) return;
-            float baseChance = 25f + (15f * (count - 1));
+            float baseChance = BaseChance + (ChancePerStack * (count - 1));
 
             float chance = baseChance;
 
@@ -263,8 +280,11 @@ namespace Ultrarogue.Items
 
     public class DeadMansHand : BaseItem
     {
+        const float HpThreshold = 0.25f;
+        const float DamagePerStack = 0.75f;
+
         public override string ItemName => "Dead Man's Hand";
-        public override string itemDescription => "Below 25% HP, deal 75% more damage (+75% per stack)";
+        public override string itemDescription => $"Below {HpThreshold * 100}% HP, deal {DamagePerStack * 100}% more damage (+{DamagePerStack * 100}% per stack)";
         public override Rarity Rarity => Rarity.Uncommon;
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
 
@@ -276,8 +296,8 @@ namespace Ultrarogue.Items
                 if (count <= 0 || NewMovement.Instance == null) return 1f;
 
                 float hpPercent = (float)NewMovement.Instance.hp / Plugin.MaxHealth;
-                if (hpPercent < 0.25f)
-                    return 1f + (0.75f * count);
+                if (hpPercent < HpThreshold)
+                    return 1f + (DamagePerStack * count);
 
                 return 1f;
             });
@@ -286,8 +306,11 @@ namespace Ultrarogue.Items
 
     public class NailBomb : BaseItem
     {
+        const float DamageMultiplierPerStack = 1.5f;
+        const float RadiusPerStack = 5f;
+
         public override string ItemName => "Nail Bomb";
-        public override string itemDescription => "Nailgun kills explode for 150% damage in a 5m radius (+5m per stack)";
+        public override string itemDescription => $"Nailgun kills explode for {DamageMultiplierPerStack * 100}% damage in a {RadiusPerStack}m radius (+{RadiusPerStack}m per stack)";
         public override Rarity Rarity => Rarity.Uncommon;
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         public override List<Plugin.Weapon> WeaponRequirements => new List<Plugin.Weapon>() { Plugin.Weapon.Nailgun };
@@ -316,17 +339,19 @@ namespace Ultrarogue.Items
             );
             foreach (var exp in explosion.GetComponentsInChildren<Explosion>())
             {
-                exp.maxSize = 5f * count;
+                exp.maxSize = RadiusPerStack * count;
                 exp.canHit = AffectedSubjects.EnemiesOnly;
-                exp.damage = Mathf.RoundToInt(1.5f * count);
+                exp.damage = Mathf.RoundToInt(DamageMultiplierPerStack * count);
             }
         }
     }
 
     public class SpikyNails : BaseItem
     {
+        const float DamagePerStack = 0.001f;
+
         public override string ItemName => "Spiky Nails";
-        public override string itemDescription => "Enemies with nail get +0.1% (+0.1% per stack) more damage per nail stuck in them.";
+        public override string itemDescription => $"Enemies with nail get +{DamagePerStack * 100}% (+{DamagePerStack * 100}% per stack) more damage per nail stuck in them.";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         public override Rarity Rarity => Rarity.Uncommon;
         public override List<Plugin.Weapon> WeaponRequirements => new List<Plugin.Weapon>() { Plugin.Weapon.Nailgun };
@@ -338,7 +363,7 @@ namespace Ultrarogue.Items
                 if (count <= 0) return 1f;
 
                 int nailsStuck = eid.nailsAmount;
-                float damageIncrease = (0.001f * count) * nailsStuck;
+                float damageIncrease = (DamagePerStack * count) * nailsStuck;
                 return damageIncrease + 1;
             });
         }
@@ -346,8 +371,11 @@ namespace Ultrarogue.Items
 
     public class MissleLauncher : BaseItem
     {
+        const float Chance = 10f;
+        const float DamagePerStack = 3f;
+
         public override string ItemName => "Missle Launcher";
-        public override string itemDescription => "10% chance to launch a missile that deals 300% (+300% per stack) base damage to an enemy";
+        public override string itemDescription => $"{Chance}% chance to launch a missile that deals {DamagePerStack * 100}% (+{DamagePerStack * 100}% per stack) base damage to an enemy";
 
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         public override Rarity Rarity => Rarity.Uncommon;
@@ -383,9 +411,9 @@ namespace Ultrarogue.Items
             {
                 int count = Plugin.GetItemCount(this);
                 if (count <= 0) return;
-                if (!Plugin.canExecute(10, eid.hitter)) return;
+                if (!Plugin.canExecute(Chance, eid.hitter)) return;
 
-                float damage = (3 * count);
+                float damage = DamagePerStack * count;
                 GameObject missle = getMissleModel();
                 Missle proj = missle.GetOrAddComponent<Missle>();
                 proj.isRocket = true;
@@ -399,9 +427,11 @@ namespace Ultrarogue.Items
     [HarmonyPatch]
     public class Repeater : ActiveItem
     {
+        const float DamageMultiplier = 2f;
+
         public override string ItemName => "Repeater";
         public override int ChargeRequired => 2;
-        public override string itemDescription => "Deal twice the damage of your last attack. If the original target is dead, deal it to a random enemy instead.";
+        public override string itemDescription => $"Deal double the damage of your last attack. If the original target is dead, deal it to a random enemy instead.";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
 
         public override Rarity Rarity => Rarity.Uncommon;
@@ -429,14 +459,14 @@ namespace Ultrarogue.Items
         }
         public override void OnUse()
         {
-            if(lastHit == null || lastHit.dead)
+            if (lastHit == null || lastHit.dead)
             {
                 List<EnemyIdentifier> eids = EnemyTracker.Instance.GetCurrentEnemies();
                 lastHit = eids[Random.Range(0, eids.Count)];
             }
 
             lastHit.hitter = lastHitter;
-            lastHit.DeliverDamage(lastHit.gameObject, Vector3.zero, lastHit.transform.position, lastHitDmg * 2, false);
+            lastHit.DeliverDamage(lastHit.gameObject, Vector3.zero, lastHit.transform.position, lastHitDmg * DamageMultiplier, false);
 
             lastHit = null;
             DamagedEnemy = false;
@@ -447,6 +477,63 @@ namespace Ultrarogue.Items
             lastHit = null;
             lastHitDmg = 0;
             lastHitter = null;
+        }
+    }
+
+    public class ChainRocket : BaseItem
+    {
+        const float BaseChance = 5f;
+        const float ChancePerStack = 2f;
+        const int RocketCount = 3;
+
+        public override string ItemName => "Chain Rocket";
+        public override Rarity Rarity => Rarity.Uncommon;
+
+        public override void OnStart()
+        {
+            base.OnStart();
+            new ProjectileCollideEffect(ItemName, (proj, type, other) =>
+            {
+                if (type != ProjectileType.Rocket) return;
+                int c = Plugin.GetItemCount(this);
+                if (c <= 0) return;
+
+                EnemyIdentifier eid;
+                if (!Plugin.TryGetEnemy(other, out eid)) return;
+
+                if (Plugin.canExecute(BaseChance + (ChancePerStack * c - 1), eid.hitter))
+                {
+                    for (int i = 0; i < RocketCount; i++)
+                    {
+                        StartCoroutine(SpawnRocket(eid, 0.15f * i));
+                        
+                    }
+
+                }
+            });
+        }
+
+        IEnumerator SpawnRocket(EnemyIdentifier eid, float delay)
+        {
+            yield return new WaitForSeconds(delay);
+            List<EnemyIdentifier> eids = EnemyTracker.Instance.GetCurrentEnemies();
+            eids.RemoveAll((x) => x == eid);
+            if (eids.Count <= 0) yield break;
+
+            EnemyIdentifier target = eids[Random.Range(0, eids.Count)];
+            Transform targetTransform = target.weakPoint ? target.weakPoint.transform : target.transform;
+            Transform spawnPos = eid.weakPoint ? eid.weakPoint.transform : eid.transform;
+
+            GameObject rocketObj = Object.Instantiate(AssetsManager.Rocket, spawnPos.position, Quaternion.identity);
+            rocketObj.transform.forward = (targetTransform.position - rocketObj.transform.position).normalized;
+            Collider rocketCol = rocketObj.GetComponent<Collider>();
+            if (rocketCol != null)
+            {
+                foreach (Collider enemyCol in eid.GetComponentsInChildren<Collider>())
+                {
+                    Physics.IgnoreCollision(rocketCol, enemyCol, true);
+                }
+            }
         }
     }
 }

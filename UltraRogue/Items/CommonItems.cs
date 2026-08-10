@@ -15,8 +15,10 @@ namespace Ultrarogue.Items
 {
     public class SoldierChip : BaseItem
     {
+        const float AttackSpeedPerStack = 0.20f;
+
         public override string ItemName => "Soldier Chip";
-        public override string itemDescription => "Increase firerate by 20%";
+        public override string itemDescription => $"Increase firerate by {AttackSpeedPerStack * 100}%";
         Change atkSpeedChange;
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
 
@@ -28,7 +30,7 @@ namespace Ultrarogue.Items
 
         public override void OnUpdate(int count)
         {
-            atkSpeedChange.percentage = 0.20f * count;
+            atkSpeedChange.percentage = AttackSpeedPerStack * count;
         }
 
         public override void OnRemoval()
@@ -39,8 +41,11 @@ namespace Ultrarogue.Items
 
     public class HitscanSlop : BaseItem
     {
+        const float Chance = 25f;
+        const float DamagePerStack = 0.5f;
+
         public override string ItemName => "Hitscan on hit";
-        public override string itemDescription => "25% chance on hit to fire a revolver beam to the nearest enemy dealing 50% (+50% per stack) TOTAL damage";
+        public override string itemDescription => $"{Chance}% chance on hit to fire a revolver beam to the nearest enemy dealing {DamagePerStack * 100}% (+{DamagePerStack * 100}% per stack) TOTAL damage";
         public override float SpawnWeight => 0.9f;
         public override List<Plugin.Weapon> WeaponProvisions => new List<Plugin.Weapon>() { Plugin.Weapon.Revolver };
         public override void OnStart()
@@ -52,13 +57,13 @@ namespace Ultrarogue.Items
                 if (c <= 0) return;
                 if (eid.hitter == ItemName) return;
 
-                if(Plugin.canExecute(25, eid.hitter))
+                if (Plugin.canExecute(Chance, eid.hitter))
                 {
                     GameObject beam = Object.Instantiate(AssetsManager.RevolverBeam, CameraController.Instance.GetDefaultPos(), Quaternion.identity);
 
                     RevolverBeam pew = beam.GetComponent<RevolverBeam>();
                     pew.hitterOverride = ItemName;
-                    pew.damage = dmg * (0.5f * c);
+                    pew.damage = dmg * (DamagePerStack * c);
                     List<EnemyIdentifier> enemies = EnemyTracker.Instance.GetCurrentEnemies();
 
                     EnemyIdentifier nearest = null;
@@ -93,19 +98,23 @@ namespace Ultrarogue.Items
 
     public class Monocle : BaseItem
     {
+        const int GoldPerStack = 2;
+
         public override string ItemName => "Monocle";
-        public override string itemDescription => "Gain 2 (+2 per stack) gold when entering a new floor.";
+        public override string itemDescription => $"Gain {GoldPerStack} (+{GoldPerStack} per stack) gold when entering a new floor.";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Utility };
         public override void OnNewFloor(int count)
         {
-            RogueDifficultyManager.Instance.Gold += 2 * count;
+            RogueDifficultyManager.Instance.Gold += GoldPerStack * count;
         }
     }
 
     public class StyleChst : BaseItem
     {
+        const int StyleRequired = 10000;
+
         public override string ItemName => "Style Chest";
-        public override string itemDescription => "After gaining 10000 style remove this and spawn 1 random uncommon item.";
+        public override string itemDescription => $"After gaining {StyleRequired} style remove this and spawn 1 random uncommon item.";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Utility };
         int styleStart = 0;
         public override void OnGotten(int count, bool firstPickup)
@@ -120,7 +129,7 @@ namespace Ultrarogue.Items
             if (!Room.isFighting) return;
             if (count == 0) return;
             int gainedStyle = StatsManager.Instance.stylePoints - styleStart;
-            if (gainedStyle >= 10000)
+            if (gainedStyle >= StyleRequired)
             {
                 styleStart = StatsManager.Instance.stylePoints;
                 SpawnItem();
@@ -156,9 +165,12 @@ namespace Ultrarogue.Items
     [HarmonyPatch]
     public class BiggerShells : BaseItem
     {
+        const float DamagePerStack = 0.30f;
+        const float SizePerStack = 0.12f;
+
         static BiggerShells Instance { get; set; }
         public override string ItemName => "Bigger Shells";
-        public override string itemDescription => "Shotgun damage +30%, projectiles are 12% larger";
+        public override string itemDescription => $"Shotgun damage +{DamagePerStack * 100}%, projectiles are {SizePerStack * 100}% larger";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         public override List<Plugin.Weapon> WeaponRequirements => new List<Plugin.Weapon>() { Plugin.Weapon.Shotgun };
         DamageChange damageChange;
@@ -171,7 +183,7 @@ namespace Ultrarogue.Items
 
         public override void OnUpdate(int count)
         {
-            damageChange.damageChange.percentage = 0.30f * (float)count;
+            damageChange.damageChange.percentage = DamagePerStack * (float)count;
         }
 
         public override void OnRemoval()
@@ -185,15 +197,17 @@ namespace Ultrarogue.Items
             if (!Plugin.isInRogueScene()) return;
             if (Plugin.GetItemCount(Instance) > 0 && __instance.playerBullet)
             {
-                __instance.transform.localScale *= 1 + (0.12f * Plugin.GetItemCount(Instance));
+                __instance.transform.localScale *= 1 + (SizePerStack * Plugin.GetItemCount(Instance));
             }
         }
     }
 
     public class Improvement : BaseItem
     {
+        const float LowestStatBonus = 0.10f;
+
         public override string ItemName => "Scrap Parts";
-        public override string itemDescription => "+10% to your lowest stat";
+        public override string itemDescription => $"+{LowestStatBonus * 100}% to your lowest stat";
         PlayerChange plrChanges;
         public override void OnStart()
         {
@@ -237,13 +251,13 @@ namespace Ultrarogue.Items
             var lowest = stats.OrderBy(x => x.Item2).First();
 
             if (lowest.Item1 == "MS")
-                plrChanges.moveSpeed.percentage += 0.10f;
+                plrChanges.moveSpeed.percentage += LowestStatBonus;
             else if (lowest.Item1 == "AS")
-                plrChanges.attackSpeed.percentage += 0.10f;
+                plrChanges.attackSpeed.percentage += LowestStatBonus;
             else if (lowest.Item1 == "D")
-                plrChanges.globalDamageMult.percentage += 0.10f;
+                plrChanges.globalDamageMult.percentage += LowestStatBonus;
             else if (lowest.Item1 == "C")
-                plrChanges.cooldownRed.percentage += 0.10f;
+                plrChanges.cooldownRed.percentage += LowestStatBonus;
         }
 
         public override void OnRemoval()
@@ -262,8 +276,11 @@ namespace Ultrarogue.Items
 
     public class Gasoline : BaseItem
     {
+        const int BaseProjectiles = 10;
+        const int ProjectilesPerStack = 5;
+
         public override string ItemName => "Gasoline";
-        public override string itemDescription => "On kill, create 10 (+5 per stack) gasoline projectiles";
+        public override string itemDescription => $"On kill, create {BaseProjectiles} (+{ProjectilesPerStack} per stack) gasoline projectiles";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
 
         public override void OnStart()
@@ -272,7 +289,7 @@ namespace Ultrarogue.Items
             {
                 int count = Plugin.GetItemCount(this);
                 if (count <= 0) return;
-                for (int i = 0; i < (5 * count) + 10; i++)
+                for (int i = 0; i < (ProjectilesPerStack * count) + BaseProjectiles; i++)
                 {
                     StartCoroutine(SpawnNapalm(eid.transform));
                 }
@@ -300,8 +317,10 @@ namespace Ultrarogue.Items
 
     public class SmallKit : BaseItem
     {
+        const int HpPerStack = 10;
+
         public override string ItemName => "Small Kit";
-        public override string itemDescription => "+10 max hp per stack";
+        public override string itemDescription => $"+{HpPerStack} max hp per stack";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.MaxHealth, ItemTag.Health };
 
         Change hpChange;
@@ -313,11 +332,11 @@ namespace Ultrarogue.Items
         public override void OnGotten(int count, bool firstPickup)
         {
             if (count == 0) return;
-            NewMovement.Instance.GetHealth(10, true);
+            NewMovement.Instance.GetHealth(HpPerStack, true);
         }
         public override void OnUpdate(int count)
         {
-            hpChange.addition = 10 * count;
+            hpChange.addition = HpPerStack * count;
         }
         public override void OnRemoval()
         {
@@ -326,8 +345,10 @@ namespace Ultrarogue.Items
     }
     public class SandWorm : BaseItem
     {
+        const float DamagePerStack = 0.35f;
+
         public override string ItemName => "Sand Worm";
-        public override string itemDescription => "Sanded enemies take +35% more damage";
+        public override string itemDescription => $"Sanded enemies take +{DamagePerStack * 100}% more damage";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
 
         public override void OnStart()
@@ -337,15 +358,17 @@ namespace Ultrarogue.Items
                 int c = Plugin.GetItemCount(this);
                 if (c == 0) return 1;
                 if (!eid.sandified) return 1f;
-                return 1f + (0.35f * c);
+                return 1f + (DamagePerStack * c);
             });
         }
     }
 
     public class KnuckleDuster : BaseItem
     {
+        const float DamagePerStack = 0.5f;
+
         public override string ItemName => "Knuckle Duster";
-        public override string itemDescription => "Arm damage +50%";
+        public override string itemDescription => $"Arm damage +{DamagePerStack * 100}%";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         DamageChange damageChange;
         public override List<Plugin.Weapon> WeaponRequirements => new List<Plugin.Weapon>() { Plugin.Weapon.Arm };
@@ -357,19 +380,21 @@ namespace Ultrarogue.Items
 
         public override void OnUpdate(int count)
         {
-            damageChange.damageChange.percentage = 0.5f * count;
+            damageChange.damageChange.percentage = DamagePerStack * count;
         }
 
         public override void OnRemoval()
         {
             damageChange.damageChange.percentage = 0;
-        } 
+        }
     }
 
     public class SpeedLoader : BaseItem
     {
+        const float DamagePerStack = 0.35f;
+
         public override string ItemName => "Heavy Loader";
-        public override string itemDescription => "Revolver damage +35%";
+        public override string itemDescription => $"Revolver damage +{DamagePerStack * 100}%";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         DamageChange damageChange;
         public override List<Plugin.Weapon> WeaponRequirements => new List<Plugin.Weapon>() { Plugin.Weapon.Revolver };
@@ -381,7 +406,7 @@ namespace Ultrarogue.Items
 
         public override void OnUpdate(int count)
         {
-            damageChange.damageChange.percentage = 0.35f * count;
+            damageChange.damageChange.percentage = DamagePerStack * count;
         }
 
         public override void OnRemoval()
@@ -392,8 +417,10 @@ namespace Ultrarogue.Items
 
     public class RunningShoes : BaseItem
     {
+        const float SpeedPerStack = 0.2f;
+
         public override string ItemName => "Running Shoes";
-        public override string itemDescription => "Move speed +20%";
+        public override string itemDescription => $"Move speed +{SpeedPerStack * 100}%";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Utility };
         Change moveChange;
 
@@ -405,7 +432,7 @@ namespace Ultrarogue.Items
 
         public override void OnUpdate(int count)
         {
-            moveChange.percentage = 0.2f * count;
+            moveChange.percentage = SpeedPerStack * count;
         }
 
         public override void OnRemoval()
@@ -416,8 +443,10 @@ namespace Ultrarogue.Items
 
     public class APRounds : BaseItem
     {
+        const float DamagePerStack = 0.15f;
+
         public override string ItemName => "AP Rounds";
-        public override string itemDescription => "Railcannon damage +15%";
+        public override string itemDescription => $"Railcannon damage +{DamagePerStack * 100}%";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         DamageChange damageChange;
         public override List<Plugin.Weapon> WeaponRequirements => new List<Plugin.Weapon>() { Plugin.Weapon.Railcannon };
@@ -429,7 +458,7 @@ namespace Ultrarogue.Items
 
         public override void OnUpdate(int count)
         {
-            damageChange.damageChange.percentage = 0.15f * count;
+            damageChange.damageChange.percentage = DamagePerStack * count;
         }
 
         public override void OnRemoval()
@@ -440,8 +469,10 @@ namespace Ultrarogue.Items
 
     public class LooseNails : BaseItem
     {
+        const float DamagePerStack = 0.25f;
+
         public override string ItemName => "Loose Nails";
-        public override string itemDescription => "Nailgun damage +25%";
+        public override string itemDescription => $"Nailgun damage +{DamagePerStack * 100}%";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         DamageChange damageChange;
         public override List<Plugin.Weapon> WeaponRequirements => new List<Plugin.Weapon>() { Plugin.Weapon.Nailgun };
@@ -453,7 +484,7 @@ namespace Ultrarogue.Items
 
         public override void OnUpdate(int count)
         {
-            damageChange.damageChange.percentage = 0.25f * count;
+            damageChange.damageChange.percentage = DamagePerStack * count;
         }
 
         public override void OnRemoval()
@@ -464,8 +495,11 @@ namespace Ultrarogue.Items
 
     public class PogoStick : BaseItem
     {
+        const float JumpHeightPerStack = 0.05f;
+        const float SlamDamagePerStack = 0.5f;
+
         public override string ItemName => "Pogo Stick";
-        public override string itemDescription => "Jump Height +5% and slam damage +50%";
+        public override string itemDescription => $"Jump Height +{JumpHeightPerStack * 100}% and slam damage +{SlamDamagePerStack * 100}%";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Utility };
         Change jumpChange;
 
@@ -479,7 +513,7 @@ namespace Ultrarogue.Items
                 int count = Plugin.GetItemCount(this);
                 if (count <= 0) return 1f;
 
-                if (eid.hitter == "ground slam") return 1f + (0.5f * count);
+                if (eid.hitter == "ground slam") return 1f + (SlamDamagePerStack * count);
 
                 return 1f;
             });
@@ -487,7 +521,7 @@ namespace Ultrarogue.Items
 
         public override void OnUpdate(int count)
         {
-            jumpChange.percentage = 0.05f * count;
+            jumpChange.percentage = JumpHeightPerStack * count;
         }
 
         public override void OnRemoval()
@@ -498,8 +532,10 @@ namespace Ultrarogue.Items
 
     public class IronSights : BaseItem
     {
+        const float DamagePerStack = 0.12f;
+
         public override string ItemName => "Iron Sights";
-        public override string itemDescription => "+12% damage per stack";
+        public override string itemDescription => $"+{DamagePerStack * 100}% damage per stack";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         Change dmgChange;
 
@@ -511,7 +547,7 @@ namespace Ultrarogue.Items
 
         public override void OnUpdate(int count)
         {
-            dmgChange.percentage = 0.12f * count;
+            dmgChange.percentage = DamagePerStack * count;
         }
 
         public override void OnRemoval()
@@ -522,8 +558,10 @@ namespace Ultrarogue.Items
 
     public class GuttertankHand : BaseItem
     {
+        const float DamagePerStack = 0.22f;
+
         public override string ItemName => "Gutter tank Hand";
-        public override string itemDescription => "Rocket Launcher damage +22%";
+        public override string itemDescription => $"Rocket Launcher damage +{DamagePerStack * 100}%";
         public override List<ItemTag> itemTags => new List<ItemTag>() { ItemTag.Damage };
         DamageChange damageChange;
         public override List<Plugin.Weapon> WeaponRequirements => new List<Plugin.Weapon>() { Plugin.Weapon.RocketLauncher };
@@ -535,7 +573,7 @@ namespace Ultrarogue.Items
 
         public override void OnUpdate(int count)
         {
-            damageChange.damageChange.percentage = 0.22f * count;
+            damageChange.damageChange.percentage = DamagePerStack * count;
         }
 
         public override void OnRemoval()
@@ -546,9 +584,11 @@ namespace Ultrarogue.Items
 
     public class Test : ActiveItem
     {
+        const float DamageBonus = 0.50f;
+
         public override string ItemName => "Damage Book";
         public override int ChargeRequired => 3;
-        public override string itemDescription => "On activation, gain 50% damage temporarily (resets when exiting combat).";
+        public override string itemDescription => $"On activation, gain {DamageBonus * 100}% damage temporarily (resets when exiting combat).";
         Change change = new Change();
         PlayerChange plr;
         public override void OnStart()
@@ -562,7 +602,7 @@ namespace Ultrarogue.Items
 
         public override void OnUse()
         {
-            change.percentage = 0.50f;
+            change.percentage = DamageBonus;
         }
         public override void OnUpdate(int count)
         {
