@@ -758,7 +758,7 @@ public class ItemTooltip : MonoBehaviour
     }
 }
 
-public class ItemHoverHandler : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+public class ItemHoverHandler : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerDownHandler
 {
     public BaseItem Item { get; set; }
 
@@ -772,6 +772,15 @@ public class ItemHoverHandler : MonoBehaviour, IPointerEnterHandler, IPointerExi
         string name = string.IsNullOrEmpty(Item.NameDisplayOverride) ? Item.ItemName : Item.NameDisplayOverride;
         ItemTooltip.Instance.Show(name, desc, eventData.position);
     }
+
+    public void OnPointerDown(PointerEventData eventData)
+	{
+		if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+		{
+			this.OnPointerExit(eventData); // prevent the label from getting stuck
+			Plugin.RemoveItem(this.Item, 1);
+		}
+	}
 
     public void OnPointerExit(PointerEventData eventData)
     {
