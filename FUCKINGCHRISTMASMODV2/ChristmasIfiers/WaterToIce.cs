@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -32,6 +31,16 @@ namespace FUCKINGCHRISTMASMOD.ChristmasIfiers
                 }
 
                 item.gameObject.AddComponent<CustomGroundProperties>().friction = 0;
+
+                foreach (var item1 in item.GetComponentsInChildren<ParticleSystem>(true))
+                {
+                    Object.Destroy(item1.gameObject); // no particles
+                }
+
+                foreach (var item1 in item.GetComponentsInChildren<AudioSource>(true))
+                {
+                    Object.Destroy(item1.gameObject); // no audio
+                }
             }
 
         }

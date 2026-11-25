@@ -109,5 +109,12 @@ namespace FUCKINGCHRISTMASMOD
 
             return Addressables.LoadAssetAsync<Material>(pathToAddressables + name).WaitForCompletion();
         }
+
+        public static AudioClip LoadSound(string name)
+        {
+            string pathToAddressables = "Assets/Modding/Christmas/";
+
+            return Addressables.LoadAssetAsync<AudioClip>(pathToAddressables + name).WaitForCompletion();
+        }
     }
 }

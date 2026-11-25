@@ -7,6 +7,8 @@ using UnityEngine.SceneManagement;
 
 namespace FUCKINGCHRISTMASMOD.ChristmasIfiers
 {
+
+    [HarmonyPatch]
     public class SceneChanger
     {
         public static Light mainLight;
@@ -28,15 +30,54 @@ namespace FUCKINGCHRISTMASMOD.ChristmasIfiers
         public static float fogDensity = 0.02f;
         public static void Init()
         {
-
-            SceneManager.sceneLoaded += SceneManager_sceneLoaded;
+            MaterialSwapper.OnFinish += Done;
         }
 
-        private static void SceneManager_sceneLoaded(Scene arg0, LoadSceneMode arg1)
+        private static void Done()
+        {
+            Setup();
+
+            HurtZone[] hurtZones = Object.FindObjectsOfType<HurtZone>(true);
+            foreach (var zone in hurtZones)
+            {
+                if(zone.damageType == EnviroDamageType.Burn || zone.damageType == EnviroDamageType.WeakBurn)
+                {
+                    Object.Destroy(zone); // No More ZONE
+                }
+            }
+
+            ExplosionController[] controllers = Object.FindObjectsByType<ExplosionController>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            foreach (var con in controllers)
+            {
+                if (con.gameObject.name.ToLower().Contains("fire"))
+                {
+                    Object.Destroy(con.gameObject); // no more fire
+                }
+            }
+
+            ItemIdentifier[] items = Object.FindObjectsByType<ItemIdentifier>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            foreach (var item in items)
+            {
+                Transform skul = item.transform.Find("NewSkull");
+
+                if(skul != null)
+                {
+                    GameObject cookies = Object.Instantiate(Plugin.SkullReplacer, item.transform);
+                    Object.Destroy(skul.gameObject);
+                }
+            }
+        }
+
+        public static void Setup()
         {
             SetupFog();
             SetupAmbientLighting();
             SetupMainLighting();
+        }
+
+        public static void Update()
+        {
+            Setup();
         }
 
         private static void SetupFog()
@@ -84,8 +125,8 @@ namespace FUCKINGCHRISTMASMOD.ChristmasIfiers
             }
         }
 
-        [HarmonyPrefix]
-        [HarmonyPatch("Activate")]
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(TimeOfDayChanger), "Activate")]
         private static void ActivatePostfix(TimeOfDayChanger __instance)
         {
             __instance.fogColor = fogColor;
@@ -100,6 +141,34 @@ namespace FUCKINGCHRISTMASMOD.ChristmasIfiers
                 val.color = mainLightColor;
                 val.intensity = mainLightIntensity;
             }
+        }
+    }
+
+    [HarmonyPatch(typeof(PrefsManager))]
+    public class DontHaveHeat
+    {
+        [HarmonyPatch(nameof(PrefsManager.GetBoolLocal))]
+        [HarmonyPostfix]
+        public static void Local(ref bool __result, string key, bool fallback = false)
+        {
+            if(key == "disableHeatwaves") __result = true; // always return true if heatwave disabling
+        }
+        [HarmonyPatch(nameof(PrefsManager.GetBool))]
+        [HarmonyPostfix]
+        public static void GlobalIG(ref bool __result, string key, bool fallback = false)
+        {
+            if(key == "disableHeatwaves") __result = true; // always return true if heatwave disabling
+        }
+    }
+
+    [HarmonyPatch(typeof(ShopZone))]
+    public class CoolMusic
+    {
+        [HarmonyPatch(nameof(ShopZone.Start))]
+        [HarmonyPostfix]
+        public static void musice(ShopZone __instance)
+        {
+            __instance.music.clip = Plugin.ChristmasMusic;
         }
     }
 }

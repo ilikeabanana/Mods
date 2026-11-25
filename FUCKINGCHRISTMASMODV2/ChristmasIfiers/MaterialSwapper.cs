@@ -12,6 +12,7 @@ namespace FUCKINGCHRISTMASMOD.ChristmasIfiers
     {
         public static Material snow;
         public static Material ice;
+        public static Material iceLight;
 
         public static UnityAction OnFinish;
 
@@ -22,7 +23,8 @@ namespace FUCKINGCHRISTMASMOD.ChristmasIfiers
         /// Tornado: vortex in 5-4
         /// Vein and Flesh: to turn gluttony into an icy enviroment
         /// </summary>
-        static readonly string[] waterNames = { "water", "mulch", "corpses", "tornado", "mouth", "flesh", "vein", "minced", "faces" };
+        static readonly string[] waterNames = { "water", "mulch", "corpses", "tornado", "mouth", "flesh", "vein", "minced", "faces", "lava", "acid" };
+        static readonly string[] glassNames = { "glass" };
 
         /// <summary>
         /// Anything fleshy. These get Plugin.ThickestIce instead of regular ice.
@@ -33,6 +35,7 @@ namespace FUCKINGCHRISTMASMOD.ChristmasIfiers
         {
             snow = Addressables.LoadAssetAsync<Material>("Assets/Materials/Snow.mat").WaitForCompletion(); // Load the snow
             ice = Addressables.LoadAssetAsync<Material>("Assets/Materials/IceThicker.mat").WaitForCompletion(); // Load the ice
+            iceLight = Addressables.LoadAssetAsync<Material>("Assets/Materials/Ice.mat").WaitForCompletion(); // Load the ice
             SceneManager.sceneLoaded += SceneManager_sceneLoaded;
         }
 
@@ -54,7 +57,19 @@ namespace FUCKINGCHRISTMASMOD.ChristmasIfiers
             {
                 ReplaceObjectMaterial(obj);
             }
+
+            StatueFake[] allStatues = Object.FindObjectsByType<StatueFake>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            foreach (var statue in allStatues)
+            {
+                ReplaceStatue(statue.gameObject);
+            }
             OnFinish?.Invoke();
+        }
+
+        public static void ReplaceStatue(GameObject stat)
+        {
+            stat.transform.Find("Cerberus").GetComponent<Renderer>().material = ice;
+            stat.transform.Find("Cerberus_Fused").GetComponent<Renderer>().material = ice;
         }
 
         static bool NameContainsAny(string name, string[] keywords)
@@ -72,6 +87,7 @@ namespace FUCKINGCHRISTMASMOD.ChristmasIfiers
         static bool isWaterName(string name) => NameContainsAny(name, waterNames);
 
         static bool isFleshName(string name) => NameContainsAny(name, fleshNames);
+        static bool isGlassName(string name) => NameContainsAny(name, glassNames);
 
         public static bool isWater(GameObject obj)
         {
@@ -103,6 +119,17 @@ namespace FUCKINGCHRISTMASMOD.ChristmasIfiers
             return false;
         }
 
+        public static bool isFlesh(Renderer rend)
+        {
+            if (rend == null) return false;
+
+            foreach (var mat in rend.sharedMaterials)
+            {
+                if (isFlesh(mat)) return true;
+            }
+            return false;
+        }
+
         public static bool isFlesh(GameObject obj)
         {
             if (obj == null) return false;
@@ -120,8 +147,42 @@ namespace FUCKINGCHRISTMASMOD.ChristmasIfiers
             return isFleshName(mat.name);
         }
 
+        public static bool isGlass(Renderer rend)
+        {
+            if (rend == null) return false;
+
+            foreach (var mat in rend.sharedMaterials)
+            {
+                if (isGlass(mat)) return true;
+            }
+            return false;
+        }
+
+        public static bool isGlass(GameObject obj)
+        {
+            if (obj == null) return false;
+
+            if (isGlassName(obj.name)) return true;
+
+            return obj.transform.parent != null
+                && isGlassName(obj.transform.parent.gameObject.name);
+        }
+
+        public static bool isGlass(Material mat)
+        {
+            if (mat == null) return false;
+
+            return isGlassName(mat.name);
+        }
+
+        const string StatueName = "Statue";
+
         public static void ReplaceObjectMaterial(GameObject obj)
         {
+            if (obj.name.StartsWith(StatueName) && obj.transform.Find("CerberusStatic") != null)
+            {
+                ReplaceStatue(obj.transform.Find("CerberusStatic").gameObject);
+            }
             if (Plugin.IgnoreObject(obj)) return;
             Renderer rend = obj.GetComponent<Renderer>();
             obj.isStatic = false; // yeh
@@ -131,9 +192,10 @@ namespace FUCKINGCHRISTMASMOD.ChristmasIfiers
             bool water = isWater(obj);
             bool flesh = isFlesh(obj);
 
-            if (water || isWater(rend))
+            if (water || flesh || isFlesh(rend) || isWater(rend))
             {
                 if (obj.TryGetComponent<ScrollingTexture>(out var tex)) Object.Destroy(tex);
+                if (obj.TryGetComponent<AnimatedTexture>(out var anim)) Object.Destroy(anim);
             }
 
             ReplaceMaterial(rend, water, flesh);
@@ -141,7 +203,7 @@ namespace FUCKINGCHRISTMASMOD.ChristmasIfiers
 
         const string SurfaceTypeProp = "_SurfaceType";
 
-        const int SnowSurfaceType = 0;
+        const int SnowSurfaceType = 20;
 
         static void SetSurfaceTypeSnow(Material mat)
         {
@@ -169,6 +231,12 @@ namespace FUCKINGCHRISTMASMOD.ChristmasIfiers
                 if (water || isWater(original[i]))
                 {
                     mats[i] = ice;
+                    continue;
+                }
+
+                if (isGlass(original[i]))
+                {
+                    mats[i] = iceLight;
                     continue;
                 }
 
